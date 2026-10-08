@@ -4,7 +4,7 @@
     "dev": "vite --host 127.0.0.1",
     "dev:lan": "node scripts/dev-lan.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "npm run typecheck && vite build && tsup apps/server/src/index.ts --format esm --out-dir apps/server/dist --external ws",
+    "build": "npm run typecheck && vite build && node scripts/cache-manifest.mjs && tsup apps/server/src/index.ts --format esm --out-dir apps/server/dist --external ws",
     "start:lan": "node apps/server/dist/index.js",
     "test": "vitest run",
     "test:browser": "node scripts/test-browser.mjs",

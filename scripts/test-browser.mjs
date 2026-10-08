@@ -4,5 +4,7 @@ import {spawnSync} from 'node:child_process';
 const bundled=join(process.env.USERPROFILE??'', '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe');
 const local=join(process.cwd(),'.venv/Scripts/python.exe');
 const executable=process.env.EMPIRE_PYTHON||(existsSync(local)?local:existsSync(bundled)?bundled:'python');
+const fixtures=spawnSync(process.execPath,['--import','tsx','tests/browser-fixtures.ts'],{stdio:'inherit'});
+if(fixtures.status!==0)process.exit(fixtures.status??1);
 const result=spawnSync(executable,['tests/browser_smoke.py'],{stdio:'inherit'});
 if(result.error)console.error(result.error.message);process.exit(result.status??1);

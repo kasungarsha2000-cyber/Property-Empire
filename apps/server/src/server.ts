@@ -18,7 +18,7 @@ const messageSchema=z.union([
  z.object({type:z.literal('RESUME'),code,token:z.string().regex(/^[a-f0-9]{64}$/)}).strict(),
  z.object({type:z.literal('READY'),ready:z.boolean()}).strict(),
  z.object({type:z.literal('CONFIG'),botCount,difficulty,config:settings}).strict(),
- z.object({type:z.enum(['START','SYNC','LEAVE','PING'])}).strict(),
+ z.object({type:z.enum(['START','SYNC','SAVE','LEAVE','PING'])}).strict(),
  z.object({type:z.literal('ACTION'),id:z.string().min(1).max(64),revision:z.number().int().min(0),action:actionSchema}).strict()
 ]);
 const hash=(secret:string)=>createHash('sha256').update(secret).digest('hex');
@@ -28,7 +28,7 @@ export async function startServer(options:ServerOptions={}){
  let writes=Promise.resolve(),closed=false;
  const send=(ws:WebSocket|null,v:unknown)=>{if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify(v));};
  function publicRoom(r:Room){return{code:r.code,host:r.host,config:r.config,started:!!r.game,members:r.members.map(m=>({id:m.id,name:m.name,token:m.token,bot:m.bot,difficulty:m.difficulty,ready:m.ready,connected:m.bot||m.socket?.readyState===WebSocket.OPEN}))};}
- function persist(r:Room){const data=JSON.stringify({version:1,code:r.code,host:r.host,config:r.config,game:r.game,members:r.members.map(({socket,...m})=>m)});const target=join(saveDir,`${r.code}.json`);writes=writes.then(async()=>{await writeFile(target+'.tmp',data,'utf8');await copyFile(target,target+'.bak').catch(()=>{});await rename(target+'.tmp',target);}).catch(e=>{console.error('Save failed:',e.message);r.members.forEach(m=>send(m.socket,{type:'ERROR',error:'Host save failed. Check disk space and data/saves permissions.'}));});}
+ function persist(r:Room){const data=JSON.stringify({version:1,code:r.code,host:r.host,config:r.config,game:r.game,members:r.members.map(({socket,...m})=>m)});const target=join(saveDir,`${r.code}.json`);const task=writes.then(async()=>{await writeFile(target+'.tmp',data,'utf8');await copyFile(target,target+'.bak').catch(()=>{});await rename(target+'.tmp',target);});writes=task.catch(e=>{console.error('Save failed:',e.message);r.members.forEach(m=>send(m.socket,{type:'ERROR',error:'Host save failed. Check disk space and data/saves permissions.'}));});return task.then(()=>true,()=>false);}
  function broadcast(r:Room,withState=true){for(const m of r.members){send(m.socket,{type:'ROOM',room:publicRoom(r)});if(withState&&r.game)send(m.socket,{type:'STATE',game:r.game});}persist(r);schedule(r);}
  function schedule(r:Room){if(r.timer){clearTimeout(r.timer);r.timer=null;}if(closed||!r.game||r.game.phase==='ended')return;const who=actionPlayer(r.game),member=r.members.find(m=>m.id===who);if(!member?.bot)return;r.timer=setTimeout(()=>{r.timer=null;try{const decision=botDecision(r.game!);if(decision){r.game=applyAction(r.game!,decision.playerId,decision.action);broadcast(r);}}catch(e){console.error('Bot stopped:',e instanceof Error?e.message:'unknown');r.members.forEach(m=>send(m.socket,{type:'ERROR',error:'Bot could not continue. The host save is retained.'}));}},options.botDelay??550);}
  for(const file of(await readdir(saveDir)).filter(f=>/^[A-Z0-9]{6}\.json$/.test(f))){try{const data=JSON.parse(await readFile(join(saveDir,file),'utf8'));if(data.version!==1||!Array.isArray(data.members)||data.members.length>8)continue;const game=data.game?validateGame(data.game):null;const members:Member[]=data.members.map((m:any)=>({id:z.string().min(1).max(64).parse(m.id),name:name.parse(m.name),token:token.parse(m.token),bot:z.boolean().parse(m.bot),difficulty:difficulty.parse(m.difficulty),ready:z.boolean().parse(m.ready),secretHash:z.string().regex(/^[a-f0-9]{64}$/).parse(m.secretHash),socket:null}));if(!members.some(m=>m.id===data.host)||new Set(members.map(m=>m.id)).size!==members.length)continue;if(game&&game.players.some(p=>!members.some(m=>m.id===p.id)))continue;rooms.set(code.parse(data.code),{code:data.code,host:data.host,members,game,config:{startingCash:1500,turnLimit:0,jackpot:false,...settings.parse(data.config)},seen:new Set(),timer:null});}catch{console.warn('Ignored incompatible host save:',file);}}
@@ -49,6 +49,7 @@ export async function startServer(options:ServerOptions={}){
   }
   if(!conn)throw new Error('Join a room first');const {room:r,member:p}=conn;
   if(m.type==='SYNC'){send(ws,{type:'ROOM',room:publicRoom(r)});if(r.game)send(ws,{type:'STATE',game:r.game});return;}
+  if(m.type==='SAVE'){void persist(r).then(ok=>{if(ok)send(ws,{type:'SAVED'});});return;}
   if(m.type==='LEAVE'){detach(ws,true);send(ws,{type:'LEFT'});return;}
   if(m.type==='READY'){if(r.game)throw new Error('The match has already started');p.ready=m.ready;broadcast(r,false);return;}
   if(m.type==='CONFIG'){if(r.host!==p.id||r.game)throw new Error('Only the lobby host can change settings');bots(r,m.botCount,m.difficulty);r.config={...r.config,...m.config};r.members.filter(v=>!v.bot&&v.id!==r.host).forEach(v=>v.ready=false);broadcast(r,false);return;}

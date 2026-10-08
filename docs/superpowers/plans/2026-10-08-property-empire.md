@@ -19,28 +19,28 @@ Corrupt saves cannot crash or silently replace a current game. Reconnect restore
 ### Task 1: Shared rules and bots
 Files: packages/core/{board,types,engine,bots,validation}.ts; tests/core.test.ts.
 Produces createGame(config,seed):Game, applyAction(game,playerId,action):Game, botDecision(game):{playerId,action}|null and validateGame(value):Game.
-- [ ] Write failing tests for turn ownership, purchase/rent, auctions, even building, mortgages, trades, debt, jail and seeded full matches.
-- [ ] Run `npm test`; inspect the missing-feature failures.
-- [ ] Implement data, command reducer, decks, constraints and heuristic bots.
-- [ ] Run `npm test`; correct actual failures.
+- [x] Write failing tests for turn ownership, purchase/rent, auctions, even building, mortgages, trades, debt, jail and seeded full matches.
+- [x] Run `npm test`; inspect the missing-feature failures.
+- [x] Implement data, command reducer, decks, constraints and heuristic bots.
+- [x] Run `npm test`; correct actual failures.
 
 ### Task 2: Authoritative LAN server
 Files: apps/server/src/{server,index}.ts; tests/server.test.ts; scripts/dev-lan.mjs.
 Consumes core commands and validation; exposes startServer({port,host,saveDir}) and WS /ws.
-- [ ] Write and run failing real-client create/join/start/action/reconnect tests.
-- [ ] Implement rooms, session tokens, readiness, bots, disk resume, origin/size/rate limits and unique command IDs.
-- [ ] Run real WS tests, ensure synchronized revisions and identity enforcement.
+- [x] Write and run failing real-client create/join/start/action/reconnect tests.
+- [x] Implement rooms, session tokens, readiness, bots, disk resume, origin/size/rate limits and unique command IDs.
+- [x] Run real WS tests, ensure synchronized revisions and identity enforcement.
 
 ### Task 3: Browser experience
 Files: apps/web/{index.html,public/sw.js,src/{main,board-view,storage,network,styles}}.
 Consumes core and canonical LAN snapshots.
-- [ ] Write browser journeys for menu, solo, roll, purchase/auction, save/resume, room invite and mobile layout.
-- [ ] Implement tactile board, animated dice/pawns, responsive DOM controls, accessible dialogs, settings and local fonts.
-- [ ] Implement IndexedDB persistence and local asset caching; reconnecting WS client.
-- [ ] Run Chrome journeys and inspect desktop/mobile screenshots.
+- [x] Write browser journeys for menu, solo, roll, purchase/auction, save/resume, room invite and mobile layout.
+- [x] Implement tactile board, animated dice/pawns, responsive DOM controls, accessible dialogs, settings and local fonts.
+- [x] Implement IndexedDB persistence and local asset caching; reconnecting WS client.
+- [x] Run Chrome journeys and inspect desktop/mobile screenshots.
 
 ### Task 4: Delivery and review
 Files: README.md and docs/{PROGRESS,BUILD_STATUS,TEST_RESULTS,BLOCKERS,NEXT_STEPS}.md.
-- [ ] Run `npm run check` and production-browser journeys.
-- [ ] Review complete implementation, resolve important defects, rerun affected checks.
-- [ ] Write exact solo/LAN launch commands and verified URLs. Record physical-device limits accurately.
+- [x] Run `npm run check` and production-browser journeys.
+- [x] Review complete implementation, resolve important defects, rerun affected checks.
+- [x] Write exact solo/LAN launch commands and verified URLs. Record physical-device limits accurately.
