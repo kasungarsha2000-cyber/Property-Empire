@@ -22,6 +22,12 @@ Screenshots: menu and match desktop 1440×960; mobile 390×844; tablet 768×1024
 
 Strict TypeScript check passed. Vite static frontend build passed. Offline precache manifest generated. Node ESM bundle build passed. Final full npm audit: zero vulnerabilities.
 
+## Graphics upgrade
+
+Graphics upgrade verification: the same 34 core/server tests and thirteen production browser journeys pass with the new renderer, including offline saved-game resume and two-client LAN. `tests/graphics_review.py` additionally exercises zoom/reset, all eight token choices, an eight-player match, visible WebGL rendering and layouts at 1440×960, 390×844, 375×812, 844×390 and 768×1024. No page exceptions or horizontal overflow were observed. Desktop/mobile screenshots were inspected visually. Independent review found token style reuse across games; replacing changed models and clearing prior animation paths resolved it. Gem geometry is shared across instances.
+
+Independent browser module checks confirmed replacement of changed token styles, removal of obsolete player IDs, cleared movement/dice animation on match replacement, valid dice opposite-face pairs, shared Gem geometry, and correct tile-center raycasts for all 40 spaces.
+
 ## Not executed
 
 Physical phones or tablets, real router/hotspot peer communication from another device, Firefox, Safari, real low-end GPU frame-rate/thermal measurements, HTTPS reverse proxy and remote production deployment. Local network URLs are detected from interfaces; these tests establish local process/browser behavior, not physical-device reachability.

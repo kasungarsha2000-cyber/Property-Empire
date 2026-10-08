@@ -23,3 +23,5 @@ Ruling: limited building stock is allocated in authoritative turn order. There i
 Final verification: npm test 34/34; strict TypeScript and both production builds passed; 13 Chrome journeys plus offline resume and additional responsive viewports passed with zero page exceptions; full npm audit zero vulnerabilities. HTTP and WebSocket ping succeeded via 192.168.1.222:3001 from this host. Independent reviewer also completed classic Easy-bot matches at four and eight players for seeds 12, 73 and 211.
 
 Delivery: production server left running on port 3001; browser panel requested; README, test report and Windows launcher supplied. Source kept on build/property-empire in this newly initialized repository.
+
+Graphics follow-up: replaced the placeholder city/pawns with a detailed tabletop board and eight miniature tokens; added filmic lighting, reflections, textured materials, rounded dice and responsive camera fitting. Production browser/offline verification passed after renderer changes. See GRAPHICS_UPGRADE.md for implementation and verification details.

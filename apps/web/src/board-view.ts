@@ -1,58 +1,174 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { BOARD,PLAYER_COLORS } from '../../../packages/core/board';
-import type {Game} from '../../../packages/core/types';
-import type {Settings} from './storage';
-const position=(i:number)=>{const edge=Math.floor(i/10),offset=i%10;return edge===0?new THREE.Vector3(5.5-offset*1.1,.42,5.5):edge===1?new THREE.Vector3(-5.5,.42,5.5-offset*1.1):edge===2?new THREE.Vector3(-5.5+offset*1.1,.42,-5.5):new THREE.Vector3(5.5,.42,-5.5+offset*1.1);};
+import { PLAYER_COLORS } from '../../../packages/core/board';
+import type { Game } from '../../../packages/core/types';
+import type { Settings } from './storage';
+import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
+
+type Movement = {points: THREE.Vector3[]; start: number; duration: number};
+
 export class BoardView {
- private scene=new THREE.Scene();private camera=new THREE.PerspectiveCamera(37,1,.1,100);private renderer:THREE.WebGLRenderer;private controls:OrbitControls;private tiles:THREE.Object3D[]=[];private owners:THREE.Mesh[]=[];private buildings=new THREE.Group();private tokens=new Map<string,THREE.Group>();private mats=new Map<string,THREE.MeshStandardMaterial>();private box=new RoundedBoxGeometry(1,1,1,2,.09);private sphere=new THREE.SphereGeometry(1,14,10);private cylinder=new THREE.CylinderGeometry(1,1,1,16);private cone=new THREE.ConeGeometry(1,1,4);private halo:THREE.Mesh;private selection:THREE.Mesh;private dice:THREE.Mesh[]=[];private diceTextures:THREE.CanvasTexture[]=[];private diceUntil=0;private dirty=true;private state:Game|null=null;private paths=new Map<string,{points:THREE.Vector3[];start:number;duration:number}>();private animationsEnd=0;private selected=-1;private settings:Settings;private lastSize='';private moneyLabels:HTMLElement[]=[];
- constructor(private element:HTMLElement,private onSelect:(index:number)=>void,settings:Settings){
-  this.settings=settings;this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,settings.quality==='low'?1:2));this.renderer.shadowMap.enabled=settings.quality!=='low';this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.setClearColor(0x000000,0);this.renderer.domElement.setAttribute('aria-label','3D city board. Drag to rotate, scroll or pinch to zoom. Use Properties to select a space by keyboard.');this.renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();element.insertAdjacentHTML('beforeend','<div class="context-error">3D graphics paused. Your game is saved. Reload to recover.</div>');});element.prepend(this.renderer.domElement);
-  this.scene.add(new THREE.HemisphereLight('#fff7e5','#b3b7c5',2.6));const light=new THREE.DirectionalLight('#fff8e9',3.2);light.position.set(3,16,9);light.castShadow=true;light.shadow.mapSize.set(1024,1024);Object.assign(light.shadow.camera,{left:-10,right:10,top:10,bottom:-10,near:1,far:35});light.shadow.bias=-.001;this.scene.add(light);
-  this.camera.position.set(13,16,17.5);this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.target.set(0,0,0);this.controls.enableDamping=true;this.controls.dampingFactor=.09;this.controls.enablePan=false;this.controls.minDistance=12;this.controls.maxDistance=40;this.controls.minPolarAngle=.2;this.controls.maxPolarAngle=Math.PI*.44;this.controls.addEventListener('change',()=>{this.dirty=true;this.animationsEnd=performance.now()+700;});
-  this.mesh(this.scene,this.box,'#BCA780',[13,.25,13],[0,-.12,0]);this.mesh(this.scene,this.box,'#D1C0A2',[12.8,.3,12.8],[0,.1,0]);this.mesh(this.scene,this.box,'#EFE4CB',[12.6,.12,12.6],[0,.28,0]);this.mesh(this.scene,this.box,'#E4DBC5',[9.7,.12,9.7],[0,.39,0]);
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.16}));floor.rotation.x=-Math.PI/2;floor.position.y=-.3;floor.receiveShadow=true;this.scene.add(floor);
-  BOARD.forEach(s=>{const p=position(s.index);const tile=new THREE.Group();tile.position.copy(p);tile.userData.index=s.index;const base=this.mesh(tile,this.box,'#FCF8EE',[1.025,.14,1.025],[0,0,0]);base.userData.index=s.index;this.tiles.push(base);const label=new THREE.Mesh(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({map:this.tileTexture(s.index),transparent:true}));label.rotation.x=-Math.PI/2;label.position.y=.078;if(s.index>10&&s.index<20)label.rotation.z=-Math.PI/2;if(s.index>20&&s.index<30)label.rotation.z=Math.PI;if(s.index>30)label.rotation.z=Math.PI/2;tile.add(label);const owner=this.mesh(tile,this.box,'#FCF8EE',[.8,.05,.10],[0,.11,.43]);this.owners.push(owner);this.scene.add(tile);});
-  this.city();this.scene.add(this.buildings);
-  this.halo=new THREE.Mesh(new THREE.RingGeometry(.36,.47,32),new THREE.MeshBasicMaterial({color:'#4B91D1',side:THREE.DoubleSide,transparent:true,opacity:.8}));this.halo.rotation.x=-Math.PI/2;this.scene.add(this.halo);
-  this.selection=new THREE.Mesh(new THREE.RingGeometry(.55,.61,4),new THREE.MeshBasicMaterial({color:'#EFB15E',side:THREE.DoubleSide}));this.selection.rotation.x=-Math.PI/2;this.selection.rotation.z=Math.PI/4;this.selection.visible=false;this.scene.add(this.selection);
-  for(let i=1;i<=6;i++)this.diceTextures.push(this.dieTexture(i));for(let i=0;i<2;i++){const mats=Array.from({length:6},(_,face)=>new THREE.MeshStandardMaterial({map:this.diceTextures[[3,2,0,5,1,4][face]],roughness:.6}));const die=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),mats);die.position.set(-.65+i*1.3,.91,2.6);die.castShadow=true;die.rotation.set(.05,0,.08);this.dice.push(die);this.scene.add(die);}
-  let down={x:0,y:0};this.renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});this.renderer.domElement.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>8)return;const rect=this.renderer.domElement.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),this.camera);const hit=ray.intersectObjects(this.tiles)[0];if(hit)this.onSelect(hit.object.userData.index);});
-  new ResizeObserver(()=>this.resize()).observe(element);this.resize();this.renderer.setAnimationLoop(()=>this.frame());
- }
- private material(color:string){let m=this.mats.get(color);if(!m){m=new THREE.MeshStandardMaterial({color,roughness:.75});this.mats.set(color,m);}return m;}
- private mesh(parent:THREE.Object3D,geometry:THREE.BufferGeometry,color:string,scale:number[],pos:number[]){const m=new THREE.Mesh(geometry,this.material(color));m.scale.set(scale[0],scale[1],scale[2]);m.position.set(pos[0],pos[1],pos[2]);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
- private tileTexture(index:number){const s=BOARD[index],c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d')!;ctx.fillStyle='#FCF8EE';ctx.fillRect(0,0,256,256);ctx.fillStyle=s.color;ctx.fillRect(0,0,256,s.price?43:16);ctx.fillStyle='#334153';ctx.textAlign='center';ctx.font='700 28px Nunito, sans-serif';const words=s.name.split(' ');let lines:string[]=[''];for(const word of words){const last=lines.length-1;if(ctx.measureText(lines[last]+' '+word).width>235)lines.push(word);else lines[last]+=(lines[last]?' ':'')+word;}lines.forEach((line,i)=>ctx.fillText(line,128,96+i*34));ctx.font='600 25px Nunito, sans-serif';ctx.fillStyle='#7c827c';ctx.fillText(s.price?`$${s.price}`:s.type==='go'?'+ $200':s.type==='tax'?`− $${s.amount}`:s.type==='chance'?'?':s.type==='community'?'City Fund':s.type==='parking'?'Take a break':s.type==='goJail'?'Go directly':'Just visiting',128,225);const map=new THREE.CanvasTexture(c);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;return map;}
- private dieTexture(value:number){const c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d')!;ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,128,128);ctx.fillStyle='#334153';const coords:Record<number,number[][]>={1:[[0,0]],2:[[-1,-1],[1,1]],3:[[-1,-1],[0,0],[1,1]],4:[[-1,-1],[1,-1],[-1,1],[1,1]],5:[[-1,-1],[1,-1],[0,0],[-1,1],[1,1]],6:[[-1,-1],[1,-1],[-1,0],[1,0],[-1,1],[1,1]]};coords[value].forEach(([x,y])=>{ctx.beginPath();ctx.arc(64+x*33,64+y*33,9,0,Math.PI*2);ctx.fill();});const map=new THREE.CanvasTexture(c);map.colorSpace=THREE.SRGBColorSpace;return map;}
- private city(){
-  this.mesh(this.scene,this.box,'#CDC8B6',[8,.04,.65],[0,.48,-.5]);this.mesh(this.scene,this.box,'#CDC8B6',[.65,.04,6],[.2,.48,-1]);
-  const houses=[[-3,-2,1.2,'#8CBAC8'],[-2,-3,1.9,'#E2B069'],[-.7,-2,2.2,'#84B299'],[1.4,-2.3,1.5,'#C79EB7'],[3,-1.7,1.8,'#99B3CD'],[-3.1,.25,.85,'#D5B48A'],[2.5,.35,.9,'#B3AECD']];
-  houses.forEach(([x,z,h,color])=>{const xx=x as number,zz=z as number,hh=h as number;this.mesh(this.scene,this.box,color as string,[.9,hh,.85],[xx,.5+hh/2,zz]);this.mesh(this.scene,this.box,'#FCF8EE',[1.02,.13,.97],[xx,.5+hh,zz]);for(let row=0;row<Math.floor(hh/.4);row++)for(let col=0;col<2;col++){this.mesh(this.scene,this.box,'#EBE5CD',[.19,.21,.025],[xx-.22+col*.44,.8+row*.4,zz+.437]);}});
-  for(const [x,z]of [[-3.7,-3.7],[3.8,-3.5],[-3.7,2.2],[3.7,2.3],[-1.4,-3.8],[1.6,-3.6]]){this.mesh(this.scene,this.cylinder,'#9C8160',[.08,.45,.08],[x,.7,z]);this.mesh(this.scene,this.sphere,'#7FAB86',[.4,.48,.4],[x,1.1,z]);}
-  const c=document.createElement('canvas');c.width=1024;c.height=350;const ctx=c.getContext('2d')!;ctx.textAlign='center';ctx.fillStyle='#566659';ctx.font='700 94px Fredoka, sans-serif';ctx.fillText('PROPERTY',512,110);ctx.font='700 112px Fredoka, sans-serif';ctx.fillText('EMPIRE',512,230);ctx.font='600 31px Nunito, sans-serif';ctx.fillStyle='#8B8D76';ctx.fillText('YOUR CITY. YOUR NEXT MOVE.',512,306);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const sign=new THREE.Mesh(new THREE.PlaneGeometry(5.5,1.9),new THREE.MeshBasicMaterial({map:tex,transparent:true}));sign.rotation.x=-Math.PI/2;sign.position.set(0,.52,1.15);this.scene.add(sign);
- }
- update(g:Game,animate=true){const old=this.state;this.state=g;const now=performance.now();if(old&&animate&&g.log.some(e=>e.id>old.eventSeq&&e.kind==='roll')&&this.settings.speed!=='reduced'){this.diceUntil=now+(this.settings.speed==='fast'?250:1000);}
-  this.dice.forEach((die,i)=>{(die.material as THREE.MeshStandardMaterial[])[2].map=this.diceTextures[g.dice[i]-1];(die.material as THREE.MeshStandardMaterial[])[2].needsUpdate=true;});
-  this.tokens.forEach((token,id)=>{if(!g.players.some(p=>p.id===id)){token.visible=false;this.paths.delete(id);}});
-  g.players.forEach((p,i)=>{let token=this.tokens.get(p.id);if(!token){token=new THREE.Group();const color=PLAYER_COLORS[p.token??i];this.mesh(token,this.cylinder,color,[.14,.11,.14],[0,.055,0]);this.mesh(token,this.cylinder,color,[.075,.25,.075],[0,.21,0]);this.mesh(token,this.sphere,color,[.15,.15,.15],[0,.42,0]);token.userData.offset=new THREE.Vector3((i%3-1)*.24,0,(Math.floor(i/3)-1)*.24);this.tokens.set(p.id,token);this.scene.add(token);}
-   token.visible=!p.bankrupt;const point=position(p.position).add(token.userData.offset);point.y=.6;const previous=old?.players.find(v=>v.id===p.id);if(previous&&previous.position!==p.position&&animate&&this.settings.speed!=='reduced'){
-    const teleport=p.jailed||g.log.some(e=>e.id>old!.eventSeq&&e.kind==='card');const steps=teleport?1:(p.position-previous.position+40)%40;const points=[token.position.clone()];for(let step=1;step<=steps;step++){const next=position(teleport?p.position:(previous.position+step)%40).add(token.userData.offset);next.y=.6;points.push(next);}const delay=this.diceUntil>now?this.diceUntil-now:0;this.paths.set(p.id,{points,start:now+delay,duration:steps*(this.settings.speed==='fast'?55:125)});
-   }else if(!this.paths.has(p.id))token.position.copy(point);
+ private scene = new THREE.Scene();
+ private camera = new THREE.PerspectiveCamera(40, 1, .1, 150);
+ private renderer: THREE.WebGLRenderer;
+ private controls: OrbitControls;
+ private assets = new SceneAssets();
+ private buildings = new Map<number, {level: number; group: THREE.Group}>();
+ private tokens = new Map<string, THREE.Group>();
+ private paths = new Map<string, Movement>();
+ private halo: THREE.Mesh;
+ private selection: THREE.Group;
+ private dice: THREE.Mesh[] = [];
+ private diceTextures: THREE.CanvasTexture[][] = [];
+ private diceUntil = 0;
+ private wasRolling = false;
+ private dirty = true;
+ private state: Game | null = null;
+ private lastSize = '';
+ private fitDistance = 28;
+ private viewDirection = new THREE.Vector3(12, 15, 16).normalize();
+ private settings: Settings;
+
+ constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
+  this.settings = settings;
+  this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, powerPreference: 'low-power'});
+  this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+  this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  this.renderer.toneMappingExposure = .95;
+  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  this.renderer.shadowMap.autoUpdate = false;
+  this.renderer.setClearColor(0x000000, 0);
+  this.renderer.domElement.setAttribute('aria-label', '3D city board. Drag to rotate, scroll or pinch to zoom. Use Properties to select a space by keyboard.');
+  this.renderer.domElement.addEventListener('webglcontextlost', event => {
+   event.preventDefault();
+   element.insertAdjacentHTML('beforeend', '<div class="context-error">3D graphics paused. Your game is saved. Reload to recover.</div>');
   });
-  this.owners.forEach((mesh,i)=>{const p=g.players.find(p=>p.id===g.properties[i].owner);mesh.material=this.material(p?g.properties[i].mortgaged?'#9B9993':PLAYER_COLORS[p.token??g.players.indexOf(p)]:'#FCF8EE');});
-  this.buildings.clear();g.properties.forEach((v,i)=>{if(!v.level)return;const point=position(i);if(v.level===5){this.mesh(this.buildings,this.box,'#DB7E75',[.6,.4,.35],[point.x,.78,point.z]);this.mesh(this.buildings,this.box,'#EEE7D8',[.64,.08,.4],[point.x,1.02,point.z]);}else for(let n=0;n<v.level;n++){const x=point.x-.3+n*.2;this.mesh(this.buildings,this.box,'#6DA886',[.16,.2,.2],[x,.68,point.z]);const roof=this.mesh(this.buildings,this.cone,'#507B62',[.16,.12,.16],[x,.85,point.z]);roof.rotation.y=Math.PI/4;}});
-  this.dirty=true;
+  element.prepend(this.renderer.domElement);
+  const environment = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(this.renderer);
+  this.scene.environment = pmrem.fromScene(environment, .04).texture;
+  this.scene.environmentIntensity = .40;
+  environment.dispose(); pmrem.dispose();
+  this.scene.add(new THREE.HemisphereLight('#FFF2DA', '#577A85', .65));
+  const key = new THREE.DirectionalLight('#FFF0CE', 1.8);
+  key.position.set(-3, 14, 7); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, {left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 35});
+  key.shadow.bias = -.00025; key.shadow.normalBias = .025; this.scene.add(key);
+  const fill = new THREE.DirectionalLight('#B8D8EA', .45);
+  fill.position.set(7, 6, -5); this.scene.add(fill);
+  this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+  this.controls.target.set(0, .8, 0);
+  this.controls.enableDamping = true; this.controls.dampingFactor = .09;
+  this.controls.enablePan = false; this.controls.minDistance = 8; this.controls.maxDistance = 55;
+  this.controls.minPolarAngle = .15; this.controls.maxPolarAngle = Math.PI * .43;
+  this.controls.addEventListener('change', () => { this.dirty = true; });
+  this.assets.buildBoard(this.scene); this.assets.buildCity(this.scene);
+  this.halo = new THREE.Mesh(new THREE.RingGeometry(.30, .35, 48), new THREE.MeshBasicMaterial({color: '#E9C37C', side: THREE.DoubleSide, transparent: true, opacity: .9}));
+  this.halo.rotation.x = -Math.PI / 2; this.halo.visible = false; this.scene.add(this.halo);
+  this.selection = new THREE.Group();
+  for (let side = 0; side < 4; side++) {
+   const line = this.assets.mesh(this.selection, this.assets.box, '#E8BC68', side % 2 ? [.035, .025, 1.08] : [1.08, .025, .035], side === 0 ? [0, 0, -.535] : side === 1 ? [.535, 0, 0] : side === 2 ? [0, 0, .535] : [-.535, 0, 0], 'metal', false);
+   (line as THREE.Mesh).material = new THREE.MeshBasicMaterial({color: '#EAC171'});
+  }
+  this.selection.visible = false; this.scene.add(this.selection);
+  const dieGeometry = new RoundedBoxGeometry(.75, .75, .75, 3, .095);
+  for (let i = 0; i < 2; i++) {
+   const textures = Array.from({length: 6}, (_, face) => diceTexture(face + 1, i === 1)); this.diceTextures.push(textures);
+   const materials = [3, 2, 0, 5, 1, 4].map(face => new THREE.MeshStandardMaterial({map: textures[face], roughness: .31, metalness: .06}));
+   const die = new THREE.Mesh(dieGeometry, materials);
+   die.position.set(-.48 + i * 1.26, 1.07, 3.5); die.castShadow = true; die.receiveShadow = true;
+   this.dice.push(die); this.scene.add(die);
+  }
+  let down = {x: 0, y: 0};
+  this.renderer.domElement.addEventListener('pointerdown', event => { down = {x: event.clientX, y: event.clientY}; });
+  this.renderer.domElement.addEventListener('pointerup', event => {
+   if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8) return;
+   const rect = this.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
+   ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
+   const hit = ray.intersectObjects(this.assets.tiles)[0]; if (hit) this.onSelect(hit.object.userData.index);
+  });
+  this.configure(settings);
+  new ResizeObserver(() => this.resize()).observe(element); this.resize();
+  document.fonts.ready.then(() => { this.assets.refreshTypography(); this.dirty = true; });
+  this.renderer.setAnimationLoop(() => this.frame());
  }
- select(index:number){this.selected=index;this.selection.visible=index>=0;if(index>=0){this.selection.position.copy(position(index));this.selection.position.y=.6;}this.dirty=true;}
- focus(index:number){const pos=position(index).multiplyScalar(.4);this.controls.target.set(pos.x,0,pos.z);this.dirty=true;}
- zoom(delta:number){this.camera.position.sub(this.controls.target).multiplyScalar(delta>0?.88:1.12).add(this.controls.target);this.controls.update();this.dirty=true;}
- reset(){this.controls.target.set(0,0,0);this.camera.position.set(13,16,17.5);this.controls.update();this.dirty=true;}
- configure(settings:Settings){this.settings=settings;this.renderer.setPixelRatio(Math.min(devicePixelRatio,settings.quality==='low'?1:settings.quality==='medium'?1.5:2));this.renderer.shadowMap.enabled=settings.quality!=='low';this.dirty=true;if(settings.speed==='reduced'){this.paths.clear();this.diceUntil=0;if(this.state)this.update(this.state,false);}}
- private resize(){const w=this.element.clientWidth,h=this.element.clientHeight;const key=`${w}-${h}`;if(w&&h&&key!==this.lastSize){this.lastSize=key;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=w/h<1?48:37;this.camera.updateProjectionMatrix();this.dirty=true;}}
- private frame(){if(document.hidden)return;const now=performance.now();let animating=now<this.animationsEnd||now<this.diceUntil||this.paths.size>0;this.controls.update();if(this.diceUntil>now){this.dice.forEach((die,i)=>{die.rotation.set(now*.008+i,now*.006,now*.011);die.position.y=.91+Math.abs(Math.sin(now*.009+i))*.6;});}else{this.dice.forEach(d=>{d.rotation.set(0,0,0);d.position.y=.91;});}
-  for(const [id,path]of this.paths){if(now<path.start)continue;const t=Math.min(1,(now-path.start)/path.duration),f=t*(path.points.length-1),index=Math.min(path.points.length-2,Math.floor(f)),local=f-index,token=this.tokens.get(id)!;token.position.lerpVectors(path.points[index],path.points[index+1],local);token.position.y+=Math.sin(local*Math.PI)*.18;if(t>=1)this.paths.delete(id);}
-  if(this.state){const p=this.state.players[this.state.current],token=this.tokens.get(p.id);if(token){this.halo.position.copy(token.position);this.halo.position.y=.57;this.halo.material=(this.halo.material as THREE.MeshBasicMaterial);(this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[p.token??this.state.current]);}}
-  if(this.dirty||animating){this.renderer.render(this.scene,this.camera);this.dirty=false;}
+
+ update(game: Game, animate = true) {
+  const old = this.state, now = performance.now(); this.state = game;
+  if (!animate) { this.paths.clear(); this.diceUntil = 0; }
+  if (old && animate && game.log.some(event => event.id > old.eventSeq && event.kind === 'roll') && this.settings.speed !== 'reduced') this.diceUntil = now + (this.settings.speed === 'fast' ? 250 : 950);
+  this.dice.forEach((die, i) => {
+   const value = game.dice[i], remaining = [1, 2, 3, 4, 5, 6].filter(face => face !== value && face !== 7 - value);
+   const first = remaining[0], second = remaining.find(face => face !== first && face !== 7 - first)!;
+   const faces = [first, 7 - first, value, 7 - value, second, 7 - second];
+   (die.material as THREE.MeshStandardMaterial[]).forEach((material, face) => { material.map = this.diceTextures[i][faces[face] - 1]; });
+  });
+  this.tokens.forEach((token, id) => { if (!game.players.some(player => player.id === id)) { this.scene.remove(token); this.tokens.delete(id); this.paths.delete(id); } });
+  game.players.forEach((player, i) => {
+   const style = player.token ?? i;
+   let token = this.tokens.get(player.id);
+   if (token && token.userData.style !== style) { this.scene.remove(token); this.tokens.delete(player.id); token = undefined; }
+   if (!token) { token = this.assets.makeToken(style, PLAYER_COLORS[style]); token.userData.style = style; this.tokens.set(player.id, token); this.scene.add(token); }
+   token.visible = !player.bankrupt;
+   const companions = game.players.filter(other => !other.bankrupt && other.position === player.position), slot = companions.indexOf(player);
+   const offset = companions.length > 1 ? new THREE.Vector3((slot % 3 - Math.min(2, companions.length - 1) / 2) * .34, 0, (Math.floor(slot / 3) - Math.floor((companions.length - 1) / 3) / 2) * .34) : new THREE.Vector3();
+   token.scale.setScalar(companions.length > 1 ? .73 : 1);
+   const point = spacePosition(player.position).add(offset); point.y = TOKEN_HEIGHT;
+   const previous = old?.players.find(other => other.id === player.id);
+   if (previous && previous.position !== player.position && animate && this.settings.speed !== 'reduced') {
+    const teleport = player.jailed || game.log.some(event => event.id > old!.eventSeq && event.kind === 'card');
+    const steps = teleport ? 1 : (player.position - previous.position + 40) % 40, points = [token.position.clone()];
+    for (let step = 1; step <= steps; step++) { const next = spacePosition(teleport ? player.position : (previous.position + step) % 40).add(offset); next.y = TOKEN_HEIGHT; points.push(next); }
+    this.paths.set(player.id, {points, start: Math.max(now, this.diceUntil), duration: steps * (this.settings.speed === 'fast' ? 55 : 125)});
+   } else if (!this.paths.has(player.id)) token.position.copy(point);
+  });
+  this.assets.owners.forEach((mesh, index) => {
+   const property = game.properties[index], player = game.players.find(other => other.id === property.owner); mesh.visible = !!player;
+   if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
+  });
+  game.properties.forEach((property, index) => {
+   const existing = this.buildings.get(index); if (existing?.level === property.level) return;
+   if (existing) { this.scene.remove(existing.group); this.buildings.delete(index); } if (!property.level) return;
+   const group = new THREE.Group(); group.position.copy(spacePosition(index)); group.position.y = .655; group.rotation.y = -Math.floor(index / 10) * Math.PI / 2;
+   const count = property.level === 5 ? 1 : property.level;
+   for (let n = 0; n < count; n++) { const house = this.assets.house(property.level); house.position.set(property.level === 5 ? 0 : (n - (count - 1) / 2) * .22, 0, -.26); group.add(house); }
+   this.scene.add(group); this.buildings.set(index, {level: property.level, group});
+  });
+  this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
+ }
+ select(index: number) { this.selection.visible = index >= 0; if (index >= 0) { this.selection.position.copy(spacePosition(index)); this.selection.position.y = .659; } this.dirty = true; }
+ focus(index: number) { const direction = this.camera.position.clone().sub(this.controls.target).normalize(); this.controls.target.copy(spacePosition(index)); this.camera.position.copy(this.controls.target).addScaledVector(direction, 12); this.controls.update(); this.dirty = true; }
+ zoom(delta: number) {
+  const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), 8, 55));
+  this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.dirty = true;
+ }
+ reset() { this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
+ configure(settings: Settings) {
+  this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
+  this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
+  if (settings.speed === 'reduced') { this.paths.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
+ }
+ private resize() {
+  const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return;
+  this.lastSize = key; this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+  // Fit the physical board to the available stage, including its corner-to-corner width.
+  const horizontal = new THREE.Vector3(this.viewDirection.z, 0, -this.viewDirection.x).normalize(), vertical = new THREE.Vector3().crossVectors(this.viewDirection, horizontal).normalize();
+  let required = 0; const tangent = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+  for (const x of [-6.7, 6.7]) for (const z of [-6.7, 6.7]) for (const y of [-.35, 1.1]) { const corner = new THREE.Vector3(x, y - .8, z), depth = corner.dot(this.viewDirection); required = Math.max(required, depth + Math.abs(corner.dot(horizontal)) / (tangent * this.camera.aspect), depth + Math.abs(corner.dot(vertical)) / tangent); }
+  this.fitDistance = required * 1.06; this.reset();
+ }
+ private frame() {
+  if (document.hidden) return;
+  const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0;
+  this.dice.forEach((die, i) => { if (rolling) { die.rotation.set(now * .008 + i, now * .006, now * .011); die.position.y = 1.07 + Math.abs(Math.sin(now * .009 + i)) * .65; } else { die.rotation.set(0, 0, 0); die.position.y = 1.07; } }); this.wasRolling = rolling;
+  for (const [id, path] of this.paths) {
+   if (now < path.start) continue;
+   const t = Math.min(1, (now - path.start) / path.duration), f = t * (path.points.length - 1), index = Math.min(path.points.length - 2, Math.floor(f)), local = f - index, token = this.tokens.get(id)!;
+   token.position.lerpVectors(path.points[index], path.points[index + 1], local); token.position.y += Math.sin(local * Math.PI) * .18; if (t >= 1) this.paths.delete(id);
+  }
+  if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
+  if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false; }
  }
 }
