@@ -42,3 +42,6 @@ Independent review found an incoming debt-trade explanation gap; its condition n
 
 
 2026-10-09 compact turn controls: 46 automated tests, strict TypeScript and production builds passed. All three production browser scripts and offline resume passed. Assertions confirm the initial roll control has one button and no large heading, roll messages render separately in the overview, and the waiting LAN player has no action bar. Purchase, auction, management, debt trade and incoming trade acceptance continue to work. Responsive checks passed with no page errors.
+
+
+2026-10-09 floating controls: removed the board's reserved bottom inset. Actions float above the full-height canvas; camera controls float at the upper right. Production build and TypeScript passed. Browser geometry checks confirm the canvas fills the stage and action buttons stay inside it at 1440×960, 390×844, 375×812, 844×390 and 768×1024. Rolling and purchase clicks succeeded; all ten ownership/trade browser journeys passed with no page errors. Desktop screenshot inspected.
