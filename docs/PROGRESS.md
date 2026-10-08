@@ -25,3 +25,6 @@ Final verification: npm test 34/34; strict TypeScript and both production builds
 Delivery: production server left running on port 3001; browser panel requested; README, test report and Windows launcher supplied. Source kept on build/property-empire in this newly initialized repository.
 
 Graphics follow-up: replaced the placeholder city/pawns with a detailed tabletop board and eight miniature tokens; added filmic lighting, reflections, textured materials, rounded dice and responsive camera fitting. Production browser/offline verification passed after renderer changes. See GRAPHICS_UPGRADE.md for implementation and verification details.
+
+
+Ownership/trading overhaul completed: a persistent district portfolio, owned/available deed filters, board owner names and Yours labels, ownership highlight toggle, missing-deed trade shortcut, illustrated give/receive selection, exact acceptance preview, edit/review/send steps, and incoming-offer comparison. Desktop actions fit the viewport and mobile puts the board first. Verification: 46 tests and production build passed; all three browser scripts (13 + 8 + 10 journeys) and offline resume passed with no page errors. Independent incoming debt explanation finding repaired with red/green regression. Production on port 3001 updated.

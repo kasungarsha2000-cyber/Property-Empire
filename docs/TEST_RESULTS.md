@@ -31,3 +31,11 @@ Independent browser module checks confirmed replacement of changed token styles,
 ## Not executed
 
 Physical phones or tablets, real router/hotspot peer communication from another device, Firefox, Safari, real low-end GPU frame-rate/thermal measurements, HTTPS reverse proxy and remote production deployment. Local network URLs are detected from interfaces; these tests establish local process/browser behavior, not physical-device reachability.
+
+## Ownership and trade UI overhaul
+
+Final `npm run check`: **46 tests passed** in four files, strict TypeScript and both production builds passed. Seven portfolio/trade regressions verify actual deed ownership, missing group members, exact mortgage transfer fees, completed groups, developed-group restrictions, cashless debt repayment, and incoming offer explanation with state immutability. The incoming debt explanation regression failed before the repair and passed afterward.
+
+Production `EMPIRE_URL=http://127.0.0.1:3001 EMPIRE_OFFLINE=1 npm run test:browser` passed all three sequential scripts: 13 baseline gameplay/LAN journeys plus offline reload; eight illustrated-deed journeys; ten ownership/trading journeys. The new journeys cover owned and bank filters, highlight toggle, missing-deed shortcut, disabled developed deeds, complete-set preview, review/edit preservation, actual bot acceptance, incoming offer comparison/acceptance, and responsive layouts. Zero page exceptions. Desktop turn controls fit within the 1440×960 viewport; narrow layouts have no horizontal overflow at 390×844, 375×812, 844×390 and 768×1024. Screenshots were visually inspected. SwiftShader rendering was additionally inspected after its initial draw and zoom; the board remains visible.
+
+Independent review found an incoming debt-trade explanation gap; its condition now covers debt-resuming incoming trades. Reviewer confirmed the repair and 7/7 helper tests; no unresolved material findings. Physical-device and other-browser limitations above still apply.

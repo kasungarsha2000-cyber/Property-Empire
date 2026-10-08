@@ -38,6 +38,14 @@ The server owns dice, actions and bot decisions. All human clients receive canon
 
 Host snapshots and previous backups are stored in `data/saves/` using atomic writes. Restarting the server loads compatible rooms. Players rejoin using their existing browser profile and original URL. **Save game** in LAN mode waits for a successful host write. A corrupt host snapshot is ignored with a console notice; a previous `.json.bak` can be restored by copying it over its matching `.json` with the server stopped.
 
+## Find your properties and make a trade
+
+**Your properties** groups your deeds by district, shows progress toward each color set, and labels mortgages and buildings. **Highlight mine on board** marks your spaces, and owned spaces show **Yours** on the board. Select an owned property to inspect and manage it. In **Properties**, use **Your properties** or **Available from bank** to filter the title deeds.
+
+If you are one deed short of a street group, the portfolio shows its name and owner. **Trade for this property** starts an offer with that deed selected. You can also choose **Trade** during your turn, before or after rolling or while resolving debt. Choose a player, select illustrated cards under **You give** and **You receive**, and enter cash or jail cards. Developed groups explain why their deeds cannot be selected.
+
+**Review trade** shows each player's items, cash after acceptance, mortgage transfer fees, debt repayment and any newly completed color sets. **Edit offer** preserves your selections; **Offer trade** sends it for the other player's decision. Incoming offers show the same comparison, with **Accept trade** and **Decline trade** beneath the board. Each turn permits one offer.
+
 ## Game rules
 
 - Original 40-space board, starting cash $1,500 and $200 salary for passing or landing on Start. Salary is awarded once per crossing.

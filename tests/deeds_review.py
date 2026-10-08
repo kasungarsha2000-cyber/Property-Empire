@@ -32,12 +32,12 @@ with sync_playwright() as p:
     expect(page.locator('#game-info')).to_contain_text('Ada')
     def select(name):
         page.get_by_role('button',name='Properties',exact=True).click()
-        page.get_by_role('button',name=name,exact=False).click()
+        page.get_by_role('dialog').get_by_role('button',name=name,exact=False).click()
         expect(page.locator('.title-deed')).to_be_visible()
     page.get_by_role('button',name='Properties',exact=True).click()
     expect(page.locator('.deed-preview')).to_have_count(28)
     page.screenshot(path=str(out/'deed-gallery-desktop.png'),full_page=True)
-    page.get_by_role('button',name='Copper Lane',exact=False).click()
+    page.get_by_role('dialog').get_by_role('button',name='Copper Lane',exact=False).click()
     expect(page.locator('.deed-figures')).to_contain_text('$4')
     expect(page.locator('.deed-rents .current-rent')).to_contain_text('Full color group')
     page.screenshot(path=str(out/'deed-copper-desktop.png'),full_page=True)
@@ -63,7 +63,7 @@ with sync_playwright() as p:
             page.locator('.title-deed').screenshot(path=str(out/'deed-mobile.png'))
             page.get_by_role('button',name='Properties',exact=True).click()
             page.screenshot(path=str(out/'deed-gallery-mobile.png'),full_page=True)
-            page.get_by_role('button',name='Copper Lane',exact=False).click()
+            page.get_by_role('dialog').get_by_role('button',name='Copper Lane',exact=False).click()
     assert not errors,errors
     print(json.dumps({'result':'PASS','deeds':28,'page_errors':errors,'flows':['illustrated gallery','color-group rent','mortgage status','station rent','utility multiplier','hotel rent','property focus','responsive layouts']}))
     browser.close()

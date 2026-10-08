@@ -30,6 +30,8 @@ export class BoardView {
  private fitDistance = 28;
  private viewDirection = new THREE.Vector3(12, 15, 16).normalize();
  private settings: Settings;
+ private viewerId:string|null=null;
+ private highlightMine=true;
 
  constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
   this.settings = settings;
@@ -130,6 +132,7 @@ export class BoardView {
    const property = game.properties[index], player = game.players.find(other => other.id === property.owner); mesh.visible = !!player;
    if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
   });
+  this.refreshOwnership();
   this.assets.landmarks.forEach((landmark,index)=>{landmark.visible=game.properties[index].level===0;});
   game.properties.forEach((property, index) => {
    const existing = this.buildings.get(index); if (existing?.level === property.level) return;
@@ -142,6 +145,15 @@ export class BoardView {
   this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
  }
  select(index: number) { this.selection.visible = index >= 0; if (index >= 0) { this.selection.position.copy(spacePosition(index)); this.selection.position.y = .659; } this.dirty = true; }
+ setViewer(id:string|null,highlight=true){this.viewerId=id;this.highlightMine=highlight;this.refreshOwnership();}
+ private refreshOwnership(){
+  if(!this.state)return;
+  this.assets.ownershipLabels.forEach((label,index)=>{
+   const owner=this.state!.players.find(player=>player.id===this.state!.properties[index].owner);label.visible=!!owner;
+   if(owner)label.material=this.assets.ownerLabel(owner.id===this.viewerId?'Yours':owner.name,PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)]);
+   this.assets.ownershipHighlights.get(index)!.visible=this.highlightMine&&!!this.viewerId&&owner?.id===this.viewerId;
+  });this.dirty=true;
+ }
  focus(index: number) { const direction = this.camera.position.clone().sub(this.controls.target).normalize(); this.controls.target.copy(spacePosition(index)); this.camera.position.copy(this.controls.target).addScaledVector(direction, 12); this.controls.update(); this.dirty = true; }
  zoom(delta: number) {
   const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), 8, 55));
