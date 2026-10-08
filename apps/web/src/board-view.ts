@@ -87,7 +87,9 @@ export class BoardView {
    if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8) return;
    const rect = this.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
    ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
-   const hit = ray.intersectObjects(this.assets.tiles)[0]; if (hit) this.onSelect(hit.object.userData.index);
+   const targets=[...this.assets.tiles,...Array.from(this.assets.landmarks.values()).filter(landmark=>landmark.visible),...Array.from(this.buildings.values(),entry=>entry.group)];
+   const hit = ray.intersectObjects(targets,true)[0];
+   if(hit){let object:THREE.Object3D|null=hit.object;while(object&&object.userData.index===undefined)object=object.parent;if(object)this.onSelect(object.userData.index);}
   });
   this.configure(settings);
   new ResizeObserver(() => this.resize()).observe(element); this.resize();
@@ -128,10 +130,11 @@ export class BoardView {
    const property = game.properties[index], player = game.players.find(other => other.id === property.owner); mesh.visible = !!player;
    if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
   });
+  this.assets.landmarks.forEach((landmark,index)=>{landmark.visible=game.properties[index].level===0;});
   game.properties.forEach((property, index) => {
    const existing = this.buildings.get(index); if (existing?.level === property.level) return;
    if (existing) { this.scene.remove(existing.group); this.buildings.delete(index); } if (!property.level) return;
-   const group = new THREE.Group(); group.position.copy(spacePosition(index)); group.position.y = .655; group.rotation.y = -Math.floor(index / 10) * Math.PI / 2;
+   const group = new THREE.Group(); group.userData.index=index;group.position.copy(spacePosition(index)); group.position.y = .655; group.rotation.y = -Math.floor(index / 10) * Math.PI / 2;
    const count = property.level === 5 ? 1 : property.level;
    for (let n = 0; n < count; n++) { const house = this.assets.house(property.level); house.position.set(property.level === 5 ? 0 : (n - (count - 1) / 2) * .22, 0, -.26); group.add(house); }
    this.scene.add(group); this.buildings.set(index, {level: property.level, group});

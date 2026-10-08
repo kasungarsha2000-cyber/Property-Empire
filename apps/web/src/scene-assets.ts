@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { BOARD } from '../../../packages/core/board';
+import {propertyDesign} from './property-art';
 
 export const TILE_HEIGHT = .55;
 export const TOKEN_HEIGHT = .68;
@@ -60,6 +61,9 @@ export class SceneAssets {
   readonly labels: {mesh: THREE.Mesh; index: number}[] = [];
   readonly tiles: THREE.Mesh[] = [];
   readonly owners: THREE.Mesh[] = [];
+  readonly landmarks = new Map<number,THREE.Group>();
+  private facades = new Map<string,THREE.MeshBasicMaterial>();
+  private face = new THREE.PlaneGeometry(1,1);
   private materials = new Map<string, THREE.MeshStandardMaterial>();
   private title: THREE.Mesh | null = null;
   private glassWindows: {position: number[]; rotation: number; lit: boolean}[] = [];
@@ -118,11 +122,12 @@ export class SceneAssets {
       group.rotation.y = -Math.floor(space.index / 10) * Math.PI / 2;
       const tile = this.mesh(group, this.box, '#E0D4BD', [1.04, .16, 1.04], [0, 0, 0]);
       tile.userData.index = space.index; this.tiles.push(tile);
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(.98, .98), new THREE.MeshStandardMaterial({map: this.tileTexture(space.index), roughness: .84, metalness: 0}));
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(.98, .98), new THREE.MeshBasicMaterial({map: this.tileTexture(space.index), toneMapped:false}));
       face.rotation.x = -Math.PI / 2; face.position.y = .082; face.receiveShadow = true; group.add(face); this.labels.push({mesh: face, index: space.index});
       if (space.price) this.mesh(group, this.box, space.color, [.96, .045, .19], [0, .105, -.385], 'lacquer', false);
       const owner = this.mesh(group, this.box, '#D8CCB4', [.76, .045, .095], [0, .105, .427], 'lacquer', false);
       owner.visible = false; this.owners.push(owner); scene.add(group);
+      if(space.price){const landmark=this.property(space.index);landmark.position.copy(spacePosition(space.index));landmark.position.y=.655;landmark.rotation.y=group.rotation.y;landmark.userData.index=space.index;this.landmarks.set(space.index,landmark);scene.add(landmark);}
     }
   }
 
@@ -133,16 +138,16 @@ export class SceneAssets {
     ctx.fillStyle = background; ctx.fillRect(0, 0, 512, 512);
     ctx.strokeStyle = '#D4C7AE'; ctx.lineWidth = 2; ctx.strokeRect(13, 13, 486, 486);
     ctx.fillStyle = '#253D3B'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '800 51px Nunito, sans-serif';
+    ctx.font = '800 60px Nunito, sans-serif';
     const words = space.name.replace(' / Visiting','').split(' '); const lines = [''];
     for (const word of words) { const last = lines.length - 1; if (ctx.measureText(`${lines[last]} ${word}`).width > 450) lines.push(word); else lines[last] += (lines[last] ? ' ' : '') + word; }
-    const textY = space.type === 'street' ? 235 : 345;
+    const textY = space.price ? 315 : 345;
     lines.forEach((line, i) => ctx.fillText(line, 256, textY + (i - (lines.length - 1) / 2) * 56));
-    if (space.type !== 'street') this.tileIcon(ctx, space.type, 256, 174);
+    if (!space.price) this.tileIcon(ctx, space.type, 256, 174);
     ctx.font = '800 45px Nunito, sans-serif';
     ctx.fillStyle = '#526657';
     ctx.fillText(space.price ? `$${space.price}` : space.type === 'go' ? '+ $200' : space.type === 'tax' ? `− $${space.amount}` : space.type === 'jail' ? 'Just visiting' : '', 256, 443);
-    if (space.type === 'street') { ctx.fillStyle = '#B69B6F'; ctx.fillRect(219, 339, 74, 3); }
+    if (space.price) { ctx.fillStyle = space.color; ctx.fillRect(30, 25, 452, 140); }
     return canvasTexture(canvas);
   }
 
@@ -156,6 +161,52 @@ export class SceneAssets {
     else if (type === 'parking') { ctx.font='800 145px Nunito, sans-serif';ctx.fillText('P',0,0); }
     else { ctx.fillStyle=type==='tax'?'#B08748':'#548475'; ctx.beginPath();ctx.roundRect(-67,-45,134,95,12);ctx.fill();ctx.strokeStyle='#E9DFCB';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-67,-10);ctx.lineTo(67,-10);ctx.stroke();ctx.fillStyle='#E9DFCB';ctx.font='800 61px Nunito';ctx.fillText('$',0,14); }
     ctx.restore();
+  }
+
+  /** Small district landmarks occupy the inner edge, leaving the playing lane open. */
+  private property(index:number){
+    const design=propertyDesign(BOARD[index]),group=new THREE.Group(),z=-.355,h=design.height,w=design.width,d=design.depth;
+    this.mesh(group,this.box,'#CFCBB7',[w+.10,.033,d+.055],[0,.015,z],'matte',false);
+    if(design.kind==='water'){
+      for(const x of [-.15,.15])this.mesh(group,this.cylinder,'#738C89',[.019,.29,.019],[x,.18,z]);
+      this.mesh(group,this.cylinder,'#82B9C8',[.19,.21,.14],[0,.42,z],'lacquer');
+      this.mesh(group,this.cone,'#B0D2D2',[.195,.10,.15],[0,.575,z],'metal');
+      return group;
+    }
+    this.mesh(group,this.box,design.color,[w,h,d],[0,h/2+.035,z],'lacquer');
+    if(design.roof)this.mesh(group,this.roof,design.roofColor,[w+.045,.17,d+.04],[0,h+.035,z]);
+    else this.mesh(group,this.box,'#E8E4D6',[w+.055,.035,d+.035],[0,h+.055,z]);
+    let material=this.facades.get(design.kind);
+    if(!material){
+      const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+      const ctx=canvas.getContext('2d')!;ctx.fillStyle=design.color;ctx.fillRect(0,0,256,256);
+      const rows=design.kind==='tower'?5:design.kind==='office'?3:2,cols=design.kind==='tower'?3:4;
+      for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+        const xx=14+col*60,yy=24+row*(180/rows);
+        ctx.fillStyle='#EFE9D8';ctx.fillRect(xx,yy,38,43);
+        ctx.fillStyle='#456B7A';ctx.fillRect(xx+5,yy+5,28,33);
+        ctx.fillStyle='#A2C4C9';ctx.fillRect(xx+8,yy+8,9,28);
+      }
+      ctx.fillStyle='#EAE2CA';ctx.fillRect(91,190,64,66);ctx.fillStyle='#294C59';ctx.fillRect(103,196,40,60);
+      if(design.kind==='market'||design.kind==='studio'){
+        ctx.fillStyle='#325D68';ctx.fillRect(9,166,238,73);
+        for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#FFF3DC':'#C88C53';ctx.fillRect(i*32,136,32,28);}
+      }
+      if(design.kind==='mansion')for(const x of [12,67,179,234]){ctx.fillStyle='#F6F0DE';ctx.fillRect(x,110,12,133);}
+      if(design.kind==='waterfront'){ctx.fillStyle='#F3ECD8';ctx.fillRect(0,113,256,8);ctx.fillRect(0,142,256,8);for(let x=7;x<256;x+=23)ctx.fillRect(x,113,4,29);}
+      if(design.kind==='garden'){ctx.fillStyle='#92BBA6';ctx.fillRect(6,15,244,220);ctx.fillStyle='#F0EAD1';for(let x=12;x<256;x+=49)ctx.fillRect(x,15,7,220);ctx.fillRect(6,95,244,8);ctx.fillRect(6,174,244,8);}
+      if(design.kind==='station'){
+        ctx.fillStyle='#344F60';ctx.beginPath();ctx.roundRect(64,48,132,208,[60,60,0,0]);ctx.fill();
+        ctx.fillStyle='#F9F1D7';ctx.beginPath();ctx.arc(128,37,21,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#304D57';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(128,19);ctx.lineTo(128,37);ctx.lineTo(139,45);ctx.stroke();
+      }
+      material=new THREE.MeshBasicMaterial({map:canvasTexture(canvas),toneMapped:false});this.facades.set(design.kind,material);
+    }
+    const facade=new THREE.Mesh(this.face,material);facade.scale.set(w*.94,h*.91,1);facade.position.set(0,h/2+.037,z+d/2+.006);group.add(facade);
+    if(design.kind==='solar')for(const x of [-.18,0,.18]){const panel=this.mesh(group,this.box,'#315E83',[.16,.018,.22],[x,h+.10,z],'glass',false);panel.rotation.x=-.28;}
+    if(design.kind==='tower'){this.mesh(group,this.box,design.roofColor,[w*.67,.11,d*.70],[0,h+.10,z]);this.mesh(group,this.cylinder,'#C6A366',[.011,.12,.011],[0,h+.22,z],'metal',false);}
+    if(design.kind==='market'||design.kind==='studio'){const awning=this.mesh(group,this.box,'#EADCC0',[w+.04,.025,.115],[0,h*.45,z+d/2+.04],'matte',false);awning.rotation.x=.2;}
+    if(design.kind==='station')for(const x of [-.17,.17])this.mesh(group,this.box,'#737C78',[.22,.015,.018],[x,.043,z+d/2+.042],'metal',false);
+    return group;
   }
 
   buildCity(scene: THREE.Scene) {
@@ -255,7 +306,7 @@ export class SceneAssets {
   }
 
   refreshTypography(){
-    for(const label of this.labels){const material=label.mesh.material as THREE.MeshStandardMaterial;material.map?.dispose();material.map=this.tileTexture(label.index);material.needsUpdate=true;}
+    for(const label of this.labels){const material=label.mesh.material as THREE.MeshBasicMaterial;material.map?.dispose();material.map=this.tileTexture(label.index);material.needsUpdate=true;}
     if(this.title){const material=this.title.material as THREE.MeshBasicMaterial;material.map?.dispose();material.map=this.titleTexture();material.needsUpdate=true;}
   }
 
