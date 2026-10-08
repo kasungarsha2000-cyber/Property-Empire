@@ -32,6 +32,7 @@ export class BoardView {
  private settings: Settings;
  private viewerId:string|null=null;
  private highlightMine=true;
+ private customizedView=false;
 
  constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
   this.settings = settings;
@@ -42,7 +43,7 @@ export class BoardView {
   this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   this.renderer.shadowMap.autoUpdate = false;
   this.renderer.setClearColor(0x000000, 0);
-  this.renderer.domElement.setAttribute('aria-label', '3D city board. Drag to rotate, scroll or pinch to zoom. Use Properties to select a space by keyboard.');
+  this.renderer.domElement.setAttribute('aria-label', '3D city board. Drag to rotate, right-drag to pan, point and scroll to zoom. Use Properties to select a space by keyboard.');
   this.renderer.domElement.addEventListener('webglcontextlost', event => {
    event.preventDefault();
    element.insertAdjacentHTML('beforeend', '<div class="context-error">3D graphics paused. Your game is saved. Reload to recover.</div>');
@@ -63,9 +64,11 @@ export class BoardView {
   this.controls = new OrbitControls(this.camera, this.renderer.domElement);
   this.controls.target.set(0, .8, 0);
   this.controls.enableDamping = true; this.controls.dampingFactor = .09;
-  this.controls.enablePan = false; this.controls.minDistance = 8; this.controls.maxDistance = 55;
+  this.controls.enablePan = true; this.controls.screenSpacePanning = false; this.controls.zoomToCursor = true;
+  this.controls.minDistance = 4; this.controls.maxDistance = 55;
   this.controls.minPolarAngle = .15; this.controls.maxPolarAngle = Math.PI * .43;
   this.controls.addEventListener('change', () => { this.dirty = true; });
+  this.controls.addEventListener('start',()=>{this.customizedView=true;});
   this.assets.buildBoard(this.scene); this.assets.buildCity(this.scene);
   this.halo = new THREE.Mesh(new THREE.RingGeometry(.30, .35, 48), new THREE.MeshBasicMaterial({color: '#E9C37C', side: THREE.DoubleSide, transparent: true, opacity: .9}));
   this.halo.rotation.x = -Math.PI / 2; this.halo.visible = false; this.scene.add(this.halo);
@@ -86,6 +89,7 @@ export class BoardView {
   let down = {x: 0, y: 0};
   this.renderer.domElement.addEventListener('pointerdown', event => { down = {x: event.clientX, y: event.clientY}; });
   this.renderer.domElement.addEventListener('pointerup', event => {
+   if(event.button!==0)return;
    if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8) return;
    const rect = this.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
    ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
@@ -154,12 +158,13 @@ export class BoardView {
    this.assets.ownershipHighlights.get(index)!.visible=this.highlightMine&&!!this.viewerId&&owner?.id===this.viewerId;
   });this.dirty=true;
  }
- focus(index: number) { const direction = this.camera.position.clone().sub(this.controls.target).normalize(); this.controls.target.copy(spacePosition(index)); this.camera.position.copy(this.controls.target).addScaledVector(direction, 12); this.controls.update(); this.dirty = true; }
+ focus(index: number) { this.customizedView=true;const direction = this.camera.position.clone().sub(this.controls.target).normalize(); this.controls.target.copy(spacePosition(index)); this.camera.position.copy(this.controls.target).addScaledVector(direction, 12); this.controls.update(); this.dirty = true; }
  zoom(delta: number) {
-  const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), 8, 55));
+  this.customizedView=true;
+  const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), this.controls.minDistance, this.controls.maxDistance));
   this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.dirty = true;
  }
- reset() { this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
+ reset() { this.customizedView=false;this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
  configure(settings: Settings) {
   this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
   this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
@@ -172,7 +177,9 @@ export class BoardView {
   const horizontal = new THREE.Vector3(this.viewDirection.z, 0, -this.viewDirection.x).normalize(), vertical = new THREE.Vector3().crossVectors(this.viewDirection, horizontal).normalize();
   let required = 0; const tangent = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
   for (const x of [-6.7, 6.7]) for (const z of [-6.7, 6.7]) for (const y of [-.35, 1.1]) { const corner = new THREE.Vector3(x, y - .8, z), depth = corner.dot(this.viewDirection); required = Math.max(required, depth + Math.abs(corner.dot(horizontal)) / (tangent * this.camera.aspect), depth + Math.abs(corner.dot(vertical)) / tangent); }
-  this.fitDistance = required * 1.06; this.reset();
+  const priorFit=this.fitDistance;this.fitDistance = required * 1.06;
+  if(this.customizedView){const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*this.fitDistance/priorFit,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();this.dirty=true;}
+  else this.reset();
  }
  private frame() {
   if (document.hidden) return;

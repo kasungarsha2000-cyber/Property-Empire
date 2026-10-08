@@ -63,7 +63,7 @@ If you are one deed short of a street group, the portfolio shows its name and ow
 
 ## Controls
 
-Drag the board to orbit, scroll or pinch to zoom, or use **+ / −**. **Reset camera** restores the view. Click/tap a tile, or open **Properties** to choose any space with a keyboard. The inspector shows its rent and available asset actions. The turn panel handles rolls, purchases, auctions, debt and trades. Settings offers normal/fast/reduced motion, three graphics quality levels, and optional sounds. Touch layouts support portrait and landscape; native dialogs provide keyboard focus containment. If 3D cannot initialize, the property list and turn controls remain available.
+Drag the board to orbit, right-drag to pan, and point the mouse at a board location before scrolling to zoom toward it. Touch supports pinch zoom; **+ / −** adjusts zoom and **Reset camera** restores the view. Click/tap a tile, or open **Properties** to choose any space with a keyboard. The inspector shows its rent and available asset actions. Purchases, auctions, debt, jail and incoming trades appear in decision popups. Closing one returns its actions to the floating turn controls. Rent, cards, salary and purchase confirmations appear as separate, brief notices; Escape dismisses them. Desktop side panels scroll independently while the board stays in view, and the mobile board stays visible while scrolling the page. Settings offers normal/fast/reduced motion, three graphics quality levels, and optional sounds. Native dialogs provide keyboard focus containment. If 3D cannot initialize, the property list and turn controls remain available.
 
 ## Development and production
 
