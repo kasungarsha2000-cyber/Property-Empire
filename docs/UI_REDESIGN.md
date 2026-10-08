@@ -12,3 +12,6 @@ Implementation order: tested portfolio/trade presentation helpers; match layout 
 
 
 Verification: 46 automated tests, strict TypeScript, production frontend/server builds, and three production Chrome scripts pass. The UI journey includes actual offer acceptance by a bot and actual acceptance of an incoming debt offer. Incoming debt repayment explanation was corrected after independent review. Board rendering and desktop/mobile trade screenshots were inspected. Test artifacts remain local under `test-artifacts/`.
+
+
+2026-10-09 refinement: replaced the large turn panel with compact action buttons. A normal roll prompt shows only Roll dice beneath the board; other players' controls are hidden. Phase guidance and the named latest roll now appear separately in the match overview above the board. The board uses the reclaimed space. Purchase, auction, jail, debt and trade decisions keep their required controls.

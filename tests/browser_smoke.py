@@ -14,7 +14,12 @@ with sync_playwright() as p:
  page.get_by_label('Your name').fill('Ada')
  page.get_by_role('button',name='Start game',exact=True).click()
  expect(page.get_by_role('button',name='Roll dice',exact=True)).to_be_enabled(timeout=30000)
+ expect(page.locator('#turn-panel h2')).to_have_count(0)
+ expect(page.locator('#turn-panel button')).to_have_count(1)
+ assert page.locator('#turn-panel').bounding_box()['height']<=60
  page.get_by_role('button',name='Roll dice',exact=True).click()
+ expect(page.locator('#turn-status .roll-message')).to_contain_text('Ada rolls')
+ expect(page.locator('#turn-panel .dice-result')).to_have_count(0)
  expect(page.locator('#game-info')).to_contain_text('Turn')
  page.get_by_role('button',name='Save game',exact=True).click()
  expect(page.locator('#toast')).to_contain_text('saved')
@@ -77,7 +82,7 @@ with sync_playwright() as p:
  page.locator('input[name=receiveCash]').fill('70')
  page.get_by_role('button',name='Review trade',exact=True).click()
  page.get_by_role('button',name='Offer trade',exact=True).click()
- expect(page.locator('#turn-panel')).to_contain_text('Make it a good turn',timeout=10000)
+ expect(page.locator('#turn-status')).to_contain_text('Make it a good turn',timeout=10000)
  expect(page.locator('#player-ledger')).to_contain_text('$20')
  page.get_by_role('button',name='Main menu',exact=True).click()
  page.get_by_role('button',name='Create LAN Game',exact=True).click()
@@ -96,7 +101,10 @@ with sync_playwright() as p:
  expect(other.locator('#game-info')).to_contain_text('Turn',timeout=10000)
  page.screenshot(path=str(OUT/'lan-desktop.png'),full_page=True)
  other.screenshot(path=str(OUT/'lan-mobile.png'),full_page=True)
- actor=page if page.get_by_role('button',name='Roll dice',exact=True).is_enabled() else other
+ actor=page if page.get_by_role('button',name='Roll dice',exact=True).count() and page.get_by_role('button',name='Roll dice',exact=True).is_enabled() else other
+ waiting=other if actor==page else page
+ expect(waiting.locator('#turn-panel')).to_be_hidden()
+ expect(waiting.locator('#turn-status')).to_be_visible()
  actor.get_by_role('button',name='Roll dice',exact=True).click()
  expect(page.locator('#revision')).to_have_text('1',timeout=10000)
  expect(other.locator('#revision')).to_have_text('1',timeout=10000)

@@ -53,3 +53,13 @@ dialog.wide-dialog{width:min(920px,calc(100vw - 24px));max-width:940px}.trade-bu
 
 @media(max-width:650px){.playing #stage{order:1}.playing #left{order:2;display:flex;flex-direction:column}.playing .game-tools{order:0;margin-bottom:10px;padding-top:0}.playing .portfolio{order:1}.trade-availability{order:2}.portfolio-scroll{max-height:280px}}
 @media(max-height:550px) and (min-width:651px) and (max-width:900px){.playing #stage{min-height:540px}.portfolio-scroll{max-height:280px}}
+
+/* Compact action controls; activity and rolls live in the match overview. */
+#match-banner .turn-status{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid #e0e5d8;padding:10px 4px 0;min-width:0}
+#match-banner .turn-status[hidden]{display:none}
+.turn-message{min-width:0;flex:1}.turn-message strong{font-size:14px}.turn-message p{font-size:12px;color:#536860;line-height:1.5;margin-top:3px}
+.roll-message{display:flex;align-items:center;gap:12px;min-width:0;font-size:12px;color:#345746}.roll-message svg{width:25px;height:25px;flex:none}
+.playing #turn-panel{left:12px;right:12px;bottom:14px;min-height:0;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
+.playing #turn-panel[hidden]{display:none}.playing #turn-panel .turn-actions{justify-content:center;margin:0;gap:9px}.playing #turn-panel .turn-actions button{min-height:46px;min-width:120px}
+.playing #board{inset:0 0 85px;min-height:0}.playing #board-caption{bottom:75px}.playing .camera-tools{bottom:99px}
+@media(max-width:650px){#match-banner .turn-status{flex-direction:column;align-items:stretch;gap:8px;padding:9px 2px 0;margin-top:8px}.turn-message strong{font-size:14px}.turn-message p{font-size:12px}.roll-message{justify-content:space-between;font-size:12px}.playing #turn-panel{left:10px;right:10px;bottom:14px}.playing #turn-panel .turn-actions button{min-width:0;flex:1}.playing #board{inset:0 0 85px}.playing .camera-tools{bottom:94px}}
