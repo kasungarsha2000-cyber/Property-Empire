@@ -1,0 +1,1375 @@
+{
+  "master_prompt": {
+    "title": "PROPERTY EMPIRE 3D - AUTONOMOUS WEB BROWSER GAME DEVELOPMENT",
+    "version": "2.0-web",
+    "agent_role": "Autonomous Senior Web Game Developer, TypeScript Engineer, Three.js 3D Developer, Multiplayer Engineer, AI Developer, UI/UX Designer and QA Engineer",
+    "primary_instruction": "Build an actually playable, polished Monopoly-inspired 3D BROWSER game that launches via URL in desktop and mobile browsers. Write real files, execute builds and automated tests, fix defects and verify in-browser play. Preserve complete core rules, bots, and LAN/hotspot human multiplayer. Do not stop at plans or pseudocode.",
+    "execution_mode": {
+      "autonomous": true,
+      "ask_for_confirmation": "Only for destructive operations, security-sensitive changes, unavailable credentials, license acceptance or decisions that cannot safely be made automatically.",
+      "make_reasonable_decisions": true,
+      "continue_after_completed_phase": true,
+      "use_existing_tools": true,
+      "install_missing_dependencies": "Install using trustworthy official sources when environment permissions allow. Never silently modify unrelated software.",
+      "never_fake_completion": true,
+      "goal": "Deliver a runnable web application, local-network multiplayer room server, tested production web bundle, and clear launch instructions; no APK.",
+      "priority_order": [
+        "Correct playable game rules",
+        "Working browser gameplay and accessible controls",
+        "Competent offline bots",
+        "Reliable authoritative local LAN/hotspot multiplayer",
+        "Polished efficient 3D graphics and animations",
+        "Responsive desktop/mobile browser layout",
+        "Reliable save/resume",
+        "Web production build and tests"
+      ]
+    }
+  },
+  "project": {
+    "name": "Property Empire 3D",
+    "project_directory": "./PropertyEmpire3D",
+    "target_platform": "Web browsers (desktop and mobile)",
+    "secondary_platform": "Windows/macOS/Linux browser testing; phone browsers on the same LAN",
+    "orientation": "Landscape preferred for mobile, but responsive layouts must also work in portrait",
+    "internet_required": "No external internet required for locally served games; LAN multiplayer requires reachable local Node server, while solo can function offline after assets are cached",
+    "cloud_services": false,
+    "monetization": false,
+    "advertisements": false,
+    "accounts_required": false,
+    "game_type": "Turn-based property trading and economic strategy board game",
+    "audience": "Friends and casual players",
+    "target_experience": "Attractive, responsive, no-install 3D board game accessible by local URL or deployed HTTPS URL.",
+    "intellectual_property": {
+      "requirement": "Use original branding, illustrations, icons and 3D assets.",
+      "avoid": [
+        "Official Monopoly logos",
+        "Copied card artwork",
+        "Official character mascots",
+        "Trademarked decorative assets",
+        "Third-party copyrighted game assets without permission"
+      ],
+      "board_policy": "Implement configurable, classic-inspired rules with an original board theme and original names. Do not assume distinctive Monopoly assets are freely reusable."
+    }
+  },
+  "technology": {
+    "language": "TypeScript (strict)",
+    "frontend": "Vite + TypeScript",
+    "three_d": "Three.js (WebGL) with simple procedural low-poly geometries",
+    "ui": "HTML/CSS/TypeScript components; avoid heavyweight UI framework unless justified",
+    "animation": "requestAnimationFrame + Three.js animation/tweens; optional lightweight GSAP only if justified",
+    "networking": "Node.js + ws WebSocket server using browser-compatible WebSocket protocol",
+    "network_model": "Authoritative local Node.js room server, not a browser host. Server validates every command and owns RNG and bot turns.",
+    "offline_solo": "Same pure TypeScript rules engine running inside browser for solo play with bots; no backend required",
+    "shared_rules": "Reusable TypeScript game-core library consumed by browser solo client and Node multiplayer server",
+    "local_data": "IndexedDB for browser savegames with schema validation; localStorage for lightweight settings",
+    "testing": "Vitest for deterministic rules/bots; Playwright for browser flows; WebSocket integration tests for multiplayer",
+    "build": "Vite production static frontend assets and Node.js server application; npm scripts",
+    "runtime": "Recent stable LTS Node.js and modern Chromium, Firefox, Safari and mobile Chromium/Safari",
+    "dependencies": {
+      "prefer_small": true,
+      "avoid_subscription_services": true,
+      "avoid_external_backend": true,
+      "avoid_game_engine_or_webassembly_requirement": true,
+      "avoid_unnecessary_plugins": true
+    }
+  },
+  "development_environment": {
+    "initial_actions": [
+      "Inspect workspace, available Node.js/npm/pnpm, Git and browser automation tooling.",
+      "Initialize web monorepo or simple workspace; inspect existing files before changing them.",
+      "Install only necessary trusted npm dependencies when permitted.",
+      "Create frontend, shared core and LAN server modules.",
+      "Start dev server, run tests and launch automated browsers when available.",
+      "Provide exact local and LAN URLs and instructions to allow phone browsers on Wi-Fi/hotspot."
+    ],
+    "requirements": {
+      "node": "Use supported Node.js LTS version",
+      "browser": "Modern WebGL-capable browser with JavaScript enabled",
+      "same_network": "For local rooms, all phones/computers must reach the same host computer over Wi-Fi or hotspot. Router isolation/firewall may block this.",
+      "ports": "Document frontend and WebSocket ports; configure host binding to 0.0.0.0 only for trusted LAN usage.",
+      "no_android": "Never install Android SDK, Godot export templates, adb, Java or create APKs as part of this project."
+    },
+    "failure_policy": "If browser, network or installation testing is unavailable, implement/test all available layers and precisely report what was not verified."
+  },
+  "visual_design": {
+    "overall_style": {
+      "description": "Premium-looking yet simple stylized 3D tabletop board game.",
+      "art_style": "Low-poly, friendly, clean, colorful and slightly rounded.",
+      "complexity": "Low to medium",
+      "lighting": "Soft ambient lighting with gentle directional shadows.",
+      "materials": "Simple colors with modest roughness and highlights.",
+      "avoid": [
+        "Photorealistic graphics",
+        "Complex physics systems",
+        "Huge polygon counts",
+        "Heavy postprocessing",
+        "Overly detailed architecture",
+        "Cluttered interfaces",
+        "Slow cinematic transitions"
+      ]
+    },
+    "palette": {
+      "background": "#F5F0E6",
+      "dark_text": "#253344",
+      "accent_blue": "#4B91D1",
+      "accent_green": "#55B98A",
+      "accent_orange": "#EFB15E",
+      "accent_red": "#E77979",
+      "accent_purple": "#A589CF",
+      "board_surface": "#EFE4CB",
+      "button_background": "#FFFFFF",
+      "color_group_policy": "Use easily distinguishable property colors, supported by labels and icons."
+    },
+    "camera": {
+      "default": "Stable 3D isometric perspective showing the whole board.",
+      "rotate": "Mouse drag or touch drag, optionally limit tilt; do not interfere with buttons",
+      "zoom": "Mouse wheel, pinch zoom and +/- buttons",
+      "pan": "Optional right-drag or touch gesture",
+      "focus_property": "Smoothly focus selected 3D tile with UI-aware framing",
+      "reset_camera": true,
+      "motion_duration_seconds": {
+        "minimum": 0.2,
+        "maximum": 0.8
+      },
+      "accessibility": "Allow camera motion and animation speed to be reduced."
+    },
+    "board": {
+      "shape": "Square tabletop board.",
+      "spaces": 40,
+      "construction": "Programmatically create the board from data-driven space definitions.",
+      "design": "Clear perimeter tiles with a visually interesting but inexpensive central area.",
+      "property_display": [
+        "Property name",
+        "Ownership color",
+        "Property category",
+        "Building indicators",
+        "Selected-space highlight"
+      ],
+      "readability": "Prefer short labels and larger interactive information panels instead of tiny text.",
+      "center_area": "Original Property Empire emblem, decorative city illustration or minimalist logo.",
+      "highlighting": [
+        "Current player position",
+        "Selected property",
+        "Available property",
+        "Owned property",
+        "Mortgage status",
+        "Potential building locations"
+      ]
+    },
+    "3d_models": {
+      "player_token": "Simple colored pawn or original stylized token.",
+      "houses": "Small colorful low-poly houses built using cubes and roof primitives.",
+      "hotel": "Larger rounded or tiered low-poly building.",
+      "dice": "Two lightweight 3D cubes with clearly visible numbers or pips.",
+      "environment": "Subtle tabletop, simple background gradient and soft shadows.",
+      "generation_rule": "Use procedural shapes and built-in meshes first. Do not require Blender or external asset downloads for core functionality."
+    },
+    "animations": {
+      "dice_roll": {
+        "enabled": true,
+        "implementation": "Generate valid dice values in the authoritative rules engine before starting the visual animation.",
+        "visual": "Animate rotation, hopping and settling.",
+        "duration_seconds": 1.2,
+        "deterministic_result": true,
+        "real_physics_required": false
+      },
+      "token_movement": {
+        "enabled": true,
+        "method": "Tween between board-space positions.",
+        "visual_style": "Small hop or smooth sliding movement.",
+        "space_by_space": true
+      },
+      "property_purchase": {
+        "enabled": true,
+        "effect": "Property highlight and subtle celebratory particles."
+      },
+      "rent_payment": {
+        "enabled": true,
+        "effect": "Animated money transfer indicator and balance updates."
+      },
+      "buildings": {
+        "enabled": true,
+        "effect": "Quick scale-up animation when a house or hotel appears."
+      },
+      "turn_transition": {
+        "enabled": true,
+        "effect": "Highlight active player and update turn banner."
+      },
+      "bankruptcy": {
+        "enabled": true,
+        "effect": "Brief visual notification without interrupting game state."
+      },
+      "speed_settings": [
+        "Normal",
+        "Fast",
+        "Reduced motion"
+      ]
+    },
+    "performance": {
+      "target_fps": 60,
+      "acceptable_fps_on_low_end": 30,
+      "use_lod": false,
+      "use_baked_or_simple_lighting": true,
+      "limit_dynamic_lights": true,
+      "reuse_materials": true,
+      "minimize_draw_calls": true,
+      "avoid_per_frame_allocations": true,
+      "support_graphics_quality": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "thermal_policy": "Do not run expensive simulations or unnecessary rendering when waiting for a player.",
+      "device_pixel_ratio_cap": 2,
+      "webgl_context_loss": "Gracefully handle context loss and offer a reload recovery.",
+      "responsive_resize": "Recalculate renderer, camera aspect and UI safely on resize and rotation."
+    }
+  },
+  "screens": {
+    "splash": {
+      "components": [
+        "Original game logo",
+        "Short loading indicator"
+      ],
+      "behavior": "Load essential resources and proceed to the main menu."
+    },
+    "main_menu": {
+      "components": [
+        "Play Solo",
+        "Create LAN Game",
+        "Join LAN Game",
+        "Continue Saved Game",
+        "Settings",
+        "How to Play",
+        "Fullscreen (optional)"
+      ],
+      "design": "Simple polished layout with an animated low-poly board background."
+    },
+    "solo_setup": {
+      "components": [
+        "Player name",
+        "Human token selection",
+        "Add bot",
+        "Remove bot",
+        "Bot name",
+        "Bot difficulty",
+        "Starting cash",
+        "Game rules preset",
+        "Start game"
+      ]
+    },
+    "multiplayer_lobby": {
+      "components": [
+        "Room code",
+        "Shareable local room URL",
+        "Host player",
+        "Connected human players",
+        "Bot slots",
+        "Game name",
+        "LAN host address / URL",
+        "Connection status",
+        "Copy invite link",
+        "Add or remove bots",
+        "Ready status",
+        "Start game",
+        "Leave lobby"
+      ],
+      "behavior": "The host controls game configuration. Joining players can select their names and tokens."
+    },
+    "join_game": {
+      "components": [
+        "Enter room code or invite link",
+        "Manual LAN server URL/IP field",
+        "Join button",
+        "Connection feedback",
+        "Explain why a browser cannot join using UDP broadcast"
+      ],
+      "behavior": "Manual-IP joining must always be available even if automatic discovery fails."
+    },
+    "game_screen": {
+      "layout": {
+        "center": "Interactive 3D board",
+        "top": "Player turn, active player and compact game status",
+        "left": "Collapsible player list with balances",
+        "right": "Context-sensitive turn controls",
+        "bottom": "Roll Dice, Properties, Trade, Manage Assets, End Turn and Menu"
+      },
+      "actions": [
+        "Roll dice",
+        "Inspect property",
+        "Buy property",
+        "Auction property",
+        "Pay rent",
+        "Trade",
+        "Mortgage",
+        "Unmortgage",
+        "Build house",
+        "Build hotel",
+        "Sell buildings",
+        "View cards",
+        "End turn",
+        "Pause",
+        "Save game"
+      ],
+      "requirements": [
+        "Only legal actions appear enabled.",
+        "Explain important actions.",
+        "Responsive desktop mouse/keyboard and mobile touch controls.",
+        "Keep the board legible at common desktop/tablet/phone screen sizes.",
+        "Allow zoom and property inspection rather than placing tiny dense labels everywhere."
+      ]
+    },
+    "property_card": {
+      "components": [
+        "Property name",
+        "Price",
+        "Owner",
+        "Base rent",
+        "Developed rents",
+        "Mortgage value",
+        "Building costs",
+        "Purchase button where applicable"
+      ]
+    },
+    "trade_screen": {
+      "components": [
+        "Choose target player",
+        "Offer cash",
+        "Request cash",
+        "Select offered properties",
+        "Select requested properties",
+        "Select eligible cards",
+        "Submit offer",
+        "Accept",
+        "Reject",
+        "Counteroffer"
+      ]
+    },
+    "settings": {
+      "components": [
+        "Master volume",
+        "Music volume",
+        "Effects volume",
+        "Animation speed",
+        "Graphics quality",
+        "Camera controls",
+        "Reduced motion",
+        "Confirm destructive actions",
+        "Full screen",
+        "Render pixel density",
+        "Mobile graphics preset"
+      ]
+    },
+    "results": {
+      "components": [
+        "Winner",
+        "Final player rankings",
+        "Final net worth",
+        "Properties owned",
+        "Total rent collected",
+        "Turns played",
+        "Play again",
+        "Main menu"
+      ]
+    }
+  },
+  "game_rules": {
+    "ruleset": "Classic-inspired property trading rules, configured through data files.",
+    "board_spaces": {
+      "total": 40,
+      "categories": [
+        "GO",
+        "Street property",
+        "Transport property",
+        "Utility",
+        "Tax",
+        "Chance",
+        "Community reward",
+        "Jail",
+        "Free Parking",
+        "Go To Jail"
+      ],
+      "configuration": "Each space must have a unique ID, board index, display name, type and relevant properties.",
+      "initial_content": "Populate a complete original 40-space board with internally consistent purchase prices, rents, mortgage amounts and group colors.",
+      "balance": "Use conventional classic board-game economics as a starting point and keep numbers editable."
+    },
+    "player_setup": {
+      "minimum_players": 2,
+      "default_maximum_players": 8,
+      "starting_cash": 1500,
+      "starting_position": 0,
+      "starting_properties": [],
+      "start_player": "Randomly select the initial player using the authoritative host."
+    },
+    "turn_structure": [
+      "Turn begins",
+      "Resolve Jail choices if applicable",
+      "Roll two six-sided dice",
+      "Move the token",
+      "Resolve the destination",
+      "Resolve mandatory payments and cards",
+      "Allow appropriate property management and trades",
+      "Handle another roll if doubles apply",
+      "End turn",
+      "Advance to the next active player"
+    ],
+    "dice": {
+      "count": 2,
+      "faces": 6,
+      "doubles_extra_turn": true,
+      "three_consecutive_doubles": "Go directly to Jail.",
+      "dice_authority": "Only the host generates final dice outcomes.",
+      "randomness": "Use the engine's RNG with appropriate initialization. Support injectable deterministic seeds for tests."
+    },
+    "passing_go": {
+      "reward": 200,
+      "landing_on_go": 200,
+      "direct_jail_transfer_reward": 0
+    },
+    "property_purchase": {
+      "buy_if_unowned": true,
+      "purchase_requires_available_cash": true,
+      "decline_triggers_auction": true,
+      "auction_includes_declining_player": true,
+      "auction": {
+        "minimum_bid": 1,
+        "bid_increment": 1,
+        "eligible_players": "All active players",
+        "payment_rule": "A bid cannot exceed funds currently available for the transaction.",
+        "end_condition": "Highest remaining bidder wins, or property remains with Bank if all pass before any valid bid.",
+        "multiplayer": "Every client sees the same authoritative bidding state."
+      }
+    },
+    "rent": {
+      "collect_on_opponent_property": true,
+      "no_rent_on_own_property": true,
+      "no_rent_on_mortgaged_property": true,
+      "full_color_group_bonus": "Double undeveloped street base rent when the complete color group is owned and applicable conditions are satisfied.",
+      "buildings_increase_rent": true,
+      "transport_rent": "Depends on how many matching transport properties are owned.",
+      "utility_rent": "Depends on the dice result and utility ownership count.",
+      "rent_claim": "Automatically collect rent under selected rules, simplifying the browser experience."
+    },
+    "building": {
+      "requires_complete_color_group": true,
+      "even_building_required": true,
+      "maximum_houses_per_street": 4,
+      "hotel_requires_four_houses_on_each_street_in_group": true,
+      "hotel_replaces_four_houses": true,
+      "building_costs_from_property_data": true,
+      "bank_house_limit": 32,
+      "bank_hotel_limit": 12,
+      "cannot_build_when_group_contains_mortgage": true,
+      "building_sales": "Sell buildings to the Bank for half purchase cost, following even-selling rules.",
+      "shortages": "Do not create buildings beyond Bank supply. Support auctions for contested limited stock where applicable."
+    },
+    "jail": {
+      "causes": [
+        "Go To Jail board space",
+        "Relevant card",
+        "Three consecutive doubles"
+      ],
+      "escape_options": [
+        "Pay 50",
+        "Use Get Out of Jail Free card",
+        "Attempt doubles on up to three turns"
+      ],
+      "third_failure": "Pay 50 and move using the third roll.",
+      "doubles_escape": "Move with the successful roll without receiving an additional roll.",
+      "can_collect_rent": true,
+      "can_trade": true,
+      "can_manage_assets": true
+    },
+    "cards": {
+      "chance": "Create a complete configurable deck of original events with movement, payments, rewards, repairs and Jail effects.",
+      "community": "Create a second original event deck with equivalent core mechanics.",
+      "shuffle_each_new_game": true,
+      "draw_without_replacement_until_cycle": true,
+      "get_out_of_jail_free": "Cards are held by players until used or traded and return to their appropriate deck.",
+      "execution": "The host resolves card effects; clients receive results."
+    },
+    "mortgage": {
+      "enabled": true,
+      "value": "Configured per property",
+      "mortgaged_rent": 0,
+      "unmortgage_interest_rate": 0.1,
+      "must_sell_group_buildings_first": true,
+      "ownership_transfer": "Implement the appropriate mortgage transfer interest rules."
+    },
+    "trading": {
+      "enabled": true,
+      "supported_items": [
+        "Cash",
+        "Properties",
+        "Tradable Get Out of Jail Free cards"
+      ],
+      "requires_both_parties_acceptance": true,
+      "no_direct_loans": true,
+      "no_direct_building_trades": true,
+      "no_negative_balances_from_accepted_trades": true,
+      "respect_building_restrictions": true
+    },
+    "bankruptcy": {
+      "enabled": true,
+      "recovery_options": [
+        "Sell buildings",
+        "Mortgage properties",
+        "Negotiate trades"
+      ],
+      "creditor_rules": "Transfer assets to the creditor or return property to the Bank for auction depending on creditor type.",
+      "eliminate_player": true,
+      "bots_continue": true,
+      "winning_condition": "Only one solvent player remains."
+    },
+    "free_parking": {
+      "official_default": "No reward.",
+      "optional_house_rule": "Tax jackpot, disabled by default."
+    },
+    "additional_rules": {
+      "no_player_loans": true,
+      "bank_money_unlimited": true,
+      "safe_integer_currency": true,
+      "no_illegal_state_transitions": true,
+      "rules_are_host_authoritative": true,
+      "all_player_actions_validated": true
+    }
+  },
+  "bot_system": {
+    "purpose": "Bots should behave like convincing casual human opponents and operate completely offline.",
+    "cloud_ai_required": false,
+    "external_llm_required": false,
+    "engine": "Rule-based decision-making with weighted heuristics.",
+    "host_runs_bots": true,
+    "bot_count": {
+      "recommended_total_player_cap": 8,
+      "allow_bot_only_matches": true,
+      "at_least_one_bot_with_human": true,
+      "architecture": "Do not hardcode a small number of bots. Use dynamic player collections and configurable caps.",
+      "experimental_high_player_counts": "Potential future option; initial browser implementation supports a practical cap (default 8 total participants)."
+    },
+    "difficulties": {
+      "easy": {
+        "purchase_strategy": "Buy affordable properties with some randomness.",
+        "reserve_cash": "Low",
+        "trade_strategy": "Occasionally accept reasonable trades.",
+        "building_strategy": "Build when possible.",
+        "auction_strategy": "Conservative",
+        "mistake_probability": 0.2
+      },
+      "medium": {
+        "purchase_strategy": "Prefer color-group completion and properties with good returns.",
+        "reserve_cash": "Moderate",
+        "trade_strategy": "Value properties and color groups.",
+        "building_strategy": "Focus on higher-return color groups.",
+        "auction_strategy": "Bid using estimated value and available cash.",
+        "mistake_probability": 0.05
+      },
+      "hard": {
+        "purchase_strategy": "Estimate strategic value using ownership, opponents, expected rental value and liquidity.",
+        "reserve_cash": "Risk-adjusted",
+        "trade_strategy": "Evaluate both immediate and long-term trade value.",
+        "building_strategy": "Prioritize estimated return on investment.",
+        "auction_strategy": "Strategic but not irrational.",
+        "mistake_probability": 0.0
+      }
+    },
+    "bot_decisions": [
+      "Buy or auction",
+      "Choose auction bid",
+      "Accept or reject trade",
+      "Initiate trade",
+      "Build houses",
+      "Build hotel",
+      "Sell buildings",
+      "Mortgage",
+      "Unmortgage",
+      "Raise funds",
+      "Choose Jail exit",
+      "Complete turn"
+    ],
+    "decision_time": {
+      "minimum_seconds": 0.3,
+      "maximum_seconds": 1.5,
+      "fast_mode": "Reduce or skip cosmetic delays."
+    },
+    "reliability": {
+      "no_infinite_turns": true,
+      "every_bot_turn_must_terminate": true,
+      "never_submit_illegal_commands": true,
+      "fallback_to_safe_action": true,
+      "provide_decision_logs_for_debugging": true
+    }
+  },
+  "save_system": {
+    "format": "Versioned JSON serialized into IndexedDB locally; atomic temp-and-rename JSON files on server",
+    "directory": "IndexedDB database: property-empire-saves (frontend solo) and ./data/saves/ (LAN host process)",
+    "autosave": [
+      "After completed turns",
+      "On important game-state changes",
+      "On page visibility change when safe (not sole guarantee)"
+    ],
+    "manual_save": true,
+    "save_contents": [
+      "Schema version",
+      "Game configuration",
+      "Complete player list",
+      "Human and bot ownership",
+      "Cash balances",
+      "Board positions",
+      "Property ownership",
+      "Buildings",
+      "Mortgages",
+      "Deck ordering and held cards",
+      "Jail status",
+      "Turn order",
+      "Active player",
+      "Dice state where applicable",
+      "Pending game phase",
+      "Player elimination",
+      "Relevant statistics"
+    ],
+    "file_integrity": {
+      "atomic_write": "Use IndexedDB transactions in browser and atomic replacement in Node server",
+      "validate_on_load": true,
+      "backup_previous_save": true,
+      "reject_corrupted_or_incompatible_files_gracefully": true
+    },
+    "multiplayer": {
+      "host_saves_canonical_state": true,
+      "clients_cannot_overwrite_host_state": true,
+      "resume_policy": "Host may reopen a saved match and reconnect players into their original slots."
+    }
+  },
+  "architecture": {
+    "principle": "Keep rules independent from graphics, UI, networking and bots.",
+    "modules": {
+      "GameState": "Authoritative representation of the match.",
+      "RulesEngine": "Deterministic state transitions and legal action validation.",
+      "TurnManager": "Turn progression, dice rolls, doubles and Jail.",
+      "BoardData": "Loads and validates board spaces and property data.",
+      "PropertyManager": "Ownership, rent, group completion, mortgages and buildings.",
+      "AuctionManager": "Auction bidding and resolution.",
+      "TradeManager": "Trade proposals and atomic acceptance.",
+      "CardManager": "Card decks, effects and held cards.",
+      "BankruptcyManager": "Debt resolution and elimination.",
+      "BotManager": "Schedules and executes bot actions.",
+      "BotStrategy": "Difficulty-specific decision logic.",
+      "NetworkManager": "Browser WebSocket transport / Node room server; no ENet or Godot networking",
+      "GameSession": "Orchestrate solo local reducer versus remote WebSocket session",
+      "SaveManager": "IndexedDB local persistence plus Node host save files",
+      "BoardRenderer3D": "Three.js scene, meshes, camera, picking/raycasting and responsive render loop",
+      "TokenAnimator": "Player token movement.",
+      "DiceAnimator": "Dice visualization.",
+      "UIManager": "HTML/CSS browser screens and accessible controls",
+      "AudioManager": "Effects and music.",
+      "SettingsManager": "Persistent player preferences."
+    },
+    "state_machine": {
+      "states": [
+        "MAIN_MENU",
+        "LOBBY",
+        "MATCH_SETUP",
+        "TURN_START",
+        "JAIL_DECISION",
+        "AWAIT_DICE",
+        "MOVING",
+        "RESOLVING_SPACE",
+        "PROPERTY_DECISION",
+        "AUCTION",
+        "PAYMENT",
+        "DEBT_RESOLUTION",
+        "TRADE",
+        "PLAYER_MANAGEMENT",
+        "TURN_END",
+        "GAME_OVER"
+      ],
+      "requirement": "Define explicit legal transitions and prevent overlapping actions or duplicate processing."
+    },
+    "data_model": {
+      "player": [
+        "id",
+        "name",
+        "type",
+        "difficulty",
+        "token_id",
+        "color",
+        "cash",
+        "position",
+        "properties",
+        "jail_turns",
+        "jail_cards",
+        "is_bankrupt",
+        "connection_status"
+      ],
+      "property": [
+        "id",
+        "name",
+        "type",
+        "price",
+        "rent_table",
+        "group",
+        "owner_id",
+        "building_count",
+        "hotel",
+        "mortgage_value",
+        "is_mortgaged"
+      ],
+      "game": [
+        "game_id",
+        "schema_version",
+        "players",
+        "board",
+        "current_player_id",
+        "turn_number",
+        "phase",
+        "dice",
+        "consecutive_doubles",
+        "bank_building_supply",
+        "card_decks",
+        "pending_action",
+        "winner_id"
+      ]
+    },
+    "design_rules": [
+      "Game rules must be independently testable without rendering.",
+      "Use one canonical source of truth.",
+      "Use typed events and small interfaces rather than tightly coupled rendering modules.",
+      "Prevent circular dependencies.",
+      "Avoid a giant single-script implementation.",
+      "Keep configuration outside the core rules engine.",
+      "Use strict TypeScript without implicit any.",
+      "Document major public methods."
+    ]
+  },
+  "project_structure": {
+    "root": "PropertyEmpire3D/",
+    "paths": [
+      "package.json",
+      "package-lock.json",
+      "tsconfig.base.json",
+      "apps/web/index.html",
+      "apps/web/src/main.ts",
+      "apps/web/src/screens/",
+      "apps/web/src/ui/",
+      "apps/web/src/three/",
+      "apps/web/src/styles/",
+      "apps/web/public/",
+      "apps/server/src/index.ts",
+      "apps/server/src/rooms/",
+      "apps/server/src/network/",
+      "apps/server/data/saves/",
+      "packages/game-core/src/",
+      "packages/game-core/data/board.json",
+      "packages/game-core/data/cards.json",
+      "packages/game-core/data/rules.json",
+      "packages/game-core/tests/",
+      "tests/e2e/",
+      "tests/network/",
+      "docs/",
+      "README.md",
+      "BUILD.md",
+      "TESTING.md",
+      "AGENTS.md",
+      ".env.example",
+      ".gitignore"
+    ],
+    "requirement": "Keep rules shareable by client and Node server; Vite static assets separated from ws room server."
+  },
+  "implementation_phases": [
+    {
+      "phase": 1,
+      "name": "Web toolchain and project setup",
+      "tasks": [
+        "Inspect Node.js/npm/Git and browsers.",
+        "Create Vite/TypeScript frontend, game-core package and Node WebSocket server.",
+        "Implement valid HTML entry and startable web UI.",
+        "Configure npm scripts: dev, dev:lan, build, start:server, test, test:e2e, lint, typecheck.",
+        "Create responsive main menu and health endpoint."
+      ],
+      "acceptance": [
+        "npm install and npm run dev work.",
+        "Browser opens home screen with no fatal console errors.",
+        "Typecheck passes."
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Complete rules engine",
+      "tasks": [
+        "Create a complete 40-space board dataset.",
+        "Implement player initialization.",
+        "Implement turn progression.",
+        "Implement authoritative dice.",
+        "Implement movement and GO payments.",
+        "Implement purchases and auctions.",
+        "Implement rent.",
+        "Implement full-group ownership.",
+        "Implement buildings.",
+        "Implement mortgages.",
+        "Implement Jail.",
+        "Implement cards.",
+        "Implement trading.",
+        "Implement debt and bankruptcy.",
+        "Implement winner detection.",
+        "Create deterministic unit tests."
+      ],
+      "acceptance": [
+        "A simulated full game completes without an infinite loop.",
+        "Financial conservation and legal action invariants are checked.",
+        "All important rules have automated tests."
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Three.js 3D board and browser graphics",
+      "tasks": [
+        "Generate the board geometry procedurally.",
+        "Generate 40 labeled board spaces.",
+        "Create the tabletop environment.",
+        "Create a orbit-limited isometric perspective camera.",
+        "Implement mouse and touch controls.",
+        "Create player tokens.",
+        "Create lightweight Three.js 3D dice.",
+        "Create houses and hotels.",
+        "Add ownership highlights.",
+        "Add simple materials and lighting.",
+        "Ensure every board tile is visually distinct."
+      ],
+      "acceptance": [
+        "Entire board is inspectable in browser.",
+        "Tokens and buildings appear at correct positions.",
+        "Pointer/touch raycasting selects tiles.",
+        "Renderer scales to mobile browser and handles resize."
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Gameplay user interface",
+      "tasks": [
+        "Implement in-game HUD.",
+        "Implement property cards.",
+        "Implement purchase dialogs.",
+        "Implement auction interface.",
+        "Implement building controls.",
+        "Implement mortgage controls.",
+        "Implement trading interface.",
+        "Implement Jail controls.",
+        "Implement game notifications.",
+        "Implement results screen.",
+        "Wire every control to real game logic."
+      ],
+      "acceptance": [
+        "A human can complete a full match in browser.",
+        "Desktop mouse and mobile touch controls are usable.",
+        "No action depends on developer console commands."
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "Bots",
+      "tasks": [
+        "Create the bot strategy interface.",
+        "Implement Easy bots.",
+        "Implement Medium bots.",
+        "Implement Hard bots.",
+        "Implement bot auctions.",
+        "Implement bot trading.",
+        "Implement asset management.",
+        "Create bot-only test matches.",
+        "Measure turn completion reliability."
+      ],
+      "acceptance": [
+        "Human versus bot matches run.",
+        "Multiple bots can play together.",
+        "Bots complete legal actions without deadlocks."
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "LAN multiplayer over WebSockets",
+      "tasks": [
+        "Implement authoritative Node WebSocket room server.",
+        "Create/join room by short code and browser invite URL.",
+        "Display the correct LAN host URL.",
+        "Connect browser clients via configurable WS URL.",
+        "Implement identity tokens and reconnect.",
+        "Synchronize lobby, accepted commands and canonical snapshots.",
+        "Add mixed human/bot rooms and privacy-conscious local defaults.",
+        "Write server/client integration tests using multiple browser contexts.",
+        "Explain firewall, hotspot isolation and HTTPS/WSS."
+      ],
+      "acceptance": [
+        "At least two independent browser clients can join a match in tests.",
+        "Server rejects illegal commands and client-authored dice.",
+        "Players see same positions, balances, purchases and phases.",
+        "Human and bot turns function together."
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "Animations, sound and polish",
+      "tasks": [
+        "Animate dice.",
+        "Animate token movement.",
+        "Animate property purchase.",
+        "Animate rent payments.",
+        "Animate buildings.",
+        "Implement restrained UI transitions.",
+        "Add simple sound effects.",
+        "Implement graphics settings.",
+        "Implement reduced-motion mode.",
+        "Optimize resource use."
+      ],
+      "acceptance": [
+        "Animations represent the authoritative results.",
+        "Animations can be accelerated.",
+        "Gameplay remains functional with animations disabled."
+      ]
+    },
+    {
+      "phase": 8,
+      "name": "Save, resume and final testing",
+      "tasks": [
+        "Implement save/load.",
+        "Implement Node-host autosave.",
+        "Test resumed matches.",
+        "Run all available automated tests.",
+        "Check game-state synchronization.",
+        "Check rule edge cases.",
+        "Inspect runtime errors.",
+        "Fix reproducible problems.",
+        "Verify desktop/mobile browser behavior and resizing."
+      ],
+      "acceptance": [
+        "Saved games restore correctly.",
+        "No known critical blockers remain unreported.",
+        "Test results are documented."
+      ]
+    },
+    {
+      "phase": 9,
+      "name": "Production web build and browser delivery",
+      "tasks": [
+        "Generate optimized frontend bundle with Vite.",
+        "Build Node WebSocket server.",
+        "Check dist output and server startup.",
+        "Test solo mode without a backend after assets load.",
+        "Test LAN host and two browser clients with reachable addresses.",
+        "Validate room links, reconnect and responsive touch layouts.",
+        "Provide npm commands to start local dev and production LAN services.",
+        "Provide optional HTTPS/WSS deployment guide without requiring hosted infrastructure.",
+        "Document known untested scenarios honestly."
+      ],
+      "acceptance": [
+        "npm run build succeeds.",
+        "Static web build and server artifacts exist.",
+        "A browser can play solo.",
+        "LAN multiplayer works in tested network or is accurately marked unverified."
+      ]
+    }
+  ],
+  "testing_plan": {
+    "rules_tests": [
+      "Players start with correct cash.",
+      "Dice always produce values from 1 through 6.",
+      "Movement wraps around 40 board spaces.",
+      "Passing GO awards the correct cash.",
+      "Direct transfer to Jail does not award GO cash.",
+      "Buying a property transfers the correct cash and ownership.",
+      "Declining a purchase starts an auction.",
+      "Auction winner pays the valid winning bid.",
+      "Unowned properties do not charge rent.",
+      "Mortgaged properties do not charge rent.",
+      "Monopoly ownership affects undeveloped rent correctly.",
+      "Houses and hotels increase rent.",
+      "Buildings follow even-building and even-selling requirements.",
+      "Building inventory cannot become negative.",
+      "Three consecutive doubles send a player to Jail.",
+      "Jail escape rules function correctly.",
+      "Card effects apply once.",
+      "Trade acceptance transfers exactly the agreed items.",
+      "Invalid trades are rejected.",
+      "Debt resolution and bankruptcy work.",
+      "Eliminated players receive no further turns.",
+      "Last solvent player wins."
+    ],
+    "bot_tests": [
+      "Every difficulty performs legal actions.",
+      "Bots can bid.",
+      "Bots can build.",
+      "Bots can trade.",
+      "Bots can escape Jail.",
+      "Bots can manage debt.",
+      "Simulated bot-only matches terminate.",
+      "Bot decisions never directly mutate unauthorized client state."
+    ],
+    "network_tests": [
+      "Node WebSocket server starts successfully.",
+      "Client can connect.",
+      "Lobby updates correctly.",
+      "Multiple clients receive correct initial state.",
+      "Dice outcomes are consistent.",
+      "Balances are synchronized.",
+      "Ownership is synchronized.",
+      "Invalid actions are rejected.",
+      "Rejoining restores identity.",
+      "Disconnect handling does not corrupt game state."
+    ],
+    "test_execution": {
+      "run_after_each_relevant_phase": true,
+      "headless_tests": true,
+      "write_test_logs": true,
+      "fix_then_rerun": true,
+      "do_not_replace_failed_tests_with_fake_success": true,
+      "record_unavailable_hardware_tests_as_not_tested": true
+    },
+    "browser_tests": [
+      "Web app loads without uncaught JavaScript errors.",
+      "3D canvas initializes and responds to resize.",
+      "Mouse and touch interaction select board tiles.",
+      "Responsive HUD works on desktop and simulated mobile viewports.",
+      "Client-only solo match works without WebSocket service.",
+      "Production static build loads correctly.",
+      "Reconnect flow restores active player identity.",
+      "Cross-origin and malformed WebSocket requests are appropriately rejected."
+    ]
+  },
+  "quality_requirements": {
+    "functional": [
+      "No dead buttons.",
+      "No placeholder gameplay.",
+      "No mocked multiplayer presented as functional.",
+      "No bots that merely skip turns.",
+      "No incorrect board positions.",
+      "No invalid ownership transfers.",
+      "No negative cash except explicitly modeled temporary debt resolution.",
+      "No duplicate payouts.",
+      "No double processing of network actions."
+    ],
+    "visual": [
+      "Consistent color scheme.",
+      "Readable text.",
+      "Clear player identity.",
+      "Smooth animations.",
+      "Readable property data.",
+      "Attractive board composition.",
+      "No major overlaps.",
+      "No oversized dialogs blocking essential controls.",
+      "Provide visible keyboard focus and adequate contrast.",
+      "Canvas resolution and interaction scale gracefully to phones."
+    ],
+    "engineering": [
+      "Readable modular code.",
+      "Data-driven board.",
+      "Centralized rules validation.",
+      "Consistent error handling.",
+      "No unnecessary frameworks.",
+      "Avoid deprecated engine APIs.",
+      "Use source-control commits when appropriate.",
+      "Remove temporary debug-only shortcuts from release behavior."
+    ]
+  },
+  "scope_control": {
+    "must_have": [
+      "3D board",
+      "Animated tokens",
+      "Animated dice",
+      "Complete playable rules",
+      "Property cards",
+      "Buying and renting",
+      "Auctions",
+      "Buildings",
+      "Mortgages",
+      "Trading",
+      "Jail",
+      "Bankruptcy",
+      "Bots",
+      "Offline LAN multiplayer",
+      "Manual IP joining",
+      "Solo mode",
+      "Mixed human and bot games",
+      "Save and resume",
+      "Production browser build",
+      "Desktop and mobile browser support",
+      "Node.js LAN room server with shareable room links",
+      "Solo mode without backend"
+    ],
+    "nice_to_have": [
+      "Small particle effects",
+      "Music",
+      "Extended statistics",
+      "Alternative board themes",
+      "Additional player tokens",
+      "Installable PWA and cached solo mode",
+      "Fullscreen browser button"
+    ],
+    "do_not_build": [
+      "Online accounts",
+      "Cloud multiplayer",
+      "Microtransactions",
+      "Advertisements",
+      "Realistic character animation",
+      "Open-world environments",
+      "Complex physical dice simulation",
+      "Built-in AI chatbot",
+      "Machine-learning model training",
+      "Backend database",
+      "Social networking features",
+      "Android APK or native app packaging",
+      "Custom game engine",
+      "Godot game project",
+      "ENet peer connection in browser",
+      "Cloud account service",
+      "Raw UDP broadcast browser discovery"
+    ]
+  },
+  "autonomous_agent_workflow": {
+    "rules": [
+      "Immediately inspect the workspace and tools.",
+      "Create a concise implementation checklist.",
+      "Start writing runnable project files.",
+      "Use small, verified implementation steps.",
+      "Prefer completing core mechanics over polishing empty screens.",
+      "Run TypeScript typechecking, Vite builds, browser smoke tests and Vitest frequently.",
+      "Run automated rules tests as modules are implemented.",
+      "Keep the project launchable after major milestones.",
+      "Implement networking with real peers rather than simulated button demonstrations.",
+      "Run production frontend/server build after core functionality exists and again at the end.",
+      "Resolve build problems instead of merely describing them.",
+      "Read terminal output and fix actual errors.",
+      "Continue through phases without waiting for routine approval.",
+      "Record genuine limitations when external equipment or permissions are unavailable."
+    ],
+    "failure_handling": {
+      "syntax_error": "Inspect failing scripts, fix syntax and rerun validation.",
+      "missing_resource": "Fix resource paths or create valid replacements.",
+      "missing_dependency": "Attempt permitted official installation; otherwise document blocker.",
+      "network_error": "Inspect logs and transport assumptions, then retry with localhost or available LAN peers.",
+      "test_failure": "Reproduce, diagnose, fix and rerun.",
+      "time_or_context_limit": "Leave a working checkpoint, current test report and exact next actions.",
+      "browser_render_failure": "Check WebGL support, console errors, shader compilation, pixel ratio and fallback.",
+      "web_build_failure": "Diagnose TypeScript/Vite/dependency failure, fix and rerun.",
+      "unavailable_physical_devices": "Keep browser automated tests and record real phone/hotspot tests as not tested."
+    },
+    "reporting": {
+      "progress_file": "docs/PROGRESS.md",
+      "phase_checklist": true,
+      "build_log": "docs/BUILD_STATUS.md",
+      "test_report": "docs/TEST_RESULTS.md",
+      "blocker_log": "docs/BLOCKERS.md",
+      "next_steps": "docs/NEXT_STEPS.md",
+      "requirement": "Status documents must reflect actual implementation and executed tests."
+    }
+  },
+  "deliverables": {
+    "mandatory": [
+      "Complete TypeScript/Three.js web project",
+      "Original playable 3D board",
+      "Game rules implementation",
+      "Bot implementation",
+      "Node WebSocket local multiplayer implementation",
+      "Functional menu and game interface",
+      "Save system",
+      "Automated tests",
+      "README",
+      "Browser start, LAN joining and production deployment instructions",
+      "Test report",
+      "Accurate completion report"
+    ],
+    "readme_sections": [
+      "Project overview",
+      "Features",
+      "Game rules",
+      "Controls",
+      "How to play solo entirely in browser",
+      "How to host a Wi-Fi browser game with Node",
+      "How to join via LAN/hotspot IP and room link",
+      "How to add bots",
+      "How to run dev/production web build",
+      "How to run tests",
+      "Troubleshooting"
+    ],
+    "production_web": {
+      "web_build": "apps/web/dist/",
+      "server_build": "apps/server/dist/",
+      "required_attempt": true,
+      "success_condition": "Static bundle and executable server build exist and npm run build succeeds",
+      "smoke_test": "Serve bundle and connect at least two browser test clients when possible"
+    }
+  },
+  "final_acceptance_criteria": [
+    "The web project installs and launches via npm.",
+    "The main menu can launch a real match.",
+    "The board contains 40 correctly indexed spaces.",
+    "A human can roll dice and move a token.",
+    "Purchases and rent operate correctly.",
+    "Auctions, buildings, mortgages and trades operate correctly.",
+    "Jail and bankruptcy function correctly.",
+    "A match can be completed.",
+    "Bots can play full matches.",
+    "A LAN host and at least one client can exchange real game commands in a tested environment.",
+    "Human and bot players can coexist in a match.",
+    "State synchronization has been tested.",
+    "The board and dice have functioning 3D visuals.",
+    "Gameplay uses actual animated tokens.",
+    "Save and resume function.",
+    "Automated tests run with documented results.",
+    "Production web and Node server builds have been attempted.",
+    "The final report distinguishes verified results from untested features.",
+    "Solo can be played without starting the LAN server.",
+    "A real browser can join a real LAN room by code or URL.",
+    "Desktop and mobile viewport layouts are usable."
+  ],
+  "browser_multiplayer": {
+    "objective": "Players on different browser devices join the same game over LAN, shared Wi-Fi or phone hotspot without external internet or a cloud account. A Node.js WebSocket server on a reachable host computer/device is mandatory for multiplayer; a browser tab cannot be an ENet/UDP listening server.",
+    "modes": [
+      "Solo with bots",
+      "Human versus human over LAN",
+      "Multiple humans plus bots"
+    ],
+    "host_architecture": {
+      "model": "Authoritative Node.js process (NOT a browser peer host)",
+      "host_responsibilities": [
+        "Listen for WebSocket connections",
+        "Manage rooms and player session tokens",
+        "Validate actions and prevent duplicate submissions",
+        "Maintain canonical match state and RNG",
+        "Execute bot decisions",
+        "Broadcast room and match events",
+        "Save host match snapshots",
+        "Handle rejoin and declare winner"
+      ],
+      "client_responsibilities": [
+        "Render 3D board and HUD",
+        "Accept mouse/touch/keyboard interaction",
+        "Send intent-only WebSocket messages",
+        "Animate accepted game events",
+        "Request state snapshot on reconnect"
+      ],
+      "solo_exception": "Solo games execute the exact shared core engine locally in the browser with no WebSocket server."
+    },
+    "network": {
+      "primary_transport": "Browser WebSocket (ws:// on trusted HTTP LAN; wss:// behind HTTPS when hosted)",
+      "default_server_port": 3001,
+      "default_web_port": 5173,
+      "room_join": "Short room code and direct invite URL, plus optional manual server URL",
+      "automatic_discovery": "Do not assume browser UDP broadcast/mDNS APIs. No UDP discovery in version 1.",
+      "internet_server": false,
+      "wifi": true,
+      "mobile_hotspot": true,
+      "wifi_direct": "Not required",
+      "bluetooth": "Not required",
+      "caveats": [
+        "Browsers cannot expose raw UDP ENet sockets or run a normal listening WebSocket server.",
+        "For multiplayer launch Node.js server on PC/laptop/Raspberry Pi connected to same reachable LAN as players.",
+        "Client devices open a LAN URL such as http://192.168.1.10:5173; localhost on a phone means the phone, not the PC.",
+        "Expose/bind web and socket services on 0.0.0.0 for LAN only, and configure Windows Firewall as needed.",
+        "Some mobile hotspots or guest Wi-Fi isolate clients.",
+        "HTTPS pages cannot open insecure ws:// connections; use wss:// and appropriate proxy/deployment configuration.",
+        "PWA service worker offline caching enables solo after first successful load but does not magically make remote LAN multiplayer work without a server."
+      ]
+    },
+    "lobby": {
+      "host_creates_room": true,
+      "join_by_discovery": false,
+      "join_by_ip": true,
+      "player_names": true,
+      "token_selection": true,
+      "host_adds_bots": true,
+      "host_changes_difficulty": true,
+      "display_connection_status": true,
+      "host_starts_game": true,
+      "join_by_room_code": true,
+      "share_invite_link": true
+    },
+    "synchronization": {
+      "send_player_intents": true,
+      "host_validates_intents": true,
+      "broadcast_game_events": true,
+      "periodic_state_snapshots": true,
+      "snapshot_on_join": true,
+      "state_revision_numbers": true,
+      "message_schema_version": 1,
+      "avoid_syncing_every_animation_frame": true,
+      "animations_derive_from_game_events": true,
+      "desync_resolution": "Request a fresh canonical snapshot."
+    },
+    "network_messages": [
+      "HELLO",
+      "JOIN_REQUEST",
+      "JOIN_ACCEPTED",
+      "JOIN_REJECTED",
+      "LOBBY_UPDATE",
+      "PLAYER_READY",
+      "GAME_START",
+      "REQUEST_ACTION",
+      "ACTION_ACCEPTED",
+      "ACTION_REJECTED",
+      "GAME_EVENT",
+      "STATE_SNAPSHOT",
+      "STATE_RESYNC_REQUEST",
+      "PING",
+      "PONG",
+      "PLAYER_DISCONNECTED",
+      "GAME_ENDED"
+    ],
+    "security": {
+      "never_trust_client_cash_values": true,
+      "never_trust_client_dice": true,
+      "validate_sender_identity": true,
+      "validate_current_turn": true,
+      "validate_all_actions": true,
+      "reject_malformed_messages": true,
+      "limit_packet_sizes": true,
+      "rate_limit_commands": true,
+      "avoid_arbitrary_code_execution": true,
+      "no_remote_admin_interface": true,
+      "server_is_source_of_truth": true,
+      "random_room_code_not_authentication": true,
+      "session_tokens": "Generate cryptographically random reconnect tokens; do not log or include them in share URLs.",
+      "origin_checks": "Check WebSocket origins against configured allowed origins.",
+      "input_validation": "Validate schema, action ID, turn ownership, room membership and message size.",
+      "deployment": "No open public unauthenticated server by default; LAN only unless user later chooses secure hosted mode."
+    },
+    "disconnects": {
+      "show_connection_loss": true,
+      "retry_connection": true,
+      "allow_rejoin_with_session_token": true,
+      "rejoin_restores_existing_player": true,
+      "timeout_behavior": "Pause or wait for a disconnected active human according to game settings.",
+      "host_disconnect": "In version 1 show that the room ended and retain the most recent host save. Host migration is not required."
+    },
+    "testing": {
+      "localhost_two_peers": true,
+      "separate_processes": true,
+      "wifi_router_test": true,
+      "mobile_hotspot_test": true,
+      "manual_ip_test": true,
+      "automatic_discovery_test_when_supported": true,
+      "reconnect_test": true,
+      "simultaneous_command_test": true,
+      "verify_identical_balances": true,
+      "verify_identical_property_ownership": true,
+      "verify_identical_player_positions": true,
+      "two_browser_devices_when_available": true,
+      "smartphone_browser_test": true,
+      "firewall_and_hotspot_docs": true
+    }
+  },
+  "final_instruction_to_claude_code": "BEGIN IMPLEMENTATION NOW IN THE CURRENT LOCAL PROJECT OR CONNECTED WORKSPACE. Do not only provide a plan or samples. Write the full runnable TypeScript/Three.js/Vite project and Node WebSocket server. Develop deterministic shared rules and offline bots, responsive 3D UI, authoritative LAN multiplayer, browser/host save systems and tests. Launch services where tools permit, inspect real errors, repair failures, complete production builds and document exact launch URLs and commands. Do not generate an Android app or APK. Do not rely on GitHub Actions or remote deployment for local development. Commit useful checkpoints when Git is available. Distinguish actually tested behavior from unverified environments.",
+  "browser_launch_and_lan_instructions": {
+    "developer_start": [
+      "npm install",
+      "npm run dev:lan"
+    ],
+    "expected_behavior": "Start web server bound to 0.0.0.0 and local WebSocket host. Show localhost URL for host PC and LAN IP URL for phones. Each phone opens the web URL and enters/shared room code.",
+    "production_start": [
+      "npm run build",
+      "npm run start:lan"
+    ],
+    "security": "Local LAN only by default; never silently port-forward or publicly expose the server.",
+    "websocket_addressing": "Prefer same-origin reverse proxy to /ws where available; otherwise derive ws URL from the HTTP page host with a configured port. Do not hardcode localhost in clients.",
+    "hotspot": "If laptop is hotspot host, clients must have client-to-host TCP access. Document host firewall rules and alternative direct Wi-Fi-router test.",
+    "offline": "Web assets can optionally use PWA cache for subsequent solo use; first visit requires files to be served, unless installed/cached."
+  }
+}
