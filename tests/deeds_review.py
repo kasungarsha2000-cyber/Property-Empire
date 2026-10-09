@@ -31,6 +31,7 @@ with sync_playwright() as p:
     page.get_by_role('button',name='Continue Saved Game',exact=True).click()
     expect(page.locator('#game-info')).to_contain_text('Ada')
     def select(name):
+        if page.locator('#dialog').is_visible():page.get_by_role('button',name='Close dialog',exact=True).click()
         page.get_by_role('button',name='Properties',exact=True).click()
         page.get_by_role('dialog').get_by_role('button',name=name,exact=False).click()
         expect(page.locator('.title-deed')).to_be_visible()
@@ -45,6 +46,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     page.screenshot(path=str(out/'property-close-up.png'),full_page=True)
     page.get_by_role('button',name='Reset camera',exact=True).click()
+    select('Copper Lane')
     page.get_by_role('button',name='Mortgage',exact=True).click()
     expect(page.locator('.mortgage-stamp')).to_have_text('Mortgaged')
     expect(page.locator('.deed-figures')).to_contain_text('$0')
@@ -53,7 +55,7 @@ with sync_playwright() as p:
     for name,amount in [('South Station','$100'),('Solar Works','10×'),('Summit Plaza','$2,000'),('Harbor Walk','$12')]:
         select(name)
         expect(page.locator('.deed-figures')).to_contain_text(amount)
-        expect(page.locator('#inspector svg.property-art')).to_have_count(1)
+        expect(page.locator('#dialog svg.property-art')).to_have_count(1)
         page.screenshot(path=str(out/f'deed-{name.lower().replace(" ","-")}.png'),full_page=True)
     for width,height in [(390,844),(375,812),(844,390),(768,1024)]:
         page.set_viewport_size({'width':width,'height':height})
@@ -61,6 +63,7 @@ with sync_playwright() as p:
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         if width==390:
             page.locator('.title-deed').screenshot(path=str(out/'deed-mobile.png'))
+            page.get_by_role('button',name='Close dialog',exact=True).click()
             page.get_by_role('button',name='Properties',exact=True).click()
             page.screenshot(path=str(out/'deed-gallery-mobile.png'),full_page=True)
             page.get_by_role('dialog').get_by_role('button',name='Copper Lane',exact=False).click()

@@ -1,0 +1,7 @@
+Keep the user's controls directly after dice/turn information within the match overview. Remove the separate toolbar card/row and its availability sentence, use compact buttons, and return desktop grid rows to overview + game. Narrow screens keep one internally scrolling button line.
+
+Remove the right sidebar and expand the board into its former column. Preserve revision tracking in the footer and expose building stock inside the deed gallery. Board clicks and gallery selections open the existing live deed dialog; keep each open dialog's own deed index stable through opponent actions. Locate/focus closes the dialog to show the selected board location.
+
+Add brief, nonblocking event feedback using authoritative personal notices. Positive rent/salary/acquisition/building events use coins/sparkles and a positive balance pulse. Payments/jail/debt/loss use a warning pulse. Defer effects until dice and pawn movement finish, prevent replay on restore/repeated snapshots, and suppress motion when reduced motion is selected. Keep card/decision interactions unchanged.
+
+Verify event tone and unpaid-debt semantics with regression tests, then check actual board clicks, gallery/deed actions, compact toolbar geometry, freed board width, fullscreen, mobile layouts, gain/loss feedback and reduced motion in Chrome. Update former sidebar-based browser assertions to match popup-based interactions. Run core tests, strict build and relevant browser flows; independently review sequencing and UI state before completion.

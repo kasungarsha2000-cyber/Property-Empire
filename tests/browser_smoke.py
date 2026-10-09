@@ -30,7 +30,7 @@ with sync_playwright() as p:
  page.get_by_role('button',name='Properties',exact=True).click()
  expect(page.get_by_role('dialog')).to_be_visible()
  page.get_by_role('dialog').get_by_role('button',name='Copper Lane',exact=False).click()
- expect(page.locator('#inspector')).to_contain_text('Copper Lane')
+ expect(page.locator('#dialog .deed-dialog-body')).to_contain_text('Copper Lane')
  page.set_viewport_size({'width':390,'height':844})
  page.screenshot(path=str(OUT/'game-mobile.png'),full_page=True)
  assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile horizontal overflow'
@@ -39,6 +39,7 @@ with sync_playwright() as p:
   page.set_viewport_size({'width':width,'height':height})
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'Layout overflow at {width}x{height}'
  page.screenshot(path=str(OUT/'game-tablet.png'),full_page=True)
+ page.get_by_role('button',name='Close dialog',exact=True).click()
  page.get_by_role('button',name='Settings',exact=True).click()
  page.get_by_label('Animation speed').select_option('reduced')
  page.get_by_label('Graphics quality').select_option('low')
@@ -72,9 +73,10 @@ with sync_playwright() as p:
  expect(page.get_by_role('button',name='Build',exact=True)).to_be_disabled()
  expect(page.get_by_role('button',name='Mortgage',exact=True)).to_be_disabled()
  page.get_by_role('button',name='Sell building',exact=True).click();page.get_by_role('button',name='Mortgage',exact=True).click()
- expect(page.locator('#inspector')).to_contain_text('Mortgaged')
+ expect(page.locator('#dialog .deed-dialog-body')).to_contain_text('Mortgaged')
  page.get_by_role('button',name='Lift mortgage ($33)',exact=True).click()
  expect(page.locator('#player-ledger')).to_contain_text('$1,472')
+ page.get_by_role('button',name='Close dialog',exact=True).click()
  page.get_by_role('button',name='Main menu',exact=True).click()
  load_fixture('debt');expect(page.get_by_role('button',name='Trade',exact=True)).to_be_enabled()
  page.get_by_role('button',name='Trade',exact=True).click()

@@ -1,0 +1,31 @@
+/* Controls follow turn/dice information within the same overview card. */
+.playing #match-banner{gap:9px;padding:10px 12px}
+.playing #match-banner #game-toolbar{grid-column:1/-1;display:block;border:0;background:transparent;border-radius:0;padding:0;margin:0;min-width:0}
+.playing #match-banner #game-toolbar .game-tools{gap:5px;padding:0;margin:0}
+.playing #match-banner #game-toolbar button{min-height:36px;padding:7px 10px;font-size:11px;box-shadow:none;border-radius:6px;gap:5px}
+.playing #match-banner #game-toolbar button svg{width:15px;height:15px}
+.playing #match-banner .turn-status{padding-top:7px}
+.layout.playing{grid-template-columns:248px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+.playing #stage{grid-column:2}
+.deed-dialog .deed-focus{display:none}.deed-dialog .deed-locate{min-height:36px;padding:6px 10px;font-size:11px;margin-left:auto;white-space:nowrap}.deed-dialog .dialog-head h2{flex:1;min-width:0}
+@media(min-width:1600px){.layout.playing{grid-template-columns:275px minmax(0,1fr)}}
+@media(min-width:901px) and (max-width:1200px){.layout.playing{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:900px){.layout.playing{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:650px){
+ .layout.playing{display:flex}.playing #stage{order:1}.playing #left{order:2}
+ .playing #match-banner #game-toolbar{margin-top:8px}
+ .playing #match-banner #game-toolbar button{min-height:44px;padding:8px 10px}
+}
+.event-feedback{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6}
+.feedback-burst{position:absolute;left:50%;top:100px;--feedback:#377955;--particle:#eac26a}
+.feedback-negative{--feedback:#ac5f4a;--particle:#ce8165}
+.feedback-label{position:absolute;left:0;top:0;transform:translateX(-50%);background:#fffdf2ed;border:1px solid var(--feedback);border-radius:9px;padding:9px 16px;box-shadow:0 4px 16px #18394418;text-align:center;white-space:nowrap;animation:event-float 1.35s ease-out both;color:var(--feedback)}
+.feedback-label span{display:block;font-size:12px;font-weight:800}.feedback-label strong{display:block;font-family:'Fredoka';font-size:25px;margin-top:4px}
+.feedback-particle{position:absolute;left:0;top:20px;width:9px;height:9px;border-radius:50%;background:var(--particle);border:1px solid #ffffff90;animation:event-particle 1s var(--delay) ease-out both}
+.feedback-negative .feedback-particle{width:5px;height:12px;border-radius:2px}
+.portfolio-money.balance-positive{animation:balance-gain 1.2s ease-out}.portfolio-money.balance-negative{animation:balance-loss .8s ease-out}
+@keyframes event-float{0%{opacity:0;transform:translate(-50%,14px) scale(.88)}15%,70%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-20px) scale(.98)}}
+@keyframes event-particle{0%{opacity:0;transform:translate(0,0) scale(.3)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.8)}}
+@keyframes balance-gain{0%,70%{background:#e0edd3;color:#276b46}100%{background:transparent}}
+@keyframes balance-loss{0%,60%{background:#f5e2d8;color:#994b35}20%,60%{transform:translateX(-2px)}40%,80%{transform:translateX(2px)}100%{background:transparent;transform:none}}
+@media(prefers-reduced-motion:reduce){.feedback-label,.feedback-particle,.portfolio-money.balance-positive,.portfolio-money.balance-negative{animation:none}.event-feedback{display:none}}

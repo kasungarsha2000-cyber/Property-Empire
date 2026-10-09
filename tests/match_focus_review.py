@@ -74,5 +74,5 @@ with sync_playwright() as p:
             page.set_viewport_size({'width':width,'height':height})
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         assert not errors,errors
-        print(json.dumps({'result':'PASS','flows':['compact receipt and auto-dismiss','ownership labels and inspector','native fullscreen and settings','human counteroffer accepted by bot','decline without counteroffer','bot counteroffer accepted by human','mobile bounds'],'page_errors':errors}))
+        print(json.dumps({'result':'PASS','flows':['compact receipt and auto-dismiss','ownership labels and deed popup','native fullscreen and settings','human counteroffer accepted by bot','decline without counteroffer','bot counteroffer accepted by human','mobile bounds'],'page_errors':errors}))
     finally:browser.close()
