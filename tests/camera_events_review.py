@@ -9,6 +9,8 @@ with sync_playwright() as p:
     try:
         page=browser.new_page(viewport={'width':1440,'height':960});errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
+        page.add_init_script("localStorage.setItem('empire-settings',JSON.stringify({speed:'reduced',quality:'low',sound:false}))")
+        page.clock.install()
         page.goto(base);page.wait_for_load_state('networkidle')
         def load(game):
             page.evaluate('''async game=>{const db=await new Promise(r=>{const q=indexedDB.open('property-empire-saves',1);q.onupgradeneeded=()=>q.result.createObjectStore('saves');q.onsuccess=()=>r(q.result)});await new Promise(r=>{const t=db.transaction('saves','readwrite');t.objectStore('saves').put({savedAt:Date.now(),game},'current');t.oncomplete=r});db.close()}''',game)
@@ -19,6 +21,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(1200);page.screenshot(path=str(out/'event-purchase-desktop.png'))
         page.get_by_role('button',name='Close event popup',exact=True).click()
         expect(page.locator('#turn-panel button')).to_have_count(2)
+        # Freeze the receipt lifetime while software-rendered resize/screenshots run.
+        page.clock.pause_at((page.evaluate('Date.now()')+100)/1000)
         page.get_by_role('button',name='Buy for $60',exact=True).click()
         expect(page.locator('#event-popup')).to_contain_text('Property purchased')
         expect(page.locator('#event-popup')).to_contain_text('$60')
@@ -30,6 +34,7 @@ with sync_playwright() as p:
         expect(page.locator('#event-popup')).to_have_attribute('role','status')
         expect(page.locator('#event-popup .event-art')).to_have_count(0)
         page.get_by_role('button',name='Close event popup',exact=True).click()
+        page.clock.resume()
         for width,height in [(1440,960),(1024,650),(1440,600)]:
             page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(200)
             before=page.locator('#stage').bounding_box()
@@ -59,8 +64,11 @@ with sync_playwright() as p:
         load(rent)
         expect(page.locator('#event-popup')).to_contain_text('Rent collected',timeout=15000)
         expect(page.locator('#event-popup')).to_contain_text('+$8')
+        expect(page.locator('#event-popup')).to_be_visible()
+        page.clock.pause_at((page.evaluate('Date.now()')+100)/1000)
         page.screenshot(path=str(out/'event-rent-mobile.png'),full_page=True)
         page.get_by_role('button',name='Close event popup',exact=True).click()
+        page.clock.resume()
         assert not errors,errors
         if ':5173' in base:
             page.set_viewport_size({'width':1440,'height':960})

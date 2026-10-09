@@ -57,6 +57,7 @@ export class SceneAssets {
   readonly cylinder = new THREE.CylinderGeometry(1, 1, 1, 24);
   readonly cone = new THREE.ConeGeometry(1, 1, 24);
   readonly gem = new THREE.OctahedronGeometry(.24, 0);
+  readonly miniatureRing = new THREE.TorusGeometry(1,.055,6,32);
   readonly roof: THREE.ExtrudeGeometry;
   readonly labels: {mesh: THREE.Mesh; index: number}[] = [];
   readonly tiles: THREE.Mesh[] = [];
@@ -328,42 +329,82 @@ export class SceneAssets {
   }
 
   makeToken(style:number,color:string,base=true) {
-    const group=new THREE.Group(),white='#F4E9D5',dark='#263F48';
-    if(base){this.mesh(group,this.cylinder,'#D2AD67',[.235,.065,.235],[0,.025,0],'metal');this.mesh(group,this.cylinder,color,[.196,.018,.196],[0,.068,0],'lacquer',false);}
+    const token=new THREE.Group(),group=new THREE.Group(),white='#F4E9D5',dark='#263F48',gold='#DAB777';token.add(group);
+    if(base){this.mesh(token,this.cylinder,color,[.25,.075,.25],[0,.028,0],'lacquer');this.mesh(token,this.cylinder,white,[.225,.012,.225],[0,.072,0]);const rim=this.mesh(token,this.miniatureRing,gold,[.235,.235,.235],[0,.069,0],'metal',false);rim.rotation.x=Math.PI/2;this.mesh(token,this.cylinder,color,[.18,.012,.18],[0,.082,0],'lacquer',false);}
     const y = base ? .11 : 0;
     if(style===0){
       this.mesh(group,this.box,color,[.53,.15,.25],[0,y+.13,0],'lacquer');this.mesh(group,this.box,white,[.25,.14,.215],[-.015,y+.26,0],'lacquer');
       this.mesh(group,this.box,'#6FA2B0',[.155,.10,.223],[-.012,y+.275,0],'glass',false);
       for(const x of [-.17,.17])for(const z of [-.14,.14]){const wheel=this.mesh(group,this.cylinder,dark,[.068,.035,.068],[x,y+.08,z]);wheel.rotation.x=Math.PI/2;}
       for(const z of [-.075,.075])this.mesh(group,this.sphere,'#F7D99A',[.035,.026,.026],[.265,y+.15,z],'lacquer',false);
+      this.mesh(group,this.box,gold,[.025,.035,.205],[.279,y+.11,0],'metal',false);this.mesh(group,this.box,dark,[.018,.06,.075],[.272,y+.16,0]);
+      for(const x of [-.17,.17])for(const z of [-.162,.162]){const hub=this.mesh(group,this.cylinder,gold,[.036,.009,.036],[x,y+.08,z],'metal',false);hub.rotation.x=Math.PI/2;}
+      this.mesh(group,this.box,white,[.20,.012,.07],[.145,y+.211,0]);for(const z of [-.115,.115])this.mesh(group,this.box,'#D77662',[.016,.034,.043],[-.27,y+.16,z],'lacquer',false);
     }else if(style===1){
       this.mesh(group,this.cylinder,white,[.115,.35,.115],[0,y+.24,0],'lacquer');this.mesh(group,this.cone,color,[.115,.23,.115],[0,y+.53,0],'lacquer');this.mesh(group,this.sphere,'#527C92',[.055,.055,.024],[0,y+.31,.112],'glass',false);
       for(let i=0;i<3;i++){const fin=this.mesh(group,this.box,color,[.08,.18,.12],[Math.cos(i*Math.PI*2/3)*.12,y+.095,Math.sin(i*Math.PI*2/3)*.12],'lacquer');fin.rotation.y=-i*Math.PI*2/3;}
+      this.mesh(group,this.cylinder,gold,[.125,.04,.125],[0,y+.40,0],'metal');this.mesh(group,this.cylinder,dark,[.08,.07,.08],[0,y+.035,0],'metal');
+      const port=this.mesh(group,this.miniatureRing,gold,[.065,.065,.065],[0,y+.31,.122],'metal',false);this.mesh(group,this.sphere,white,[.017,.017,.005],[-.02,y+.33,.139],'glass',false);port.rotation.z=.1;
     }else if(style===2){
       this.mesh(group,this.sphere,color,[.28,.11,.12],[0,y+.11,0],'lacquer');this.mesh(group,this.cylinder,'#CBA76B',[.018,.38,.018],[0,y+.32,0],'metal',false);
       const sail=this.mesh(group,this.roof,white,[.32,.52,.025],[.01,y+.20,0]);sail.rotation.z=-.14;
+      this.mesh(group,this.sphere,white,[.245,.025,.092],[0,y+.19,0]);this.mesh(group,this.cylinder,gold,[.01,.4,.01],[0,y+.21,0],'metal',false).rotation.z=Math.PI/2;
+      const flag=this.mesh(group,this.roof,color,[.105,.09,.013],[0,y+.54,0],'lacquer',false);flag.rotation.z=-Math.PI/2;
     }else if(style===3){
       this.mesh(group,this.box,color,[.23,.25,.18],[0,y+.24,0],'lacquer');this.mesh(group,this.box,white,[.28,.21,.22],[0,y+.48,0],'lacquer');
       for(const x of [-.073,.073]){this.mesh(group,this.sphere,dark,[.033,.033,.012],[x,y+.51,.119],'glass',false);this.mesh(group,this.box,dark,[.095,.08,.17],[x,y+.061,0]);}
       for(const x of [-.172,.172])this.mesh(group,this.box,color,[.071,.18,.09],[x,y+.25,0],'lacquer');this.mesh(group,this.cylinder,'#CDA664',[.015,.13,.015],[0,y+.65,0],'metal',false);this.mesh(group,this.sphere,color,[.033,.033,.033],[0,y+.72,0]);
+      this.mesh(group,this.box,dark,[.225,.108,.01],[0,y+.50,.119]);for(const x of [-.073,.073])this.mesh(group,this.sphere,'#DCECA9',[.026,.026,.012],[x,y+.51,.134],'glass',false);
+      this.mesh(group,this.box,gold,[.094,.07,.018],[0,y+.27,.097],'metal',false);for(const x of [-.055,0,.055])this.mesh(group,this.box,dark,[.022,.012,.014],[x,y+.17,.097], 'matte',false);
+      for(const x of [-.21,.21])this.mesh(group,this.sphere,gold,[.049,.05,.045],[x,y+.17,0],'metal');
     }else if(style===4){
       this.mesh(group,this.cylinder,'#DAB666',[.185,.19,.185],[0,y+.15,0],'metal');this.mesh(group,this.cylinder,color,[.20,.035,.20],[0,y+.065,0],'lacquer');
       for(let i=0;i<5;i++){const angle=i*Math.PI*2/5;this.mesh(group,this.cone,'#E6C47C',[.073,.20,.073],[Math.cos(angle)*.16,y+.33,Math.sin(angle)*.16],'metal');this.mesh(group,this.sphere,color,[.036,.036,.036],[Math.cos(angle)*.16,y+.43,Math.sin(angle)*.16],'lacquer',false);}
+      for(let i=0;i<8;i++){const angle=i*Math.PI/4;this.mesh(group,this.gem,color,[.16,.17,.1],[Math.cos(angle)*.187,y+.17,Math.sin(angle)*.187],'glass',false);}
+      const ring=this.mesh(group,this.miniatureRing,white,[.188,.188,.188],[0,y+.085,0],'metal',false);ring.rotation.x=Math.PI/2;
     }else if(style===5){
       this.mesh(group,this.sphere,color,[.29,.15,.15],[0,y+.41,0],'lacquer');this.mesh(group,this.box,white,[.22,.10,.15],[0,y+.19,0],'lacquer');for(const x of [-.08,.08])this.mesh(group,this.cylinder,'#CBAA6D',[.011,.13,.011],[x,y+.29,0],'metal',false);
       const fin=this.mesh(group,this.roof,white,[.17,.19,.035],[-.25,y+.34,0]);fin.rotation.z=Math.PI/2;
+      for(const x of [-.10,.05,.20]){const ring=this.mesh(group,this.miniatureRing,gold,[.145,.145,.145],[x,y+.41,0],'metal',false);ring.rotation.y=Math.PI/2;}
+      for(const x of [-.075,.075])this.mesh(group,this.box,dark,[.032,.039,.015],[x,y+.20,.079],'glass',false);
     }else if(style===6){
       this.mesh(group,this.sphere,color,[.15,.20,.12],[0,y+.22,0],'lacquer');this.mesh(group,this.sphere,color,[.18,.145,.14],[0,y+.46,0],'lacquer');for(const x of [-.12,.12]){this.mesh(group,this.cone,color,[.061,.13,.057],[x,y+.61,0],'lacquer');this.mesh(group,this.sphere,dark,[.026,.031,.013],[x*.55,y+.48,.136],'glass',false);}this.mesh(group,this.sphere,white,[.028,.022,.021],[0,y+.43,.147],'matte',false);const tail=this.mesh(group,this.sphere,color,[.053,.17,.053],[.17,y+.19,-.045],'lacquer');tail.rotation.z=-.55;
+      this.mesh(group,this.box,gold,[.21,.03,.19],[0,y+.34,0],'metal',false);this.mesh(group,this.sphere,gold,[.026,.038,.014],[0,y+.31,.117],'metal',false);
+      for(const x of [-.08,.08]){this.mesh(group,this.sphere,white,[.063,.034,.079],[x,y+.067,.057]);this.mesh(group,this.sphere,white,[.014,.02,.005],[x*.83,y+.493,.149],'glass',false);}
+      this.mesh(group,this.sphere,'#C98177',[.017,.013,.012],[0,y+.443,.164],'lacquer',false);
     }else{
       const gem=new THREE.Mesh(this.gem,this.material(color,'metal'));gem.position.y=y+.32;gem.scale.y=1.35;gem.castShadow=true;group.add(gem);this.mesh(group,this.cylinder,'#D9B470',[.18,.065,.18],[0,y+.075,0],'metal');
+      for(let i=0;i<4;i++){const angle=i*Math.PI/2;this.mesh(group,this.cylinder,gold,[.013,.16,.013],[Math.cos(angle)*.145,y+.16,Math.sin(angle)*.145],'metal');this.mesh(group,this.sphere,gold,[.022,.025,.022],[Math.cos(angle)*.145,y+.24,Math.sin(angle)*.145],'metal',false);}
     }
-    return group;
+    if([0,2,5].includes(style))group.rotation.y=-Math.PI/2;
+    return token;
   }
 
+  private miniatureFacade(hotel:boolean){
+    const key=hotel?'miniature-hotel':'miniature-house';let material=this.facades.get(key);if(material)return material;
+    const canvas=document.createElement('canvas');canvas.width=canvas.height=512;const ctx=canvas.getContext('2d')!;
+    ctx.fillStyle=hotel?'#B75A4D':'#70A98C';ctx.fillRect(0,0,512,512);
+    const window=(x:number,y:number,w:number,h:number)=>{ctx.fillStyle='#F2DFC0';ctx.fillRect(x-6,y-6,w+12,h+12);ctx.fillStyle='#315D67';ctx.fillRect(x,y,w,h);ctx.fillStyle='#D9E9D2';ctx.fillRect(x+6,y+7,w*.35,h*.35);ctx.fillStyle='#F2DFC0';ctx.fillRect(x+w/2-2,y,4,h);ctx.fillRect(x,y+h/2-2,w,4);};
+    if(hotel){ctx.fillStyle='#F4DCA7';ctx.font='800 48px Nunito';ctx.textAlign='center';ctx.fillText('HOTEL',256,56);for(let row=0;row<3;row++)for(let col=0;col<4;col++)window(35+col*126,95+row*104,64,63);}
+    else{window(28,113,113,140);window(371,113,113,140);}
+    ctx.fillStyle='#EEDBBB';ctx.fillRect(196,hotel?384:274,120,hotel?128:238);ctx.fillStyle='#294F57';ctx.fillRect(205,hotel?393:284,102,hotel?119:228);ctx.fillStyle='#D1E3D2';ctx.fillRect(212,hotel?400:299,37,hotel?100:120);ctx.fillRect(262,hotel?400:299,37,hotel?100:120);ctx.fillStyle='#D8B474';ctx.fillRect(252,hotel?393:284,8,228);
+    material=new THREE.MeshBasicMaterial({map:canvasTexture(canvas)});this.facades.set(key,material);return material;
+  }
   house(level:number) {
     const group=new THREE.Group();
-    if(level===5){this.mesh(group,this.box,'#C36455',[.60,.43,.36],[0,.21,0],'lacquer');this.mesh(group,this.box,'#F1D8A1',[.64,.065,.41],[0,.45,0],'metal');this.mesh(group,this.box,'#E9DFCB',[.31,.18,.29],[0,.54,0]);for(const x of [-.18,0,.18])this.mesh(group,this.box,'#B7D1CF',[.073,.13,.015],[x,.27,.188],'glass',false);}
-    else{this.mesh(group,this.box,'#64A483',[.175,.18,.20],[0,.09,0],'lacquer');this.mesh(group,this.roof,'#316C58',[.22,.15,.25],[0,.185,0],'lacquer');this.mesh(group,this.box,'#ECD8A7',[.044,.095,.016],[0,.069,.103],'matte',false);}
+    const hotel=level===5;
+    if(hotel){
+      this.mesh(group,this.box,'#E9D8BB',[.62,.035,.42],[0,.018,0]);this.mesh(group,this.box,'#B75A4D',[.55,.48,.34],[0,.267,0],'lacquer');this.mesh(group,this.box,'#F1D8A1',[.61,.035,.395],[0,.525,0],'metal');
+      this.mesh(group,this.box,'#B75A4D',[.38,.16,.30],[0,.62,0],'lacquer');this.mesh(group,this.box,'#E9DFCB',[.42,.025,.34],[0,.715,0]);
+      for(const z of [-.154,.154]){this.mesh(group,this.box,'#EDDABB',[.31,.09,.015],[0,.62,z]);this.mesh(group,this.box,'#315D67',[.27,.065,.018],[0,.62,z]);}
+      for(const x of [-.281,.281])for(const y of [.16,.28,.4])this.mesh(group,this.box,'#BBD4CD',[.016,.065,.19],[x,y,0],'glass',false);
+      this.mesh(group,this.box,'#D3AF70',[.17,.025,.105],[0,.155,.22],'metal');for(const x of [-.07,.07])this.mesh(group,this.cylinder,'#EEDABC',[.008,.13,.008],[x,.079,.252]);this.mesh(group,this.box,'#EEDABC',[.19,.02,.12],[0,.043,.225]);
+    }else{
+      this.mesh(group,this.box,'#E7D6B7',[.214,.025,.225],[0,.013,0]);this.mesh(group,this.box,'#70A98C',[.18,.18,.19],[0,.113,0],'lacquer');this.mesh(group,this.box,'#E8DDC3',[.214,.018,.225],[0,.208,0]);this.mesh(group,this.roof,'#315F50',[.216,.13,.232],[0,.212,0],'lacquer');
+      this.mesh(group,this.box,'#AE8064',[.032,.075,.034],[-.055,.27,-.042]);this.mesh(group,this.box,'#EAD8BC',[.044,.012,.045],[-.055,.31,-.042]);this.mesh(group,this.box,'#E7D6B7',[.062,.018,.046],[0,.03,.106]);
+      for(const x of [-.094,.094]){this.mesh(group,this.box,'#E9DAB8',[.012,.095,.088],[x,.13,0]);this.mesh(group,this.box,'#B6D9CE',[.014,.071,.062],[x,.13,0],'glass',false);}
+    }
+    for(const direction of [-1,1]){const facade=new THREE.Mesh(this.face,this.miniatureFacade(hotel));facade.scale.set(hotel ? .526 : .174,hotel ? .455 : .17,1);facade.position.set(0,hotel ? .267 : .113,direction*(hotel ? .174 : .098));if(direction===-1)facade.rotation.y=Math.PI;group.add(facade);}
     return group;
   }
 }

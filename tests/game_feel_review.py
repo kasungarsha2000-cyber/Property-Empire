@@ -68,7 +68,7 @@ with sync_playwright() as p:
         page.get_by_role('button',name='Roll dice',exact=True).click()
         page.wait_for_function("audioCalls.includes('noise')",timeout=3000)
         page.clock.install()
-        page.clock.pause_at(page.evaluate('Date.now()')+30)
+        page.clock.pause_at((page.evaluate('Date.now()')+100)/1000)
         # A bot arrival must not silently replace the deed being read.
         page.get_by_role('button',name='Main menu',exact=True).click()
         other_turn=json.loads(json.dumps(fixtures['management']));other_turn['current']=1;other_turn['phase']='roll'

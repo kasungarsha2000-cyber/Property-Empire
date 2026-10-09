@@ -14,7 +14,7 @@ with sync_playwright() as p:
             page.evaluate('''async game=>{const db=await new Promise(r=>{const q=indexedDB.open('property-empire-saves',1);q.onupgradeneeded=()=>q.result.createObjectStore('saves');q.onsuccess=()=>r(q.result)});await new Promise(r=>{const t=db.transaction('saves','readwrite');t.objectStore('saves').put({savedAt:Date.now(),game},'current');t.oncomplete=r});db.close()}''',game)
             page.get_by_role('button',name='Continue Saved Game',exact=True).click()
         def menu():page.get_by_role('button',name='Main menu',exact=True).click()
-        load(fixtures['management']);page.clock.pause_at(page.evaluate('Date.now()'))
+        load(fixtures['management']);page.clock.pause_at((page.evaluate('Date.now()')+100)/1000)
         expect(page.locator('#right')).to_have_count(0)
         assert page.locator('#game-toolbar').evaluate("e=>e.parentElement.id==='match-banner'&&e.previousElementSibling.id==='turn-status'")
         geometry=page.locator('#game-toolbar').evaluate("e=>({height:e.getBoundingClientRect().height,border:getComputedStyle(e).borderTopWidth,buttons:[...e.querySelectorAll('button')].map(b=>({y:b.getBoundingClientRect().y,height:b.getBoundingClientRect().height}))})")

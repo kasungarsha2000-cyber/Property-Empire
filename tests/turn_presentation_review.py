@@ -21,7 +21,7 @@ with sync_playwright() as p:
             page.evaluate('''async game=>{const db=await new Promise(r=>{const q=indexedDB.open('property-empire-saves',1);q.onupgradeneeded=()=>q.result.createObjectStore('saves');q.onsuccess=()=>r(q.result)});await new Promise(r=>{const t=db.transaction('saves','readwrite');t.objectStore('saves').put({savedAt:Date.now(),game},'current');t.oncomplete=r});db.close()}''',game)
             page.get_by_role('button',name='Continue Saved Game',exact=True).click()
         load(fixtures['animatedRoll'])
-        page.clock.pause_at(page.evaluate('Date.now()'))
+        page.clock.pause_at((page.evaluate('Date.now()')+100)/1000)
         page.get_by_role('button',name='Roll dice',exact=True).click()
         if os.environ.get('EMPIRE_TEST_REDUCED_ONLY'):
             speed('reduced')

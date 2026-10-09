@@ -71,6 +71,10 @@ Your properties use one sidebar scroll area with full-height deed rows. Selectin
 
 Double-click **run.bat** in `D:\Other\Monopoly Game` or the project folder to launch. It checks Node, installs dependencies and builds if needed, starts a hidden game server, then opens the browser. Running it again reopens the existing server. Logs are in `PropertyEmpire3D/data/launcher-server.log` and `launcher-error.log`. Your saves stay in place.
 
+The turn/dice row keeps the same size before rolling, during movement and after arrival, so the board and toolbar stay still. Opponents' arrivals, purchases, payments, salaries, buildings, jail/debt and card draws appear in named popups after their pawns settle. Opponent cards use the same card faces and annotations, support scrolling, and dismiss automatically; bots keep playing. Your own decisions and cards take priority. Earlier-save restoration clears discarded activity.
+
+All eight pawns have owner-colored enamel bases, brass rims and distinctive details. Houses have pitched roofs, eaves, windows, doors, chimneys and entrance steps. Hotels use taller stepped architecture, rows of windows, a canopy and HOTEL signage. Undeveloped properties remain empty.
+
 ## Development and production
 
 ```powershell

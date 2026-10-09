@@ -3,8 +3,8 @@
 Final `npm run check`: Vitest, strict TypeScript, Vite production frontend, offline cache manifest and tsup Node server passed.
 
 - `apps/web/dist/index.html` and bundled local assets exist.
-- App script: about 229 KB raw / 75 KB gzip after compact turn controls, popup deeds and personal event effects.
-- Three.js renderer chunk: about 539 KB raw / 138 KB gzip including environment lighting.
+- App script: about 237 KB raw / 77 KB gzip after stable roll layout, opponent activity popups and detailed miniature models.
+- Three.js renderer chunk: about 540 KB raw / 138 KB gzip including environment lighting and shared miniature ring geometry.
 - Local font files and stylesheet are bundled; no external runtime downloads.
 - `apps/web/dist/sw.js` precaches 16 generated local assets plus the root route.
 - `apps/server/dist/index.js`: about 53 KB ESM (runtime dependencies resolved from installed node_modules).
