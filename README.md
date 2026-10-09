@@ -67,6 +67,10 @@ Drag the board to orbit, right-drag to pan, and point the mouse at a board locat
 
 Your tiles have gold outlines and a **✓ YOURS** badge. Click a deed in **Your properties** to focus the board camera on it. Purchase and rent receipts use a compact notice that disappears after three seconds. Fullscreen hides the website header; Exit fullscreen, Settings and How to Play remain in the side panel. Declining an incoming trade offers **Build counteroffer** or **Decline without counteroffer**. Counteroffers start with the reversed current terms and require review before sending. Bots propose feasible revised cash terms when rejecting an offer. Each negotiation allows up to three counteroffers, then an accept or decline decision.
 
+Your properties use one sidebar scroll area with full-height deed rows. Selecting an owned deed opens a larger popup with all rents, costs and live building/mortgage controls. **View full deed** also opens the selected board inspector deed. Click a player's name/card in the match overview to see their cash, net worth, rent totals, location, jail cards and properties; **Trade with…** opens the trade builder for that player when allowed. **Sound on/off** mutes or enables local dice, step, purchase, money, card, building, trade, jail and victory effects. New browser profiles start with sound enabled after an interaction; saved mute preferences are kept. Pawns hop, face their route and briefly celebrate purchases/building; reduced motion keeps arrivals instant.
+
+Double-click **run.bat** in `D:\Other\Monopoly Game` or the project folder to launch. It checks Node, installs dependencies and builds if needed, starts a hidden game server, then opens the browser. Running it again reopens the existing server. Logs are in `PropertyEmpire3D/data/launcher-server.log` and `launcher-error.log`. Your saves stay in place.
+
 ## Development and production
 
 ```powershell

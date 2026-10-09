@@ -3,7 +3,7 @@
 Final `npm run check`: Vitest, strict TypeScript, Vite production frontend, offline cache manifest and tsup Node server passed.
 
 - `apps/web/dist/index.html` and bundled local assets exist.
-- App script: about 220 KB raw / 72 KB gzip after the receipt, ownership, fullscreen and counteroffer improvements.
+- App script: about 227 KB raw / 74 KB gzip after the player profiles, readable deeds and game effects improvements.
 - Three.js renderer chunk: about 539 KB raw / 138 KB gzip including environment lighting.
 - Local font files and stylesheet are bundled; no external runtime downloads.
 - `apps/web/dist/sw.js` precaches 16 generated local assets plus the root route.

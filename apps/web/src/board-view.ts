@@ -6,9 +6,10 @@ import { PLAYER_COLORS } from '../../../packages/core/board';
 import type { Game } from '../../../packages/core/types';
 import type { Settings } from './storage';
 import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
+import {pawnPose} from './pawn-motion';
 import {movementRoute,diceLanding,type DiceLanding} from './animation-plan';
 
-type Movement = {points: THREE.Vector3[]; start: number; duration: number};
+type Movement = {points: THREE.Vector3[]; start: number; duration: number;lastStep:number};
 
 export class BoardView {
  private scene = new THREE.Scene();
@@ -30,6 +31,8 @@ export class BoardView {
  private diceSpin:number[]=[19,23];
  private wasRolling = false;
  private playbackActive=false;
+ private flourishes=new Map<string,{start:number;duration:number}>();
+ onStep:()=>void=()=>{};
  onSettled:()=>void=()=>{};
  get isAnimating(){return this.paths.size>0||performance.now()<this.diceUntil;}
  private dirty = true;
@@ -113,7 +116,7 @@ export class BoardView {
 
  update(game: Game, animate = true) {
   const old = this.state, now = performance.now(); this.state = game;
-  if (!animate) { this.paths.clear(); this.diceUntil = 0; }
+  if (!animate) { this.paths.clear(); this.flourishes.clear();this.diceUntil = 0; }
   const roll=old&&animate?game.log.filter(event=>event.id>old.eventSeq&&event.kind==='roll').at(-1):undefined;
   if(roll){
    this.diceRest=diceLanding();this.diceFrom=this.dice.map(die=>die.position.clone());this.diceSpin=this.dice.map(()=>16+Math.random()*12);
@@ -135,16 +138,17 @@ export class BoardView {
    token.visible = !player.bankrupt;
    const companions = game.players.filter(other => !other.bankrupt && other.position === player.position), slot = companions.indexOf(player);
    const offset = companions.length > 1 ? new THREE.Vector3((slot % 3 - Math.min(2, companions.length - 1) / 2) * .34, 0, (Math.floor(slot / 3) - Math.floor((companions.length - 1) / 3) / 2) * .34) : new THREE.Vector3();
-   token.scale.setScalar(companions.length > 1 ? .73 : 1);
+   token.userData.baseScale=companions.length > 1 ? .73 : 1;token.scale.setScalar(token.userData.baseScale);if(!this.paths.has(player.id))token.rotation.set(0,0,0);
    const point = spacePosition(player.position).add(offset); point.y = TOKEN_HEIGHT;
    const previous = old?.players.find(other => other.id === player.id);
    const route=old&&animate?movementRoute(old,game,player.id):[];
    if (previous && route.length && animate && this.settings.speed !== 'reduced') {
     const steps=route.length,points = [token.position.clone()];
     for(const index of route){const next=spacePosition(index).add(offset);next.y=TOKEN_HEIGHT;points.push(next);}
-    this.paths.set(player.id, {points, start: Math.max(now, this.diceUntil), duration: steps * (this.settings.speed === 'fast' ? 55 : 125)});
+    this.paths.set(player.id, {points, start: Math.max(now, this.diceUntil), duration: steps * (this.settings.speed === 'fast' ? 85 : 180),lastStep:-1});
    } else if (!this.paths.has(player.id)) token.position.copy(point);
   });
+  if(old&&animate&&this.settings.speed!=='reduced'){for(const p of game.players){if(game.winner===p.id&&old.winner!==p.id||game.properties.some((v,i)=>v.owner===p.id&&(old.properties[i].owner!==p.id||v.level>old.properties[i].level)))this.flourishes.set(p.id,{start:now,duration:520});}}
   this.assets.owners.forEach((mesh, index) => {
    const property = game.properties[index], player = game.players.find(other => other.id === property.owner); mesh.visible = !!player;
    if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
@@ -181,7 +185,7 @@ export class BoardView {
  configure(settings: Settings) {
   this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
   this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
-  if (settings.speed === 'reduced') { this.paths.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
+  if (settings.speed === 'reduced') { this.paths.clear();this.flourishes.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
  }
  private resize() {
   const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return;
@@ -196,7 +200,7 @@ export class BoardView {
  }
  private frame() {
   if (document.hidden) return;
-  const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0;
+  const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0||this.flourishes.size>0;
   this.dice.forEach((die,i)=>{
    const rest=this.diceRest[i];
    if(rolling){const t=Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted)),spin=this.diceSpin[i]*Math.sin(t*Math.PI);die.position.lerpVectors(this.diceFrom[i],new THREE.Vector3(rest.x,1.07,rest.z),1-(1-t)**2);die.position.y=1.07+Math.sin(t*Math.PI)*(.28+Math.abs(Math.sin(t*Math.PI*4+i))*.60);die.rotation.set(spin,rest.yaw*t+spin*.6,spin*.8);}
@@ -205,8 +209,12 @@ export class BoardView {
   for (const [id, path] of this.paths) {
    if (now < path.start) continue;
    const t = Math.min(1, (now - path.start) / path.duration), f = t * (path.points.length - 1), index = Math.min(path.points.length - 2, Math.floor(f)), local = f - index, token = this.tokens.get(id)!;
-   token.position.lerpVectors(path.points[index], path.points[index + 1], local); token.position.y += Math.sin(local * Math.PI) * .18; if (t >= 1) this.paths.delete(id);
+   const pose=pawnPose(local),size=token.userData.baseScale??1;token.position.lerpVectors(path.points[index],path.points[index+1],pose.progress);token.position.y+=pose.height;
+   token.rotation.set(pose.lean,Math.atan2(path.points[index+1].x-path.points[index].x,path.points[index+1].z-path.points[index].z),-pose.lean*.6);token.scale.set(size*pose.scaleXZ,size*pose.scaleY,size*pose.scaleXZ);
+   if(index!==path.lastStep){path.lastStep=index;this.onStep();}
+   if(t>=1){token.position.copy(path.points.at(-1)!);token.rotation.x=token.rotation.z=0;token.scale.setScalar(size);this.paths.delete(id);}
   }
+  for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.18;token.rotation.z=Math.sin(t*Math.PI*4)*(1-t)*.12;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.10));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
   if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
   if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false; }
   if(this.playbackActive&&!this.isAnimating){this.playbackActive=false;queueMicrotask(()=>this.onSettled());}
