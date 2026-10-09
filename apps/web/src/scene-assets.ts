@@ -132,7 +132,7 @@ export class SceneAssets {
       owner.visible = false; this.owners.push(owner); scene.add(group);
       if(space.price){
         const tag=new THREE.Mesh(new THREE.PlaneGeometry(.80,.115),new THREE.MeshBasicMaterial({transparent:true,toneMapped:false}));tag.rotation.x=-Math.PI/2;tag.position.set(0,.131,.427);tag.visible=false;group.add(tag);this.ownershipLabels.set(space.index,tag);
-        const highlight=new THREE.Mesh(new THREE.RingGeometry(.697,.754,4),new THREE.MeshBasicMaterial({color:'#3B8C60',side:THREE.DoubleSide,transparent:true,opacity:.90,depthWrite:false}));highlight.rotation.set(-Math.PI/2,0,Math.PI/4);highlight.position.set(0,.087,0);highlight.visible=false;group.add(highlight);this.ownershipHighlights.set(space.index,highlight);
+        const highlight=new THREE.Mesh(new THREE.RingGeometry(.66,.80,4),new THREE.MeshBasicMaterial({color:'#FFD777',side:THREE.DoubleSide,transparent:true,opacity:1,depthWrite:false}));highlight.rotation.set(-Math.PI/2,0,Math.PI/4);highlight.position.set(0,.095,0);highlight.visible=false;group.add(highlight);this.ownershipHighlights.set(space.index,highlight);
       }
     }
   }
@@ -141,7 +141,7 @@ export class SceneAssets {
     const key=`${name}:${color}`;let material=this.ownerNames.get(key);
     if(!material){
       const canvas=document.createElement('canvas');canvas.width=512;canvas.height=80;
-      const ctx=canvas.getContext('2d')!;ctx.fillStyle=color;ctx.fillRect(0,0,512,80);ctx.fillStyle='#132E36';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 53px Nunito,sans-serif';
+      const ctx=canvas.getContext('2d')!;ctx.fillStyle=color;ctx.fillRect(0,0,512,80);ctx.fillStyle=name.startsWith('✓')?'#FFFDF0':'#132E36';if(name.startsWith('✓')){ctx.strokeStyle='#FFD777';ctx.lineWidth=7;ctx.strokeRect(3,3,506,74);}ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='800 53px Nunito,sans-serif';
       const label=name.length>14?`${name.slice(0,13)}…`:name;ctx.fillText(label,256,43,475);
       material=new THREE.MeshBasicMaterial({map:canvasTexture(canvas),toneMapped:false});this.ownerNames.set(key,material);
     }

@@ -7,7 +7,11 @@ const management=base();management.phase='manage';management.properties[1].owner
 const debt=base();debt.phase='debt';debt.debt={player:'human',amount:50,creditor:null};debt.players[0].cash=0;debt.properties[1].owner='human';debt.properties[3].owner='bot';
 const incoming=base();incoming.current=1;incoming.phase='debt';incoming.debt={player:'bot',amount:50,creditor:null};incoming.players[1].cash=0;incoming.properties[1].owner='bot';
 const incomingTrade=applyAction(incoming,'bot',{type:'offerTrade',to:'human',give:[1],receive:[],giveCash:0,receiveCash:70,giveCards:0,receiveCards:0});
+const counterBase=base();counterBase.current=1;counterBase.phase='manage';counterBase.properties[1].owner='bot';
+const incomingCounter=applyAction(counterBase,'bot',{type:'offerTrade',to:'human',give:[1],receive:[],giveCash:0,receiveCash:100,giveCards:0,receiveCards:0});
+const lowOfferBase=base();lowOfferBase.phase='manage';lowOfferBase.properties[1].owner='bot';
+const lowOffer=applyAction(lowOfferBase,'human',{type:'offerTrade',to:'bot',give:[],receive:[1],giveCash:10,receiveCash:0,giveCards:0,receiveCards:0});
 const animatedRoll=base();
 const chance=base();chance.players[0].position=27;chance.decks.chance=[5,...chance.decks.chance.filter(i=>i!==5)];chance.properties[5].owner='bot';
 const community=base();community.players[0].position=24;community.decks.community=[2,...community.decks.community.filter(i=>i!==2)];
-mkdirSync('test-artifacts',{recursive:true});writeFileSync('test-artifacts/browser-fixtures.json',JSON.stringify(Object.fromEntries(Object.entries({purchase,auction,management,debt,incomingTrade,animatedRoll,chance,community}).map(([key,g])=>[key,validateGame(g)]))));
+mkdirSync('test-artifacts',{recursive:true});writeFileSync('test-artifacts/browser-fixtures.json',JSON.stringify(Object.fromEntries(Object.entries({purchase,auction,management,debt,incomingTrade,incomingCounter,lowOffer,animatedRoll,chance,community}).map(([key,g])=>[key,validateGame(g)]))));

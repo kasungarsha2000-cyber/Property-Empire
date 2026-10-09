@@ -167,7 +167,7 @@ export class BoardView {
   if(!this.state)return;
   this.assets.ownershipLabels.forEach((label,index)=>{
    const owner=this.state!.players.find(player=>player.id===this.state!.properties[index].owner);label.visible=!!owner;
-   if(owner)label.material=this.assets.ownerLabel(owner.id===this.viewerId?'Yours':owner.name,PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)]);
+   if(owner){const mine=owner.id===this.viewerId;label.material=this.assets.ownerLabel(mine?'✓ YOURS':owner.name,mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)]);label.scale.set(mine?1.15:1,mine?1.9:1,1);label.position.z=mine?.38:.427;this.assets.owners[index].material=this.assets.material(this.state!.properties[index].mortgaged?'#858B85':mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)],'lacquer');}
    this.assets.ownershipHighlights.get(index)!.visible=this.highlightMine&&!!this.viewerId&&owner?.id===this.viewerId;
   });this.dirty=true;
  }

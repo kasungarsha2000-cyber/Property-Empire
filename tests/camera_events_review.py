@@ -26,9 +26,9 @@ with sync_playwright() as p:
         page.wait_for_timeout(200)
         popup=page.locator('#event-popup').bounding_box();stage=page.locator('#stage').bounding_box()
         assert popup['y']+popup['height']<=stage['y']+stage['height'],'Notice clipped on short mobile screen'
-        page.locator('#event-popup').evaluate('(element)=>element.scrollTop=element.scrollHeight')
-        detail=page.locator('#event-popup>p').bounding_box()
-        assert detail['y']+detail['height']<=popup['y']+popup['height'],'Notice detail unreachable'
+        assert popup['height']<=72,'Transaction receipt is too large'
+        expect(page.locator('#event-popup')).to_have_attribute('role','status')
+        expect(page.locator('#event-popup .event-art')).to_have_count(0)
         page.get_by_role('button',name='Close event popup',exact=True).click()
         for width,height in [(1440,960),(1024,650),(1440,600)]:
             page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(200)

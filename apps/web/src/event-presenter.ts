@@ -1,7 +1,7 @@
 import type {Game} from '../../../packages/core/types';
 import {gameNotices,type GameNotice} from './game-events';
 import {escapeHTML} from './ui-components';
-import {propertyArtwork} from './property-art';
+import {BOARD} from '../../../packages/core/board';
 import {drawnCardMarkup} from './card-ui';
 
 export type DecisionPopup={key:string;kind:string;title:string;html:string};
@@ -54,8 +54,8 @@ export class EventPresenter{
   this.current??=this.queue.shift()??null;
   if(!this.current){this.host.hidden=true;return;}
   const notice=this.current;this.host.className=`event-popup event-notice event-${notice.kind}`;this.host.setAttribute('role','status');this.host.setAttribute('aria-live','polite');this.host.setAttribute('aria-atomic','true');
-  if(this.signature!==notice.key){this.host.innerHTML=`${close}${notice.property!==undefined?`<div class="event-art">${propertyArtwork(notice.property)}</div>`:''}<h2 id="event-title">${escapeHTML(notice.title)}</h2>${notice.amount!==undefined?`<strong class="event-amount ${notice.amount<0?'event-cost':''}">${notice.amount<0?'−':'+'}$${Math.abs(notice.amount).toLocaleString('en-US')}</strong>`:''}<p>${escapeHTML(notice.detail)}</p>`;this.signature=notice.key;}
+  if(this.signature!==notice.key){const title=notice.property!==undefined?`${notice.title} · ${BOARD[notice.property].name}`:notice.title;this.host.innerHTML=`<div class="transaction-copy"><strong id="event-title">${escapeHTML(title)}</strong><span class="sr-only">${escapeHTML(notice.detail)}</span></div>${notice.amount!==undefined?`<strong class="transaction-amount ${notice.amount<0?'event-cost':''}">${notice.amount<0?'−':'+'}$${Math.abs(notice.amount).toLocaleString('en-US')}</strong>`:''}${close}`;this.signature=notice.key;}
   this.host.hidden=false;
-  if(!this.timer)this.timer=setTimeout(()=>{this.timer=null;this.current=null;this.present();},5500);
+  if(!this.timer)this.timer=setTimeout(()=>{this.timer=null;this.current=null;this.present();},3000);
  }
 }

@@ -45,5 +45,5 @@ export function decisionFor(game:Game,id:string):{key:string;kind:string;propert
  const kind=game.phase==='ended'?'ended':actor===id&&['purchase','auction','debt','trade'].includes(game.phase)?game.phase:actor===id&&game.phase==='roll'&&me.jailed?'jail':null;
  if(!kind)return null;
  const property=game.pendingProperty??game.auction?.property??undefined;
- return{kind,property,key:`${kind}:${game.turn}:${id}:${property??''}:${game.auction?.bid??''}:${kind==='jail'?me.jailTurns:''}`};
+ return{kind,property,key:`${kind}:${game.turn}:${id}:${property??''}:${game.auction?.bid??''}:${kind==='jail'?me.jailTurns:''}:${kind==='trade'?`${game.trade!.from}:${game.trade!.round??0}`:''}`};
 }
