@@ -48,6 +48,7 @@ app.innerHTML=`<header class="topbar"><button class="brand" data-nav="menu" aria
 app.querySelector('.brand')!.setAttribute('aria-label','Property Empire home');
 const left=document.querySelector<HTMLElement>('#left')!,right=document.querySelector<HTMLElement>('#right')!,turnPanel=document.querySelector<HTMLElement>('#turn-panel')!,layout=document.querySelector<HTMLElement>('#layout')!,dialog=document.querySelector<HTMLDialogElement>('#dialog')!;
 const matchBanner=document.createElement('section');matchBanner.id='match-banner';matchBanner.hidden=true;matchBanner.setAttribute('aria-label','Match overview');layout.prepend(matchBanner);
+const gameToolbar=document.createElement('nav');gameToolbar.id='game-toolbar';gameToolbar.hidden=true;gameToolbar.setAttribute('aria-label','Game tools');matchBanner.after(gameToolbar);
 const eventHost=document.createElement('section');eventHost.id='event-popup';eventHost.hidden=true;document.querySelector('#stage')!.append(eventHost);
 const events=new EventPresenter(eventHost,document.querySelector<HTMLElement>('#stage')!);
 let tradeDraft:TradeDraft|null=null,galleryFilter='all',highlightMine=true;
@@ -71,7 +72,7 @@ function settingsFields(){return`<div class="form-grid"><label>Starting cash<sel
 function render(){
  document.body.classList.toggle('match-fullscreen',route==='game'&&!!document.fullscreenElement);
  if(route!=='game'){events.reset();sounds.reset();}
- matchBanner.hidden=route!=='game';if(route!=='game')matchBanner.innerHTML='';
+ matchBanner.hidden=route!=='game';gameToolbar.hidden=route!=='game';if(route!=='game'){matchBanner.innerHTML='';gameToolbar.innerHTML='';}
  layout.className=`layout ${route==='game'?'playing':route==='menu'?'menu':'setup'}`;right.innerHTML='';turnPanel.innerHTML='';document.querySelector('#board-caption')!.textContent=route==='game'?'Point & scroll to zoom · Right-drag to pan':'A whole city. All yours to discover.';
  const connection=document.querySelector<HTMLElement>('#connection')!;connection.textContent=mode==='lan'?(network.connected?'LAN connected':'Reconnecting…'):'Local play';connection.className=`status ${mode==='lan'&&!network.connected?'offline':''}`;
  if(route==='menu'){
@@ -89,7 +90,8 @@ function renderGame(){
  const g=game!,current=g.players[g.current],actor=playerById(g,actionPlayer(g)??g.winner??current.id),me=mode==='lan'?g.players.find(p=>p.id===network.session?.playerId):g.players.find(p=>!p.bot),isActor=!actor.bot&&(mode==='solo'||actor.id===network.session?.playerId);const myAssets=g.properties.map((p,i)=>({p,i})).filter(v=>v.p.owner===me?.id);
  matchBanner.innerHTML=`<div id="game-info" class="game-info"><span class="round-label">Turn ${g.turn}${g.config.turnLimit?` / ${g.config.turnLimit}`:''}</span><h2>${e(g.phase==='ended'?playerById(g,g.winner!).name:current.name)}${g.phase==='ended'?' wins!':"’s turn"}</h2><span class="mode-label">${mode==='lan'?`Room ${network.room?.code??''}`:'Solo with bots'}</span></div><div id="player-ledger">${ledgerMarkup(g)}</div>`;
  const canTrade=isActor&&me?.id===actor.id&&networkReady()&&['roll','manage','debt'].includes(g.phase)&&!g.tradeOffered;
- left.innerHTML=portfolioMarkup(g,me??null,canTrade)+`<div class="game-tools"><button data-do="properties">${icon('list')}Properties</button><button data-do="cards">Cards</button><button data-do="trade" ${canTrade?'':'disabled'}>${icon('network')}Trade</button><button data-do="sound" aria-pressed="${settings.sound}">${settings.sound?'Sound on':'Sound off'}</button><button data-do="save">${icon('save')}Save game</button><button data-nav="menu">Main menu</button>${document.fullscreenElement?'<button data-do="fullscreen">Exit fullscreen</button><button data-do="settings">Settings</button><button data-do="help">How to Play</button>':''}</div><p class="trade-availability">${canTrade?'Trade properties, cash or jail cards.':g.phase==='ended'?'The match has ended.':g.tradeOffered?'One trade offer per turn.':!isActor||me?.id!==actor.id?'Trading opens during your turn.':'Resolve the current action to trade.'}</p>`;
+ left.innerHTML=portfolioMarkup(g,me??null,canTrade);
+ gameToolbar.innerHTML=`<div class="game-tools"><button data-do="properties">${icon('list')}Properties</button><button data-do="cards">Cards</button><button data-do="trade" ${canTrade?'':'disabled'}>${icon('network')}Trade</button><button data-do="sound" aria-pressed="${settings.sound}">${settings.sound?'Sound on':'Sound off'}</button><button data-do="save">${icon('save')}Save game</button><button data-nav="menu">Main menu</button>${document.fullscreenElement?'<button data-do="fullscreen">Exit fullscreen</button><button data-do="settings">Settings</button><button data-do="help">How to Play</button>':''}</div><p class="trade-availability">${canTrade?'Trade properties, cash or jail cards.':g.phase==='ended'?'The match has ended.':g.tradeOffered?'One trade offer per turn.':!isActor||me?.id!==actor.id?'Trading opens during your turn.':'Resolve the current action to trade.'}</p>`;
  const ownershipToggle=left.querySelector('[data-do="highlight-owned"]');ownershipToggle?.setAttribute('aria-pressed',String(highlightMine));
  let title='',description='',buttons='';
  if(g.phase==='ended'){title=`${playerById(g,g.winner!).name} built an empire.`;description=`Winning net worth: ${money(netWorth(g,playerById(g,g.winner!)))}. A city well played.`;buttons='<button class="primary" data-nav="solo">Play again</button><button data-nav="menu">Main menu</button>';}
@@ -119,7 +121,7 @@ function renderGame(){
  if(events.hasDecision||events.hasBlockingCard||board?.isAnimating)turnPanel.innerHTML='';
  if(dialog.open&&dialog.classList.contains('deed-dialog')){const body=dialog.querySelector<HTMLElement>('.deed-dialog-body')!;body.innerHTML=propertyPanel(Number(body.dataset.deedIndex));}
  if(dialog.open&&dialog.classList.contains('profile-dialog')){const id=dialog.querySelector<HTMLElement>('#player-profile')?.dataset.profileId;if(id)dialog.querySelector('#player-profile')!.outerHTML=profileMarkup(id);}
- if(events.hasBlockingCard){left.querySelector<HTMLButtonElement>('[data-do="trade"]')!.disabled=true;left.querySelector('.trade-availability')!.textContent='Read the drawn card, then continue your turn.';}
+ if(events.hasBlockingCard){gameToolbar.querySelector<HTMLButtonElement>('[data-do="trade"]')!.disabled=true;gameToolbar.querySelector('.trade-availability')!.textContent='Read the drawn card, then continue your turn.';}
 }
 function networkReady(){return mode==='solo'||network.connected;}
 function tradeItems(ids:number[],cash:number,cards:number){return [...ids.map(i=>BOARD[i].name),...(cash?[money(cash)]:[]),...(cards?[`${cards} jail card${cards===1?'':'s'}`]:[])].join(', ')||'no items';}

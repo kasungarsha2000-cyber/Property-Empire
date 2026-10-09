@@ -57,3 +57,13 @@ dialog.profile-dialog{width:min(760px,calc(100vw - 24px));padding:24px}
  .profile-trade{align-items:stretch;flex-direction:column;gap:8px}
  .profile-deeds{grid-template-columns:1fr}
 }
+
+/* One row of match tools, above the board and outside the property sidebar. */
+#game-toolbar[hidden]{display:none}
+.playing #game-toolbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;min-width:0;padding:8px 10px;background:#fffdf6;border:1px solid #d4dbce;border-radius:9px}
+.playing #game-toolbar .game-tools{display:flex;align-items:center;gap:7px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;padding:0;margin:0;scrollbar-width:thin}
+.playing #game-toolbar .game-tools button{flex:none;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;white-space:nowrap;padding:9px 12px;font-size:12px;min-height:44px}
+.playing #game-toolbar .trade-availability{flex:0 1 220px;font-size:11px;line-height:1.4;margin:0;padding:0}
+@media(min-width:901px){.layout.playing{grid-template-rows:auto auto minmax(0,1fr)}}
+@media(max-width:1100px){.playing #game-toolbar .trade-availability{display:none}}
+@media(max-width:650px){.playing #game-toolbar{order:1;width:100%;padding:7px;gap:0}.playing #stage{order:2}.playing #left{order:3}.playing #right{order:4}.playing #game-toolbar .game-tools button{min-height:44px;padding:9px 11px}}
