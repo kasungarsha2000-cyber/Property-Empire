@@ -90,7 +90,10 @@ with sync_playwright() as p:
         page.get_by_label('Animation speed').select_option('reduced')
         page.get_by_role('button',name='Save settings',exact=True).click()
         expect(page.locator('#event-popup')).to_contain_text('Community Chest')
-        assert page.evaluate("audioCalls.filter(v=>v==='tone').length")>=tones+4,'Reduced motion lost queued arrival sounds'
+        assert page.evaluate("audioCalls.filter(v=>v==='tone').length")>=tones+2,'Reduced motion lost queued card sounds'
+        expect(page.locator('#player-ledger .player-row').first).to_contain_text('$1,500')
+        page.get_by_role('button',name='Continue',exact=True).click()
+        assert page.evaluate("audioCalls.filter(v=>v==='tone').length")>=tones+4,'Card payout sound did not wait for Continue'
         if ':5173' in base:
             result=page.evaluate('''async({before,after})=>{
               const {BoardView}=await import('/src/board-view.ts');const host=document.createElement('div');Object.assign(host.style,{position:'fixed',width:'600px',height:'400px',left:'0',top:'0'});document.body.append(host);

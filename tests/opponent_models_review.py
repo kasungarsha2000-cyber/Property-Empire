@@ -33,7 +33,7 @@ with sync_playwright() as p:
         observer.hover();page.mouse.wheel(0,350);page.clock.fast_forward(100)
         assert observer.evaluate('e=>e.scrollTop>0'),'Opponent card annotations cannot be scrolled'
         page.set_viewport_size({'width':1440,'height':960})
-        page.clock.fast_forward(1000);expect(page.get_by_role('button',name='Roll dice',exact=True)).to_be_enabled()
+        page.clock.fast_forward(3200);page.clock.fast_forward(1000);expect(page.get_by_role('button',name='Roll dice',exact=True)).to_be_enabled()
         page.get_by_role('button',name='Roll dice',exact=True).click();page.clock.fast_forward(3000)
         expect(page.locator('#event-popup')).to_contain_text('Gallery Street');expect(page.get_by_role('button',name='Buy for $140',exact=True)).to_be_visible()
         menu();g=json.loads(json.dumps(fixtures['animatedRoll']));g['current']=1;load(g)

@@ -11,7 +11,7 @@ it('does not replay restored game sounds and distinguishes rolling from landing 
 });
 it('plays a card cue and money cue for an actual card payout',()=>{
  const g=base();g.players[0].position=24;g.decks.community=[2,...g.decks.community.filter(i=>i!==2)];
- const cues=soundCues(g,applyAction(g,'a',{type:'roll'}));expect(cues).toContain('card');expect(cues).toContain('money');
+ const drawn=applyAction(g,'a',{type:'roll'});expect(soundCues(g,drawn)).toContain('card');expect(soundCues(g,drawn)).not.toContain('money');expect(soundCues(drawn,applyAction(drawn,'a',{type:'resolveCard'}))).toContain('money');
 });
 it('pawn hops leave and return to the tile with stable scale and a higher midpoint',()=>{
  const start=pawnPose(0),peak=pawnPose(.5),end=pawnPose(1);

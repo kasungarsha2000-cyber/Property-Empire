@@ -25,7 +25,7 @@ it('celebrates a built house and suppresses duplicate card cash effects',()=>{
 });
 it('does not celebrate unpaid birthday collections as cash received',()=>{
  const g=base();g.players[0].position=24;g.players[1].cash=0;g.decks.community=[8,...g.decks.community.filter(i=>i!==8)];
- const next=applyAction(g,'a',{type:'roll'});expect(next.players[0].cash).toBe(1500);expect(next.debt?.player).toBe('b');
+ const next=applyAction(applyAction(g,'a',{type:'roll'}),'a',{type:'resolveCard'});expect(next.players[0].cash).toBe(1500);expect(next.debt?.player).toBe('b');
  expect(feedbackNotices(g,next,'a').some(n=>n.amount!==undefined||n.card?.amount!==undefined)).toBe(false);
 });
 it('discards queued feedback when a saved snapshot replaces a moving turn',()=>{
@@ -35,7 +35,7 @@ it('discards queued feedback when a saved snapshot replaces a moving turn',()=>{
  try{
   const stage={append(){}} as unknown as HTMLElement,feedback=new EventFeedback(stage,false);
   const g=base();g.players[0].position=24;g.decks.community=[1,...g.decks.community.filter(i=>i!==1)];
-  const next=applyAction(g,'a',{type:'roll'});expect(next.players[0].cash).toBe(1700);
+  const next=applyAction(applyAction(g,'a',{type:'roll'}),'a',{type:'resolveCard'});expect(next.players[0].cash).toBe(1700);
   feedback.observe(g,'a',false,false);feedback.observe(next,'a',true);expect(layer.innerHTML).toBe('');
   feedback.observe(g,'a',false,false);feedback.settle();expect(layer.innerHTML).toBe('');
   // A subsequent real grant must still animate.

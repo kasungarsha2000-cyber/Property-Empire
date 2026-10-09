@@ -13,7 +13,7 @@ it('shows opponent cards only after arrival, auto-dismisses, and never blocks th
   presenter.update(g,'a',null);presenter.setMoving(true);presenter.update(applyAction(g,'b',{type:'roll'}),'a',null);
   expect(host.hidden).toBe(true);expect(presenter.hasBlockingCard).toBe(false);presenter.setMoving(false);
   expect(host.hidden).toBe(false);expect(host.innerHTML).toContain('Ben · Community Chest');expect(host.innerHTML).toContain('+$200');expect(attributes.get('role')).toBe('status');expect(classes.has('decision-open')).toBe(false);
-  presenter.setMoving(false);vi.advanceTimersByTime(4300);expect(host.hidden).toBe(true);presenter.reset();
+  presenter.setMoving(false);vi.advanceTimersByTime(5300);expect(host.hidden).toBe(true);presenter.reset();
  }finally{vi.useRealTimers();}
 });
 it('lets the viewer decision take priority over an opponent card',()=>{

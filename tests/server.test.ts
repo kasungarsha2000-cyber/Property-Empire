@@ -1,10 +1,22 @@
 import { it,expect } from 'vitest';
 import { WebSocket } from 'ws';
-import { mkdtemp,rm,writeFile } from 'node:fs/promises';
+import { mkdtemp,rm,writeFile,readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startServer } from '../apps/server/src/server';
+import {createGame,applyAction} from '../packages/core';
 async function client(port:number){const ws=new WebSocket(`ws://127.0.0.1:${port}/ws`,{origin:`http://127.0.0.1:${port}`});const messages:any[]=[];ws.on('message',d=>messages.push(JSON.parse(d.toString())));await new Promise<void>((ok,fail)=>{ws.once('open',()=>ok());ws.once('error',fail);});return{ws,messages,send:(v:any)=>ws.send(JSON.stringify(v)),async wait(type:string,predicate:(v:any)=>boolean=()=>true){const end=Date.now()+5000;while(Date.now()<end){const i=messages.findIndex(v=>v.type===type&&predicate(v));if(i>=0)return messages.splice(i,1)[0];await new Promise(r=>setTimeout(r,10));}throw new Error(`No ${type}; received ${messages.map(m=>m.type+':'+(m.error||'')).join(',')}`);}};}
+it('restores an unread LAN card and permits only its player to resolve it exactly once',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'empire-'));let s=await startServer({port:0,host:'127.0.0.1',saveDir:dir}),a=await client(s.port),b=await client(s.port);
+ try{
+  a.send({type:'CREATE',name:'Ada',token:0,botCount:0});const authA=await a.wait('SESSION');await a.wait('ROOM');b.send({type:'JOIN',code:authA.code,name:'Ben',token:1});const authB=await b.wait('SESSION');await b.wait('ROOM');a.ws.close();b.ws.close();await s.close();
+  const file=join(dir,`${authA.code}.json`),saved=JSON.parse(await readFile(file,'utf8'));let g=createGame({players:saved.members.map((m:any)=>({id:m.id,name:m.name,bot:false,token:m.token}))},42);g.current=0;g.players[0].position=24;g.decks.community=[2,...g.decks.community.filter(i=>i!==2)];g=applyAction(g,authA.playerId,{type:'roll'});saved.game=g;await writeFile(file,JSON.stringify(saved));
+  s=await startServer({port:0,host:'127.0.0.1',saveDir:dir});a=await client(s.port);b=await client(s.port);a.send({type:'RESUME',code:authA.code,token:authA.token});await a.wait('SESSION');expect((await a.wait('STATE')).game).toEqual(g);b.send({type:'RESUME',code:authB.code,token:authB.token});await b.wait('SESSION');expect((await b.wait('STATE')).game.players[0].cash).toBe(1500);
+  b.send({type:'ACTION',id:'wrong-reader',revision:1,action:{type:'resolveCard'}});expect((await b.wait('ERROR')).error).toMatch(/drawing player/);
+  a.send({type:'ACTION',id:'read',revision:1,action:{type:'resolveCard'}});const resolved=(await a.wait('STATE',m=>m.game.revision===2)).game;expect((await b.wait('STATE',m=>m.game.revision===2)).game).toEqual(resolved);expect(resolved.phase).toBe('manage');expect(resolved.pendingCard).toBeNull();expect(resolved.players[0].cash).toBe(1700);
+  a.send({type:'ACTION',id:'read',revision:1,action:{type:'resolveCard'}});expect((await a.wait('ERROR')).error).toMatch(/Duplicate/);a.send({type:'ACTION',id:'read-again',revision:2,action:{type:'resolveCard'}});expect((await a.wait('ERROR')).error).toMatch(/drawing player/);
+ }finally{a.ws.close();b.ws.close();await s.close();await rm(dir,{recursive:true,force:true});}
+});
 it('LAN peers counter, restore a pending negotiation and accept the revised terms',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'empire-'));
  let s=await startServer({port:0,host:'127.0.0.1',saveDir:dir});

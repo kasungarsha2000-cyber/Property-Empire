@@ -39,7 +39,7 @@ export class EventFeedback{
  private layer:HTMLDivElement;
  private timer:ReturnType<typeof setTimeout>|null=null;
  private reduced:boolean;
- constructor(stage:HTMLElement,reduced:boolean){this.reduced=reduced;this.layer=document.createElement('div');this.layer.className='event-feedback';this.layer.setAttribute('aria-hidden','true');stage.append(this.layer);}
+ constructor(stage:HTMLElement,reduced:boolean,private project?:(property:number)=>{x:number;y:number}|null){this.reduced=reduced;this.layer=document.createElement('div');this.layer.className='event-feedback';this.layer.setAttribute('aria-hidden','true');stage.append(this.layer);}
  configure(reduced:boolean){this.reduced=reduced;if(reduced)this.clearVisual();}
  observe(game:Game,id:string,moving:boolean,animate=true){
   if(this.viewer!==id){this.reset();this.viewer=id;}
@@ -54,11 +54,13 @@ export class EventFeedback{
   this.show(notice);
  }
  refreshBalance(){const burst=this.layer.querySelector('.feedback-burst');if(burst)document.querySelector('.portfolio-money')?.classList.add(burst.classList.contains('feedback-positive')?'balance-positive':'balance-negative');}
+ reposition(){const burst=this.layer.querySelector<HTMLElement>('.feedback-burst[data-property]');if(!burst||!this.project)return;const point=this.project(Number(burst.dataset.property)),stage=this.layer.parentElement!;burst.hidden=!point;if(point){burst.style.left=`${Math.max(120,Math.min(stage.clientWidth-120,point.x))}px`;burst.style.top=`${Math.max(70,Math.min(stage.clientHeight-60,point.y-45))}px`;}}
  reset(){this.previous=null;this.viewer='';this.pending=[];this.clearVisual();}
  private clearVisual(){if(this.timer)clearTimeout(this.timer);this.timer=null;this.layer.replaceChildren();document.querySelectorAll('.balance-positive,.balance-negative').forEach(el=>el.classList.remove('balance-positive','balance-negative'));}
  private show(notice:GameNotice){
   this.clearVisual();const tone=noticeTone(notice),amount=notice.amount??notice.card?.amount;
-  this.layer.innerHTML=`<div class="feedback-burst feedback-${tone}"><div class="feedback-label"><span>${escapeHTML(notice.title)}</span>${amount!==undefined?`<strong>${amount<0?'−':'+'}$${Math.abs(amount).toLocaleString('en-US')}</strong>`:`<strong>${tone==='positive'?'✓':'!'}</strong>`}</div>${Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return`<i class="feedback-particle" style="--dx:${Math.cos(angle)*85}px;--dy:${Math.sin(angle)*60-25}px;--delay:${i*25}ms"></i>`;}).join('')}</div>`;
+  this.layer.innerHTML=`<div class="feedback-burst feedback-${tone}" ${this.project&&notice.property!==undefined?`data-property="${notice.property}"`:''}><div class="feedback-label"><span>${escapeHTML(notice.title)}</span>${amount!==undefined?`<strong>${amount<0?'−':'+'}$${Math.abs(amount).toLocaleString('en-US')}</strong>`:`<strong>${tone==='positive'?'✓':'!'}</strong>`}${notice.title.startsWith('Rent ')?`<small>${escapeHTML(notice.detail)}</small>`:''}</div>${Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return`<i class="feedback-particle" style="--dx:${Math.cos(angle)*85}px;--dy:${Math.sin(angle)*60-25}px;--delay:${i*25}ms"></i>`;}).join('')}</div>`;
+  this.reposition();
   this.refreshBalance();
   this.timer=setTimeout(()=>this.clearVisual(),1400);
  }

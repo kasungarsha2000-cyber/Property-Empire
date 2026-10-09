@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { BOARD } from '../../../packages/core/board';
+import { BOARD,GROUPS } from '../../../packages/core/board';
 import {propertyDesign} from './property-art';
 
 export const TILE_HEIGHT = .55;
@@ -128,11 +128,11 @@ export class SceneAssets {
       tile.userData.index = space.index; this.tiles.push(tile);
       const face = new THREE.Mesh(new THREE.PlaneGeometry(.98, .98), new THREE.MeshBasicMaterial({map: this.tileTexture(space.index), toneMapped:false}));
       face.rotation.x = -Math.PI / 2; face.position.y = .082; face.receiveShadow = true; group.add(face); this.labels.push({mesh: face, index: space.index});
-      if (space.price) this.mesh(group, this.box, space.color, [.96, .045, .19], [0, .105, -.385], 'lacquer', false);
-      const owner = this.mesh(group, this.box, '#D8CCB4', [.76, .045, .095], [0, .105, .427], 'lacquer', false);
+      if (space.price) {this.mesh(group,this.box,space.color,[.96,.055,.19],[0,.11,-.385],'lacquer',false);this.mesh(group,this.box,'#D8BD82',[.95,.012,.018],[0,.141,-.279],'metal',false);}
+      const owner = this.mesh(group, this.box, '#D8CCB4', [.90, .035, .20], [0, .04, .65], 'lacquer', false);
       owner.visible = false; this.owners.push(owner); scene.add(group);
       if(space.price){
-        const tag=new THREE.Mesh(new THREE.PlaneGeometry(.80,.115),new THREE.MeshBasicMaterial({transparent:true,toneMapped:false}));tag.rotation.x=-Math.PI/2;tag.position.set(0,.131,.427);tag.visible=false;group.add(tag);this.ownershipLabels.set(space.index,tag);
+        const tag=new THREE.Mesh(new THREE.PlaneGeometry(.87,.165),new THREE.MeshBasicMaterial({transparent:true,toneMapped:false}));tag.rotation.x=-Math.PI/2;tag.position.set(0,.062,.65);tag.visible=false;group.add(tag);this.ownershipLabels.set(space.index,tag);
         const highlight=new THREE.Mesh(new THREE.RingGeometry(.66,.80,4),new THREE.MeshBasicMaterial({color:'#FFD777',side:THREE.DoubleSide,transparent:true,opacity:1,depthWrite:false}));highlight.rotation.set(-Math.PI/2,0,Math.PI/4);highlight.position.set(0,.095,0);highlight.visible=false;group.add(highlight);this.ownershipHighlights.set(space.index,highlight);
       }
     }
@@ -154,7 +154,7 @@ export class SceneAssets {
     const ctx = canvas.getContext('2d')!;
     const background = ({go:'#D9EEE0', jail:'#ECDCBF', parking:'#DCE8D9', goJail:'#EDD4CA', chance:'#E8DFEF', community:'#DFE8E5', tax:'#EBDFC8'} as Record<string,string>)[space.type] ?? '#F6EDDA';
     ctx.fillStyle = background; ctx.fillRect(0, 0, 512, 512);
-    ctx.strokeStyle = '#D4C7AE'; ctx.lineWidth = 2; ctx.strokeRect(13, 13, 486, 486);
+    const edge=ctx.createLinearGradient(0,0,512,512);edge.addColorStop(0,'#FFFFFF');edge.addColorStop(1,'#D6C8AD');ctx.strokeStyle=edge;ctx.lineWidth=8;ctx.strokeRect(7,7,498,498);ctx.strokeStyle='#D4C7AE';ctx.lineWidth=2;ctx.strokeRect(18,18,476,476);
     ctx.fillStyle = '#253D3B'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = '800 60px Nunito, sans-serif';
     const words = space.name.replace(' / Visiting','').split(' '); const lines = [''];
@@ -165,7 +165,7 @@ export class SceneAssets {
     ctx.font = '800 45px Nunito, sans-serif';
     ctx.fillStyle = '#526657';
     ctx.fillText(space.price ? `$${space.price}` : space.type === 'go' ? '+ $200' : space.type === 'tax' ? `− $${space.amount}` : space.type === 'jail' ? 'Just visiting' : '', 256, 443);
-    if (space.price) { ctx.fillStyle = space.color; ctx.fillRect(30, 25, 452, 140); }
+    if(space.price){ctx.fillStyle=space.color;ctx.fillRect(30,25,452,140);ctx.fillStyle='#FFFFFF';ctx.globalAlpha=.85;ctx.font='800 26px Nunito,sans-serif';ctx.fillText(GROUPS[space.group].name.toUpperCase(),256,120);ctx.globalAlpha=1;ctx.strokeStyle=space.color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(130,394);ctx.lineTo(382,394);ctx.stroke();ctx.fillStyle=space.color;ctx.font='800 32px Nunito,sans-serif';ctx.fillText(String(space.index).padStart(2,'0'),256,212);}
     return canvasTexture(canvas);
   }
 

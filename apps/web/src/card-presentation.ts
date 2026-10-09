@@ -32,9 +32,13 @@ export function cardPresentation(before:Game,after:Game,entry:Game['log'][number
  if(card.kind==='nearest'){
   let to=(source+1)%40;while(BOARD[to].type!==card.category)to=(to+1)%40;result.destination=to;
   const property=after.properties[to],owner=after.players.find(p=>p.id===property.owner);
-  if(owner&&owner.id!==player.id&&!property.mortgaged){const total=after.dice[0]+after.dice[1],rent=card.category==='transport'?rentFor(after,to,total)*2:total*10;result.annotations.unshift(card.category==='transport'?`2× station rent: $${rent} due to ${owner.name}.`:`Fresh dice ${after.dice.join(' + ')} = ${total}; 10× rent: $${rent} due to ${owner.name}.`);}
+  if(owner&&owner.id!==player.id&&!property.mortgaged){const total=after.dice[0]+after.dice[1],rent=card.category==='transport'?rentFor(after,to,total)*2:total*10;result.annotations.unshift(card.category==='transport'?`2× station rent: $${rent} due to ${owner.name}.`:after.pendingCard?.event===entry.id?`After reading, roll fresh dice and pay ${owner.name} 10× that total.`:`Fresh dice ${after.dice.join(' + ')} = ${total}; 10× rent: $${rent} due to ${owner.name}.`);}
   else result.annotations.unshift(!owner?'Available to buy or auction.':property.mortgaged?'Mortgaged: no rent is due.':'You own this destination: no rent is due.');
  }
  if(result.destination!==undefined)result.annotations.unshift(`Drawn at ${BOARD[source].name} → ${BOARD[result.destination].name}.`);
  return result;
+}
+export function pendingCardPresentation(game:Game):CardPresentation|null{
+ const pending=game.pendingCard;if(!pending)return null;
+ return cardPresentation(game,game,{id:pending.event,kind:'card',text:CARDS[pending.deck][pending.id].text});
 }

@@ -1,5 +1,17 @@
 # Executed tests — 2026-10-08
 
+## Spatial transactions, read-first cards and results — 2026-10-09
+
+Final `npm run check`: **105 tests passed in 12 files**, followed by strict TypeScript and both production builds. App 256.42 KB / 83.19 KB gzip; CSS 81.44 KB / 17.29 KB gzip; Three 540.36 KB / 137.64 KB gzip; server 55.25 KB. The offline manifest contains 16 local assets.
+
+New real-engine tests cover saved unread cards, money/movement delayed until resolution, recipient-only actions, backward movement into another unread card, jail and held-card timing, all 32 card identities/art/motions, exact paid-rent metadata, accepted trade assets and declared-winner standings. A real two-peer WebSocket test resumes an unread card, rejects another player's resolution, broadcasts its effect once and rejects repeated resolution. Existing bot simulations continue to validate snapshots and finish games with the new card phase.
+
+All eleven production Chrome scripts and the separate reduced-motion run passed across the final verification cycle, with no page exceptions. The main runner passed gameplay, offline reload, LAN synchronization/reconnect, deeds, ownership/trading, camera/events, arrivals/cards, fullscreen/counteroffers and game-feel checks. An older compact-feedback test hit a 100 ms clock-freeze deadline under software rendering; its clock now freezes on the menu before restoration. The same setup was applied to stable-turn and arrival tests. Arrival/cards, compact feedback, stable turns, opponent/models, new board moments and the reduced-motion checks then passed against the same final production build.
+
+New Chrome checks verify unchanged cash before Continue, delayed card movement and rent, property-anchored named rent, purchase seals, accepted deed exchange, winner/loser standings and reopening results, mobile card/result bounds, centered tools with internal mobile scrolling, and in-app reduced-motion card artwork/sparks. The development renderer probe confirms all 28 owner plaques sit beyond the tile edge. Production screenshots of rent, purchases, trades, winner/loser and mobile results were inspected. A separate real-time Chrome check confirms the card flight settles into a readable popup while cash remains unchanged; frozen-clock captures can show the flight before it paints.
+
+Independent review found inherited card positioning, mobile toolbar overflow, in-app card motion and duplicate pending/held jail-card validation gaps. All were repaired and covered by checks. Final review confirmed the atomic movement/popup update avoids duplicate card flights and the reduced-motion spark override is present, with no remaining material findings. Production health passes on port 3001. Physical-device frame rates and other browsers remain unmeasured.
+
 ## Pawn arrival, dice and cards — 2026-10-09
 
 Final automated suite: **68 tests passed** across six files. Strict TypeScript, Vite frontend, offline cache and Node server builds passed. Eight turn-presentation tests and fourteen event tests cover card destinations, backward/chained movement, exact repairs, card effects, all 32 card explanations, actual versus unpaid rent, safe reconnect attribution, randomized dice landings and the entire rotated cube footprint staying on felt.

@@ -2,13 +2,14 @@ import { BOARD, groupSpaces } from './board';
 import { applyAction, playerById } from './engine';
 import type { Game, Action, Player } from './types';
 import {reverseTrade,MAX_COUNTER_OFFERS} from './trade-terms';
-export function actionPlayer(g:Game):string|null {if(g.phase==='ended')return null;return g.trade?.to??g.auction?.turn??g.debt?.player??g.players[g.current].id;}
+export function actionPlayer(g:Game):string|null {if(g.phase==='ended')return null;return g.pendingCard?.player??g.trade?.to??g.auction?.turn??g.debt?.player??g.players[g.current].id;}
 const reserve=(p:Player)=>p.difficulty==='easy'?70:p.difficulty==='hard'?220:150;
 function value(g:Game,p:Player,i:number):number{const s=BOARD[i],own=groupSpaces(i).filter(s=>g.properties[s.index].owner===p.id).length;return s.price*(1+own*.45)+(s.type==='street'?s.rents[3]*.12:0);}
 function legal(g:Game,id:string,a:Action):boolean {try{applyAction(g,id,a);return true;}catch{return false;}}
 export function botDecision(g:Game):{playerId:string;action:Action}|null {
  const id=actionPlayer(g);if(!id)return null;const p=playerById(g,id);if(!p.bot)return null;let action:Action={type:'end'};const assets=BOARD.filter(s=>g.properties[s.index].owner===id);
- if(g.phase==='roll'){action=p.jailed&&p.cards.length?{type:'jailCard'}:p.jailed&&p.cash>reserve(p)+50&&p.difficulty==='hard'?{type:'bail'}:{type:'roll'};}
+ if(g.phase==='card'){action={type:'resolveCard'};}
+ else if(g.phase==='roll'){action=p.jailed&&p.cards.length?{type:'jailCard'}:p.jailed&&p.cash>reserve(p)+50&&p.difficulty==='hard'?{type:'bail'}:{type:'roll'};}
  else if(g.phase==='purchase'){const i=g.pendingProperty!,s=BOARD[i],own=groupSpaces(i).some(s=>g.properties[s.index].owner===id),mistake=p.difficulty==='easy'&&(g.rng%5===0);action=!mistake&&p.cash>=s.price&&(p.cash-s.price>=reserve(p)||own)?{type:'buy'}:{type:'decline'};}
  else if(g.phase==='auction'){const a=g.auction!,cap=Math.min(p.cash,Math.floor(value(g,p,a.property)*(p.difficulty==='easy'?.7:1))-reserve(p)/2),bid=a.bid+Math.max(1,Math.min(25,Math.floor(BOARD[a.property].price/10)));action=bid<=cap?{type:'bid',amount:bid}:{type:'pass'};}
  else if(g.phase==='debt'){const developed=assets.filter(s=>g.properties[s.index].level>0).sort((a,b)=>g.properties[b.index].level-g.properties[a.index].level);const sell=developed.map(s=>({type:'sell' as const,property:s.index})).find(a=>legal(g,id,a));const groupSale=developed.map(s=>({type:'sellGroup' as const,property:s.index})).find(a=>legal(g,id,a));const mortgage=assets.filter(s=>!g.properties[s.index].mortgaged).sort((a,b)=>a.price-b.price).map(s=>({type:'mortgage' as const,property:s.index})).find(a=>legal(g,id,a));action=sell??groupSale??mortgage??{type:'bankrupt'};}

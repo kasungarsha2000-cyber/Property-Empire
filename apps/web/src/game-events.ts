@@ -11,6 +11,7 @@ export function gameNotices(before:Game|null,after:Game,id:string):GameNotice[]{
  for(const entry of fresh){
   const own=entry.text.startsWith(`${me.name} `),notice:GameNotice={key:`event:${entry.id}`,kind:entry.kind,title:'City event',detail:entry.text};
   if(entry.kind==='payment'){
+   if(entry.payment){const payment=entry.payment;if(payment.from!==id&&payment.to!==id)continue;notice.title=payment.property!==undefined?(payment.to===id?'Rent collected':'Rent paid'):(payment.to===id?'Money received':payment.to===null?'Payment to the bank':'Payment sent');notice.amount=payment.to===id?payment.amount:-payment.amount;notice.property=payment.property;notices.push(notice);continue;}
    const amount=Number(entry.text.match(/\$(\d+)\.$/)?.[1]);if(!amount)continue;
    const matches=after.players.flatMap(payer=>after.players.filter(receiver=>payer.id!==receiver.id&&[payer.id,receiver.id].includes(id)&&entry.text===`${payer.name} pays ${receiver.name} $${amount}.`).map(receiver=>({payer,receiver})));
    if(matches.length>1){
@@ -31,7 +32,8 @@ export function gameNotices(before:Game|null,after:Game,id:string):GameNotice[]{
   }else if(entry.kind==='purchase'&&own){
    const property=BOARD.find(s=>s.price&&after.properties[s.index].owner===id&&before.properties[s.index].owner!==id&&entry.text.includes(s.name));
    if(!property)continue;notice.title='Property purchased';notice.property=property.index;notice.amount=-Number(entry.text.match(/\$(\d+)\.$/)?.[1]??property.price);
-  }else if(entry.kind==='salary'&&own&&actorAtEvent(before,after,entry.id)===id){notice.title='Passed Start';notice.amount=200;}
+  }else if(entry.kind==='income'&&own&&actorAtEvent(before,after,entry.id)===id){notice.title='Money received';notice.amount=Number(entry.text.match(/\$(\d+)/)?.[1]);}
+  else if(entry.kind==='salary'&&own&&actorAtEvent(before,after,entry.id)===id){notice.title='Passed Start';notice.amount=200;}
   else if(entry.kind==='jail'&&own&&actorAtEvent(before,after,entry.id)===id){notice.title=me.jailed?'Sent to jail':'Out of jail';}
   else if(entry.kind==='card'&&actorAtEvent(before,after,entry.id)===id){const card=cardPresentation(before,after,entry);notice.title=card?.title??'City card';if(card)notice.card=card;}
   else if(entry.kind==='winner'){notice.title=after.winner===id?'You built an empire!':'Match finished';}
@@ -62,8 +64,9 @@ export function tableNotices(before:Game|null,after:Game,id:string):GameNotice[]
 }
 export function decisionFor(game:Game,id:string):{key:string;kind:string;property?:number}|null{
  const actor=actionPlayer(game),me=game.players.find(p=>p.id===id);if(!me)return null;
- const kind=game.phase==='ended'?'ended':actor===id&&['purchase','auction','debt','trade'].includes(game.phase)?game.phase:actor===id&&game.phase==='roll'&&me.jailed?'jail':null;
+ const kind=actor===id&&['card','purchase','auction','debt','trade'].includes(game.phase)?game.phase:actor===id&&game.phase==='roll'&&me.jailed?'jail':null;
  if(!kind)return null;
  const property=game.pendingProperty??game.auction?.property??undefined;
- return{kind,property,key:`${kind}:${game.turn}:${id}:${property??''}:${game.auction?.bid??''}:${kind==='jail'?me.jailTurns:''}:${kind==='trade'?`${game.trade!.from}:${game.trade!.round??0}`:''}`};
+ return{kind,property:keyProperty(kind,property),key:`${kind}:${game.turn}:${id}:${kind==='card'?game.pendingCard!.event:property??''}:${game.auction?.bid??''}:${kind==='jail'?me.jailTurns:''}:${kind==='trade'?`${game.trade!.from}:${game.trade!.round??0}`:''}`};
 }
+function keyProperty(kind:string,property:number|undefined){return kind==='card'?undefined:property;}

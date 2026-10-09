@@ -34,6 +34,7 @@ export class BoardView {
  private flourishes=new Map<string,{start:number;duration:number}>();
  onStep:()=>void=()=>{};
  onSettled:()=>void=()=>{};
+ onFrame:()=>void=()=>{};
  get isAnimating(){return this.paths.size>0||performance.now()<this.diceUntil;}
  private dirty = true;
  private state: Game | null = null;
@@ -166,12 +167,15 @@ export class BoardView {
   this.playbackActive=this.isAnimating;
  }
  select(index: number) { this.selection.visible = index >= 0; if (index >= 0) { this.selection.position.copy(spacePosition(index)); this.selection.position.y = .659; } this.dirty = true; }
+ projectSpace(index:number){const point=spacePosition(index);point.y=1.1;return this.project(point);}
+ projectDeck(deck:'chance'|'community'){return this.project(new THREE.Vector3(deck==='chance'?3.4:-3.65,.85,deck==='chance'?2.99:3.5));}
+ private project(point:THREE.Vector3){point.project(this.camera);if(point.z<-1||point.z>1)return null;return{x:(point.x+1)*this.element.clientWidth/2,y:(1-point.y)*this.element.clientHeight/2};}
  setViewer(id:string|null,highlight=true){this.viewerId=id;this.highlightMine=highlight;this.refreshOwnership();}
  private refreshOwnership(){
   if(!this.state)return;
   this.assets.ownershipLabels.forEach((label,index)=>{
    const owner=this.state!.players.find(player=>player.id===this.state!.properties[index].owner);label.visible=!!owner;
-   if(owner){const mine=owner.id===this.viewerId;label.material=this.assets.ownerLabel(mine?'✓ YOURS':owner.name,mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)]);label.scale.set(mine?1.15:1,mine?1.9:1,1);label.position.z=mine?.38:.427;this.assets.owners[index].material=this.assets.material(this.state!.properties[index].mortgaged?'#858B85':mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)],'lacquer');}
+   if(owner){const mine=owner.id===this.viewerId;label.material=this.assets.ownerLabel(mine?'✓ YOURS':owner.name,mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)]);label.scale.set(1,1,1);label.position.z=.65;this.assets.owners[index].material=this.assets.material(this.state!.properties[index].mortgaged?'#858B85':mine?'#176247':PLAYER_COLORS[owner.token??this.state!.players.indexOf(owner)],'lacquer');}
    this.assets.ownershipHighlights.get(index)!.visible=this.highlightMine&&!!this.viewerId&&owner?.id===this.viewerId;
   });this.dirty=true;
  }
@@ -216,7 +220,7 @@ export class BoardView {
   }
   for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.18;token.rotation.z=Math.sin(t*Math.PI*4)*(1-t)*.12;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.10));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
   if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
-  if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false; }
+  if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false;this.onFrame(); }
   if(this.playbackActive&&!this.isAnimating){this.playbackActive=false;queueMicrotask(()=>this.onSettled());}
  }
 }

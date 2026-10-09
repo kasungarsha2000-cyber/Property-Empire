@@ -19,7 +19,8 @@ export function journey(before:Game,after:Game,id:string){
  for(const entry of after.log.filter(e=>e.id>before.eventSeq)){
   if(actorAtEvent(before,after,entry.id)!==id)continue;
   if(entry.kind==='move'){const space=BOARD.filter(s=>entry.text===`${player.name} arrives at ${s.name}.`).sort((a,b)=>(a.index-position+40)%40-(b.index-position+40)%40)[0];if(space)advance(space.index);}
-  if(entry.kind==='card'){cardSources.set(entry.id,position);const card=[...CARDS.chance,...CARDS.community].find(c=>c.text===entry.text);if(card?.kind==='back')advance((position-(card.amount??0)+40)%40,true);}
+  if(entry.kind==='card')cardSources.set(entry.id,position);
+  if(entry.kind==='back'){const steps=Number(entry.text.match(/moves back (\d+) spaces/)?.[1]);if(steps)advance((position-steps+40)%40,true);}
   if(entry.kind==='jail'&&entry.text===`${player.name} goes directly to jail.`){position=10;route.push(10);}
  }
  const end=after.players.find(p=>p.id===id);if(end&&position!==end.position){if(route.length)advance(end.position);else route.push(end.position);}
