@@ -2,6 +2,7 @@ import type {Game} from '../../../packages/core/types';
 import {gameNotices,type GameNotice} from './game-events';
 import {escapeHTML} from './ui-components';
 import {propertyArtwork} from './property-art';
+import {drawnCardMarkup} from './card-ui';
 
 export type DecisionPopup={key:string;kind:string;title:string;html:string};
 export class EventPresenter{
@@ -12,27 +13,38 @@ export class EventPresenter{
  private decision:DecisionPopup|null=null;
  private closedKey='';
  private suspended=false;
+ private moving=false;
  private signature='';
  private timer:ReturnType<typeof setTimeout>|null=null;
  constructor(private host:HTMLElement,private stage:HTMLElement){}
  get hasDecision(){return !!this.decision;}
+ get hasBlockingCard(){return !!this.current?.card||this.queue.some(notice=>!!notice.card);}
+ setMoving(value:boolean){this.moving=value;this.clearTimer();this.present();}
  update(game:Game,id:string,decision:DecisionPopup|null){
   if(this.viewer&&this.viewer!==id)this.reset();this.viewer=id;
   this.queue.push(...gameNotices(this.previous,game,id));this.queue=this.queue.slice(-20);this.previous=game;
   this.decision=decision?.key===this.closedKey?null:decision;this.present();
  }
  dismiss(){
-  if(this.decision){this.closedKey=this.decision.key;this.decision=null;}
+  if(this.current?.card)this.current=null;
+  else if(this.decision){this.closedKey=this.decision.key;this.decision=null;}
   else this.current=null;
   this.clearTimer();this.present();
  }
  suspend(value:boolean){this.suspended=value;this.clearTimer();this.present();}
- reset(){this.clearTimer();this.previous=null;this.viewer='';this.queue=[];this.current=null;this.decision=null;this.closedKey='';this.suspended=false;this.signature='';this.host.hidden=true;this.stage.classList.remove('decision-open');}
+ reset(){this.clearTimer();this.previous=null;this.viewer='';this.queue=[];this.current=null;this.decision=null;this.closedKey='';this.suspended=false;this.moving=false;this.signature='';this.host.hidden=true;this.stage.classList.remove('decision-open');}
  private clearTimer(){if(this.timer)clearTimeout(this.timer);this.timer=null;}
  private present(){
-  this.stage.classList.toggle('decision-open',!!this.decision);
-  if(this.suspended){this.host.hidden=true;return;}
+  this.stage.classList.toggle('decision-open',!!this.decision||this.hasBlockingCard);
+  if(this.suspended||this.moving){this.host.hidden=true;return;}
   const close='<button class="event-close" data-do="dismiss-event" aria-label="Close event popup">×</button>';
+  const nextCard=this.queue.findIndex(notice=>!!notice.card);
+  if(!this.current?.card&&nextCard>=0){const notice=this.queue.splice(nextCard,1)[0];if(this.current)this.queue.unshift(this.current);this.current=notice;}
+  if(this.current?.card){
+   this.clearTimer();const notice=this.current;this.host.className=`event-popup event-card card-${notice.card!.deck}`;this.host.setAttribute('role','dialog');this.host.setAttribute('aria-labelledby','event-title');this.host.removeAttribute('aria-live');
+   if(this.signature!==notice.key){this.host.innerHTML=`${close}<h2 id="event-title">${escapeHTML(notice.title)}</h2>${drawnCardMarkup(notice.card!)}<div class="event-actions card-continue"><button class="primary" data-do="dismiss-event">Continue</button></div>`;this.signature=notice.key;}
+   this.host.hidden=false;return;
+  }
   if(this.decision){
    this.clearTimer();this.host.className=`event-popup event-decision event-${this.decision.kind}`;this.host.setAttribute('role','dialog');this.host.setAttribute('aria-labelledby','event-title');this.host.removeAttribute('aria-live');
    const signature=`decision:${this.decision.key}:${this.decision.html}:${this.decision.title}`;

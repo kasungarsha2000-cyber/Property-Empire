@@ -1,0 +1,9 @@
+import {BOARD,CARDS} from '../../../packages/core/board';
+import {cardRules,type CardPresentation} from './card-presentation';
+import {escapeHTML as e} from './ui-components';
+export function cardFaceMarkup(deck:'chance'|'community',id:number,annotations=cardRules(CARDS[deck][id]),meta='Deck card',amount?:number){
+ const chance=deck==='chance',name=chance?'Chance':'Community Chest';
+ const illustration=chance?'<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M60 4 68 31 95 25 77 47 103 62 74 63 76 89 58 68 37 85 42 60 13 58 39 45 22 25 49 30Z" fill="currentColor" opacity=".18"/><text x="60" y="66" text-anchor="middle" font-size="74" font-family="Fredoka" fill="currentColor">?</text></svg>':'<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M24 42v-8c0-26 72-26 72 0v8" fill="none" stroke="currentColor" stroke-width="7"/><rect x="19" y="38" width="82" height="40" rx="8" fill="currentColor" opacity=".18"/><path d="M19 53h82M37 38v40M83 38v40" fill="none" stroke="currentColor" stroke-width="5"/><rect x="51" y="44" width="18" height="20" rx="3" fill="currentColor"/></svg>';
+ return`<article class="deck-card deck-${deck}"><div class="card-face-top"><span>${name}</span><small>${e(meta)}</small></div><div class="card-illustration">${illustration}</div><p class="card-instruction">${e(CARDS[deck][id].text)}</p>${amount!==undefined?`<div class="card-effect"><span>${amount<0?'Card obligation':'Card effect'}</span><strong>${amount<0?'−':'+'}$${Math.abs(amount).toLocaleString('en-US')}</strong></div>`:''}<ul class="card-annotations">${annotations.map(text=>`<li>${e(text)}</li>`).join('')}</ul></article>`;
+}
+export function drawnCardMarkup(card:CardPresentation){return cardFaceMarkup(card.deck,card.id,card.annotations,`${card.player} · ${BOARD[card.source].name}`,card.amount);}

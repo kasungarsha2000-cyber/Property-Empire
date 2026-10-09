@@ -134,7 +134,6 @@ export class SceneAssets {
         const tag=new THREE.Mesh(new THREE.PlaneGeometry(.80,.115),new THREE.MeshBasicMaterial({transparent:true,toneMapped:false}));tag.rotation.x=-Math.PI/2;tag.position.set(0,.131,.427);tag.visible=false;group.add(tag);this.ownershipLabels.set(space.index,tag);
         const highlight=new THREE.Mesh(new THREE.RingGeometry(.697,.754,4),new THREE.MeshBasicMaterial({color:'#3B8C60',side:THREE.DoubleSide,transparent:true,opacity:.90,depthWrite:false}));highlight.rotation.set(-Math.PI/2,0,Math.PI/4);highlight.position.set(0,.087,0);highlight.visible=false;group.add(highlight);this.ownershipHighlights.set(space.index,highlight);
       }
-      if(space.price){const landmark=this.property(space.index);landmark.position.copy(spacePosition(space.index));landmark.position.y=.655;landmark.rotation.y=group.rotation.y;landmark.userData.index=space.index;this.landmarks.set(space.index,landmark);scene.add(landmark);}
     }
   }
 
@@ -255,11 +254,11 @@ export class SceneAssets {
     this.mesh(city,this.box,'#234C43',[4.8,.025,1.30],[.5,.732,1.72],'matte',false);
     this.title=new THREE.Mesh(new THREE.PlaneGeometry(4.52,1.15),new THREE.MeshBasicMaterial({map:this.titleTexture(),transparent:true,toneMapped:false}));
     this.title.rotation.x=-Math.PI/2;this.title.position.set(.5,.75,1.72);city.add(this.title);
-    this.cardDeck(city,3.4,2.99,'#895C94','Opportunity');
-    this.cardDeck(city,-3.65,3.5,'#C69855','City Fund');
-    this.mesh(city,this.box,'#183B35',[2.65,.075,1.25],[.15,.61,3.5]);
-    this.mesh(city,this.box,'#C1A370',[2.47,.016,1.1],[.15,.654,3.5],'metal',false);
-    this.mesh(city,this.box,'#326658',[2.38,.024,1.01],[.15,.672,3.5]);
+    this.cardDeck(city,3.4,2.99,'#895C94','Chance');
+    this.cardDeck(city,-3.65,3.5,'#C69855','Community Chest');
+    this.mesh(city,this.box,'#183B35',[3.88,.075,1.93],[.15,.61,3.45]);
+    this.mesh(city,this.box,'#C1A370',[3.71,.016,1.78],[.15,.654,3.45],'metal',false);
+    this.mesh(city,this.box,'#326658',[3.61,.024,1.68],[.15,.672,3.45]);
   }
 
   private tower(parent:THREE.Object3D,x:number,z:number,w:number,d:number,h:number,color:string,style:number,seed:number) {
@@ -319,7 +318,7 @@ export class SceneAssets {
   }
   private cardDeck(parent:THREE.Object3D,x:number,z:number,color:string,label:string){
     for(let i=0;i<3;i++){const card=this.mesh(parent,this.box,i===2?color:'#EDE4D2',[1.05,.037,.66],[x+i*.025,.59+i*.045,z+i*.018],'lacquer',false);card.rotation.y=-.16;}
-    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;const ctx=canvas.getContext('2d')!;ctx.textAlign='center';ctx.fillStyle='#F5E6CA';ctx.font='600 110px Fredoka';ctx.fillText(label==='Opportunity'?'?':'$',256,124);ctx.font='800 30px Nunito';ctx.fillText(label,256,202);
+    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;const ctx=canvas.getContext('2d')!;ctx.textAlign='center';ctx.fillStyle='#F5E6CA';ctx.font='600 110px Fredoka';ctx.fillText(label==='Chance'?'?':'$',256,124);ctx.font='800 30px Nunito';ctx.fillText(label,256,202,475);
     const face=new THREE.Mesh(new THREE.PlaneGeometry(.92,.50),new THREE.MeshBasicMaterial({map:canvasTexture(canvas),transparent:true}));face.rotation.set(-Math.PI/2,0,.16);face.position.set(x+.05,.704,z+.035);parent.add(face);
   }
 

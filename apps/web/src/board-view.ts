@@ -6,6 +6,7 @@ import { PLAYER_COLORS } from '../../../packages/core/board';
 import type { Game } from '../../../packages/core/types';
 import type { Settings } from './storage';
 import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
+import {movementRoute,diceLanding,type DiceLanding} from './animation-plan';
 
 type Movement = {points: THREE.Vector3[]; start: number; duration: number};
 
@@ -23,7 +24,14 @@ export class BoardView {
  private dice: THREE.Mesh[] = [];
  private diceTextures: THREE.CanvasTexture[][] = [];
  private diceUntil = 0;
+ private diceStarted = 0;
+ private diceRest:DiceLanding[]=[{x:-.48,z:3.5,yaw:0},{x:.78,z:3.5,yaw:0}];
+ private diceFrom:THREE.Vector3[]=[];
+ private diceSpin:number[]=[19,23];
  private wasRolling = false;
+ private playbackActive=false;
+ onSettled:()=>void=()=>{};
+ get isAnimating(){return this.paths.size>0||performance.now()<this.diceUntil;}
  private dirty = true;
  private state: Game | null = null;
  private lastSize = '';
@@ -106,9 +114,14 @@ export class BoardView {
  update(game: Game, animate = true) {
   const old = this.state, now = performance.now(); this.state = game;
   if (!animate) { this.paths.clear(); this.diceUntil = 0; }
-  if (old && animate && game.log.some(event => event.id > old.eventSeq && event.kind === 'roll') && this.settings.speed !== 'reduced') this.diceUntil = now + (this.settings.speed === 'fast' ? 250 : 950);
+  const roll=old&&animate?game.log.filter(event=>event.id>old.eventSeq&&event.kind==='roll').at(-1):undefined;
+  if(roll){
+   this.diceRest=diceLanding();this.diceFrom=this.dice.map(die=>die.position.clone());this.diceSpin=this.dice.map(()=>16+Math.random()*12);
+   this.diceStarted=now;if(this.settings.speed!=='reduced')this.diceUntil=now+(this.settings.speed==='fast'?350:950);
+  }
+  const rolled=roll?.text.match(/rolls (\d) \+ (\d)/);
   this.dice.forEach((die, i) => {
-   const value = game.dice[i], remaining = [1, 2, 3, 4, 5, 6].filter(face => face !== value && face !== 7 - value);
+   const value = rolled?Number(rolled[i+1]):game.dice[i], remaining = [1, 2, 3, 4, 5, 6].filter(face => face !== value && face !== 7 - value);
    const first = remaining[0], second = remaining.find(face => face !== first && face !== 7 - first)!;
    const faces = [first, 7 - first, value, 7 - value, second, 7 - second];
    (die.material as THREE.MeshStandardMaterial[]).forEach((material, face) => { material.map = this.diceTextures[i][faces[face] - 1]; });
@@ -125,10 +138,10 @@ export class BoardView {
    token.scale.setScalar(companions.length > 1 ? .73 : 1);
    const point = spacePosition(player.position).add(offset); point.y = TOKEN_HEIGHT;
    const previous = old?.players.find(other => other.id === player.id);
-   if (previous && previous.position !== player.position && animate && this.settings.speed !== 'reduced') {
-    const teleport = player.jailed || game.log.some(event => event.id > old!.eventSeq && event.kind === 'card');
-    const steps = teleport ? 1 : (player.position - previous.position + 40) % 40, points = [token.position.clone()];
-    for (let step = 1; step <= steps; step++) { const next = spacePosition(teleport ? player.position : (previous.position + step) % 40).add(offset); next.y = TOKEN_HEIGHT; points.push(next); }
+   const route=old&&animate?movementRoute(old,game,player.id):[];
+   if (previous && route.length && animate && this.settings.speed !== 'reduced') {
+    const steps=route.length,points = [token.position.clone()];
+    for(const index of route){const next=spacePosition(index).add(offset);next.y=TOKEN_HEIGHT;points.push(next);}
     this.paths.set(player.id, {points, start: Math.max(now, this.diceUntil), duration: steps * (this.settings.speed === 'fast' ? 55 : 125)});
    } else if (!this.paths.has(player.id)) token.position.copy(point);
   });
@@ -137,7 +150,6 @@ export class BoardView {
    if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
   });
   this.refreshOwnership();
-  this.assets.landmarks.forEach((landmark,index)=>{landmark.visible=game.properties[index].level===0;});
   game.properties.forEach((property, index) => {
    const existing = this.buildings.get(index); if (existing?.level === property.level) return;
    if (existing) { this.scene.remove(existing.group); this.buildings.delete(index); } if (!property.level) return;
@@ -147,6 +159,7 @@ export class BoardView {
    this.scene.add(group); this.buildings.set(index, {level: property.level, group});
   });
   this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
+  this.playbackActive=this.isAnimating;
  }
  select(index: number) { this.selection.visible = index >= 0; if (index >= 0) { this.selection.position.copy(spacePosition(index)); this.selection.position.y = .659; } this.dirty = true; }
  setViewer(id:string|null,highlight=true){this.viewerId=id;this.highlightMine=highlight;this.refreshOwnership();}
@@ -184,7 +197,11 @@ export class BoardView {
  private frame() {
   if (document.hidden) return;
   const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0;
-  this.dice.forEach((die, i) => { if (rolling) { die.rotation.set(now * .008 + i, now * .006, now * .011); die.position.y = 1.07 + Math.abs(Math.sin(now * .009 + i)) * .65; } else { die.rotation.set(0, 0, 0); die.position.y = 1.07; } }); this.wasRolling = rolling;
+  this.dice.forEach((die,i)=>{
+   const rest=this.diceRest[i];
+   if(rolling){const t=Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted)),spin=this.diceSpin[i]*Math.sin(t*Math.PI);die.position.lerpVectors(this.diceFrom[i],new THREE.Vector3(rest.x,1.07,rest.z),1-(1-t)**2);die.position.y=1.07+Math.sin(t*Math.PI)*(.28+Math.abs(Math.sin(t*Math.PI*4+i))*.60);die.rotation.set(spin,rest.yaw*t+spin*.6,spin*.8);}
+   else{die.position.set(rest.x,1.07,rest.z);die.rotation.set(0,rest.yaw,0);}
+  });this.wasRolling=rolling;
   for (const [id, path] of this.paths) {
    if (now < path.start) continue;
    const t = Math.min(1, (now - path.start) / path.duration), f = t * (path.points.length - 1), index = Math.min(path.points.length - 2, Math.floor(f)), local = f - index, token = this.tokens.get(id)!;
@@ -192,5 +209,6 @@ export class BoardView {
   }
   if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
   if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false; }
+  if(this.playbackActive&&!this.isAnimating){this.playbackActive=false;queueMicrotask(()=>this.onSettled());}
  }
 }

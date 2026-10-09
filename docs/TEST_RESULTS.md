@@ -1,5 +1,15 @@
 # Executed tests — 2026-10-08
 
+## Pawn arrival, dice and cards — 2026-10-09
+
+Final automated suite: **68 tests passed** across six files. Strict TypeScript, Vite frontend, offline cache and Node server builds passed. Eight turn-presentation tests and fourteen event tests cover card destinations, backward/chained movement, exact repairs, card effects, all 32 card explanations, actual versus unpaid rent, safe reconnect attribution, randomized dice landings and the entire rotated cube footprint staying on felt.
+
+Development browser checks passed with no page exceptions. A controlled clock verifies that no destination popup or action control appears during dice playback, then verifies the purchase popup after arrival. Actual Chance double-station rent, Community Chest cash, card acknowledgment, disabled trade while reading, all 32 catalog faces and mobile card bounds pass. A real renderer probe reports zero initial landmarks/buildings, active then settled playback, two houses, one hotel and zero buildings after sale. Desktop Chance and mobile Community Chest screenshots were visually inspected.
+
+Final production `EMPIRE_URL=http://127.0.0.1:3001 EMPIRE_OFFLINE=1 npm run test:browser` passed all five browser scripts plus the reduced-motion rerun: 13 gameplay/LAN journeys with offline resume, eight deed journeys, ten ownership/trade journeys, seven camera/event journeys, five turn/card journeys and two mid-movement reduced-motion cases. No page exceptions were observed.
+
+Independent review found reduced-motion cancellation leaving popups hidden, rotated dice overhanging the tray, and opponent-card attribution across reconnect gaps. Each was reproduced before repair and confirmed after repair. Frozen-clock purchase and card tests specifically cover changing to Reduced motion during movement. The browser timing test advances between checkpoints instead of rendering every virtual frame, avoiding software-renderer overload. Physical-device and other-browser limitations below remain applicable.
+
 ## Camera and game event improvements — 2026-10-09
 
 `npm run check`: **58 tests passed** in five files; strict TypeScript, frontend/server production builds and offline cache generation passed. Twelve event regressions cover fresh versus restored snapshots, actual versus unpaid rent, movement-card rent, generic card payments, deferred payments, duplicate names, purchase confirmations, salary/jail notices and authorized/stable decisions. The movement-card regression failed before repair and passed afterward.
