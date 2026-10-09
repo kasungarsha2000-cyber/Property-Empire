@@ -1,5 +1,5 @@
 """Readable portfolio/deeds, player profiles/trades, real audio and pawn poses."""
-import os,json
+import os,json,re
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 out=Path('test-artifacts');fixtures=json.loads((out/'browser-fixtures.json').read_text(encoding='utf-8'))
@@ -24,7 +24,8 @@ with sync_playwright() as p:
         assert page.locator('.portfolio-scroll').evaluate('(e)=>e.scrollHeight<=e.clientHeight+1'),'Nested property scroller still clips deeds'
         assert page.locator('.portfolio-property').first.bounding_box()['height']>=80
         page.get_by_role('button',name='Inspect your Copper Lane',exact=True).click()
-        expect(page.locator('#dialog')).to_have_class('wide-dialog deed-dialog')
+        expect(page.locator('#dialog')).to_have_class(re.compile(r'\bdeed-dialog\b'))
+        expect(page.locator('#dialog')).to_have_class(re.compile(r'\bdeed-reduced\b'))
         expect(page.locator('#dialog .deed-rents')).to_contain_text('Hotel')
         expect(page.locator('#dialog .deed-costs')).to_contain_text('Mortgage value')
         popup=page.locator('#dialog').bounding_box();actions=page.locator('#dialog .asset-actions').bounding_box()

@@ -7,7 +7,9 @@ import type { Game } from '../../../packages/core/types';
 import type { Settings } from './storage';
 import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
 import {pawnPose} from './pawn-motion';
-import {movementRoute,diceLanding,type DiceLanding} from './animation-plan';
+import {CityLife} from './city-life';
+import {movementRoute,diceLanding,dicePose,type DiceLanding} from './animation-plan';
+import {propertyMotions,propertyMotionPose,propertyMotionStart,type PropertyMotion} from './property-motion';
 
 type Movement = {points: THREE.Vector3[]; start: number; duration: number;lastStep:number};
 
@@ -26,12 +28,14 @@ export class BoardView {
  private diceTextures: THREE.CanvasTexture[][] = [];
  private diceUntil = 0;
  private diceStarted = 0;
- private diceRest:DiceLanding[]=[{x:-.48,z:3.5,yaw:0},{x:.78,z:3.5,yaw:0}];
- private diceFrom:THREE.Vector3[]=[];
+ private diceRest:DiceLanding[]=[{x:-.65,z:3.5,yaw:0},{x:.95,z:3.5,yaw:0}];
+ private diceFrom:DiceLanding[]=[];
  private diceSpin:number[]=[19,23];
  private wasRolling = false;
  private playbackActive=false;
  private flourishes=new Map<string,{start:number;duration:number}>();
+ private propertyEffects=new Map<number,{motion:PropertyMotion;start:number;ring:THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>;growing:THREE.Object3D[]}>();
+ private propertyRingGeometry=new THREE.RingGeometry(.71,.78,4);
  onStep:()=>void=()=>{};
  onSettled:()=>void=()=>{};
  onFrame:()=>void=()=>{};
@@ -45,6 +49,10 @@ export class BoardView {
  private viewerId:string|null=null;
  private highlightMine=true;
  private customizedView=false;
+ private cityLife:CityLife;
+ private cityStatus=document.createElement('div');
+ private motionPreference=matchMedia('(prefers-reduced-motion:reduce)');
+ private lastSunShadow=0;
 
  constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
   this.settings = settings;
@@ -65,7 +73,7 @@ export class BoardView {
   this.scene.environment = pmrem.fromScene(environment, .04).texture;
   this.scene.environmentIntensity = .40;
   environment.dispose(); pmrem.dispose();
-  this.scene.add(new THREE.HemisphereLight('#FFF2DA', '#577A85', .65));
+  const hemisphere=new THREE.HemisphereLight('#FFF2DA', '#577A85', .65);this.scene.add(hemisphere);
   const key = new THREE.DirectionalLight('#FFF0CE', 1.8);
   key.position.set(-3, 14, 7); key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -82,6 +90,10 @@ export class BoardView {
   this.controls.addEventListener('change', () => { this.dirty = true; });
   this.controls.addEventListener('start',()=>{this.customizedView=true;});
   this.assets.buildBoard(this.scene); this.assets.buildCity(this.scene);
+  this.cityLife=new CityLife(this.scene,this.assets,{key,fill,hemisphere});
+  this.cityStatus.className='city-status';this.cityStatus.textContent=this.cityLife.status;this.cityStatus.setAttribute('aria-label','City weather and time of day');element.parentElement?.append(this.cityStatus);
+  this.motionPreference.addEventListener('change',()=>this.configure(this.settings));
+  document.addEventListener('visibilitychange',()=>{this.cityLife.resetClock();this.dirty=true;});
   this.halo = new THREE.Mesh(new THREE.RingGeometry(.30, .35, 48), new THREE.MeshBasicMaterial({color: '#E9C37C', side: THREE.DoubleSide, transparent: true, opacity: .9}));
   this.halo.rotation.x = -Math.PI / 2; this.halo.visible = false; this.scene.add(this.halo);
   this.selection = new THREE.Group();
@@ -95,7 +107,7 @@ export class BoardView {
    const textures = Array.from({length: 6}, (_, face) => diceTexture(face + 1, i === 1)); this.diceTextures.push(textures);
    const materials = [3, 2, 0, 5, 1, 4].map(face => new THREE.MeshStandardMaterial({map: textures[face], roughness: .31, metalness: .06}));
    const die = new THREE.Mesh(dieGeometry, materials);
-   die.position.set(-.48 + i * 1.26, 1.07, 3.5); die.castShadow = true; die.receiveShadow = true;
+   die.position.set(this.diceRest[i].x, 1.07, 3.5); die.castShadow = true; die.receiveShadow = true;
    this.dice.push(die); this.scene.add(die);
   }
   let down = {x: 0, y: 0};
@@ -117,10 +129,11 @@ export class BoardView {
 
  update(game: Game, animate = true) {
   const old = this.state, now = performance.now(); this.state = game;
-  if (!animate) { this.paths.clear(); this.flourishes.clear();this.diceUntil = 0; }
+  if (!animate || old&&game.eventSeq<old.eventSeq) { this.paths.clear(); this.flourishes.clear();this.diceUntil = 0;this.clearPropertyEffects(); }
+  const propertyChanges=animate&&this.settings.speed!=='reduced'&&!this.motionPreference.matches?propertyMotions(old,game):[];
   const roll=old&&animate?game.log.filter(event=>event.id>old.eventSeq&&event.kind==='roll').at(-1):undefined;
   if(roll){
-   this.diceRest=diceLanding();this.diceFrom=this.dice.map(die=>die.position.clone());this.diceSpin=this.dice.map(()=>16+Math.random()*12);
+   this.diceRest=diceLanding();this.diceFrom=this.dice.map(die=>({x:die.position.x,z:die.position.z,yaw:die.rotation.y}));this.diceSpin=this.dice.map(()=>16+Math.random()*12);
    this.diceStarted=now;if(this.settings.speed!=='reduced')this.diceUntil=now+(this.settings.speed==='fast'?350:950);
   }
   const rolled=roll?.text.match(/rolls (\d) \+ (\d)/);
@@ -163,6 +176,17 @@ export class BoardView {
    for (let n = 0; n < count; n++) { const house = this.assets.house(property.level); house.position.set(property.level === 5 ? 0 : (n - (count - 1) / 2) * .22, 0, -.26); group.add(house); }
    this.scene.add(group); this.buildings.set(index, {level: property.level, group});
   });
+  for(const motion of propertyChanges){
+   this.finishPropertyEffect(motion.property);
+   const color=motion.kind==='build'?'#A8E2A0':motion.kind==='rent'?'#C4A5ED':'#FFD67D';
+   const ring=new THREE.Mesh(this.propertyRingGeometry,new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:.55,depthWrite:false,toneMapped:false}));
+   ring.name=`property-${motion.kind}-${motion.property}`;ring.rotation.set(-Math.PI/2,0,Math.PI/4);ring.position.copy(spacePosition(motion.property));ring.position.y=.674;
+   const path=motion.payer?this.paths.get(motion.payer):undefined,arrival=path?path.start+path.duration:this.diceUntil;
+   const start=propertyMotionStart(motion,now,arrival),entry=this.buildings.get(motion.property);
+   const growing=motion.kind==='build'&&entry?entry.group.children.filter((_,n)=>motion.level===5||n>=(motion.previousLevel??0)):[];
+   for(const house of growing)house.scale.y=.001;
+   ring.visible=start<=now;this.scene.add(ring);this.propertyEffects.set(motion.property,{motion,start,ring,growing});
+  }
   this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
   this.playbackActive=this.isAnimating;
  }
@@ -188,6 +212,8 @@ export class BoardView {
  reset() { this.customizedView=false;this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
  configure(settings: Settings) {
   this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
+  this.cityLife.configure(settings.speed==='reduced'||this.motionPreference.matches,settings.quality);
+  if(settings.speed==='reduced'||this.motionPreference.matches)this.clearPropertyEffects();
   this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
   if (settings.speed === 'reduced') { this.paths.clear();this.flourishes.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
  }
@@ -198,6 +224,8 @@ export class BoardView {
   const horizontal = new THREE.Vector3(this.viewDirection.z, 0, -this.viewDirection.x).normalize(), vertical = new THREE.Vector3().crossVectors(this.viewDirection, horizontal).normalize();
   let required = 0; const tangent = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
   for (const x of [-6.7, 6.7]) for (const z of [-6.7, 6.7]) for (const y of [-.35, 1.1]) { const corner = new THREE.Vector3(x, y - .8, z), depth = corner.dot(this.viewDirection); required = Math.max(required, depth + Math.abs(corner.dot(horizontal)) / (tangent * this.camera.aspect), depth + Math.abs(corner.dot(vertical)) / tangent); }
+  // Aircraft and clouds must remain visible above the skyline without shrinking the board unnecessarily.
+  for(const x of [-4.15,4.15])for(const z of [-4.4,1.55]){const corner=new THREE.Vector3(x,5.95-.8,z),depth=corner.dot(this.viewDirection);required=Math.max(required,depth+Math.abs(corner.dot(horizontal))/(tangent*this.camera.aspect),depth+Math.abs(corner.dot(vertical))/tangent);}
   const priorFit=this.fitDistance;this.fitDistance = required * 1.06;
   if(this.customizedView){const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*this.fitDistance/priorFit,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();this.dirty=true;}
   else this.reset();
@@ -205,9 +233,10 @@ export class BoardView {
  private frame() {
   if (document.hidden) return;
   const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0||this.flourishes.size>0;
+  const ambient=this.cityLife.update(now);if(this.cityStatus.textContent!==this.cityLife.status)this.cityStatus.textContent=this.cityLife.status;
   this.dice.forEach((die,i)=>{
    const rest=this.diceRest[i];
-   if(rolling){const t=Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted)),spin=this.diceSpin[i]*Math.sin(t*Math.PI);die.position.lerpVectors(this.diceFrom[i],new THREE.Vector3(rest.x,1.07,rest.z),1-(1-t)**2);die.position.y=1.07+Math.sin(t*Math.PI)*(.28+Math.abs(Math.sin(t*Math.PI*4+i))*.60);die.rotation.set(spin,rest.yaw*t+spin*.6,spin*.8);}
+   if(rolling){const t=Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted)),pose=dicePose(this.diceFrom[i],rest,t,this.diceSpin[i],i);die.position.set(pose.x,pose.y,pose.z);die.rotation.set(...pose.rotation);}
    else{die.position.set(rest.x,1.07,rest.z);die.rotation.set(0,rest.yaw,0);}
   });this.wasRolling=rolling;
   for (const [id, path] of this.paths) {
@@ -219,8 +248,17 @@ export class BoardView {
    if(t>=1){token.position.copy(path.points.at(-1)!);token.rotation.x=token.rotation.z=0;token.scale.setScalar(size);this.paths.delete(id);}
   }
   for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.18;token.rotation.z=Math.sin(t*Math.PI*4)*(1-t)*.12;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.10));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
+  const propertyAnimating=this.propertyEffects.size>0;
+  for(const [index,effect]of this.propertyEffects){
+   const pose=propertyMotionPose(effect.motion.kind,now-effect.start,this.settings.speed==='reduced'||this.motionPreference.matches);
+   effect.ring.visible=pose.visible;effect.ring.material.opacity=pose.opacity;effect.ring.scale.setScalar(pose.ringScale);
+   for(const house of effect.growing)house.scale.y=pose.growth;
+   if(pose.done)this.finishPropertyEffect(index);
+  }
   if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
-  if (this.dirty || animating) { if (animating) this.renderer.shadowMap.needsUpdate = true; this.renderer.render(this.scene, this.camera); this.dirty = false;this.onFrame(); }
+  if (this.dirty || animating || ambient || propertyAnimating) { if (animating||propertyAnimating||ambient&&now-this.lastSunShadow>5000){this.renderer.shadowMap.needsUpdate=true;this.lastSunShadow=now;} this.renderer.render(this.scene, this.camera); this.dirty = false;this.onFrame(); }
   if(this.playbackActive&&!this.isAnimating){this.playbackActive=false;queueMicrotask(()=>this.onSettled());}
  }
+ private finishPropertyEffect(index:number){const effect=this.propertyEffects.get(index);if(!effect)return;for(const house of effect.growing)house.scale.y=1;this.scene.remove(effect.ring);effect.ring.material.dispose();this.propertyEffects.delete(index);}
+ private clearPropertyEffects(){for(const index of this.propertyEffects.keys())this.finishPropertyEffect(index);this.dirty=true;}
 }

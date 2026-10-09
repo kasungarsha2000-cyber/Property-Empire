@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { BOARD,GROUPS } from '../../../packages/core/board';
+import { BOARD } from '../../../packages/core/board';
 import {propertyDesign} from './property-art';
 
 export const TILE_HEIGHT = .55;
@@ -128,7 +128,11 @@ export class SceneAssets {
       tile.userData.index = space.index; this.tiles.push(tile);
       const face = new THREE.Mesh(new THREE.PlaneGeometry(.98, .98), new THREE.MeshBasicMaterial({map: this.tileTexture(space.index), toneMapped:false}));
       face.rotation.x = -Math.PI / 2; face.position.y = .082; face.receiveShadow = true; group.add(face); this.labels.push({mesh: face, index: space.index});
-      if (space.price) {this.mesh(group,this.box,space.color,[.96,.055,.19],[0,.11,-.385],'lacquer',false);this.mesh(group,this.box,'#D8BD82',[.95,.012,.018],[0,.141,-.279],'metal',false);}
+      if (space.price) {
+        // Small landscaped lots leave the playing lane and title unobstructed.
+        for(const x of [-.435,.435])this.mesh(group,this.sphere,space.index%3?'#6E9559':'#55866B',[.044,.044,.057],[x,.117,-.35],'matte',false);
+        const district=this.mesh(group,this.cylinder,space.color,[.052,.018,.052],[-.50,.066,.65],'lacquer',false);district.userData.district=space.group;
+      }
       const owner = this.mesh(group, this.box, '#D8CCB4', [.90, .035, .20], [0, .04, .65], 'lacquer', false);
       owner.visible = false; this.owners.push(owner); scene.add(group);
       if(space.price){
@@ -165,7 +169,16 @@ export class SceneAssets {
     ctx.font = '800 45px Nunito, sans-serif';
     ctx.fillStyle = '#526657';
     ctx.fillText(space.price ? `$${space.price}` : space.type === 'go' ? '+ $200' : space.type === 'tax' ? `− $${space.amount}` : space.type === 'jail' ? 'Just visiting' : '', 256, 443);
-    if(space.price){ctx.fillStyle=space.color;ctx.fillRect(30,25,452,140);ctx.fillStyle='#FFFFFF';ctx.globalAlpha=.85;ctx.font='800 26px Nunito,sans-serif';ctx.fillText(GROUPS[space.group].name.toUpperCase(),256,120);ctx.globalAlpha=1;ctx.strokeStyle=space.color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(130,394);ctx.lineTo(382,394);ctx.stroke();ctx.fillStyle=space.color;ctx.font='800 32px Nunito,sans-serif';ctx.fillText(String(space.index).padStart(2,'0'),256,212);}
+    if(space.price){
+      const lawn=ctx.createLinearGradient(0,28,0,236);lawn.addColorStop(0,'#A6BD86');lawn.addColorStop(1,'#7D9E63');ctx.fillStyle=lawn;ctx.beginPath();ctx.roundRect(29,29,454,205,20);ctx.fill();
+      let seed=space.index*991+47;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+      for(let blade=0;blade<780;blade++){const x=36+random()*440,y=36+random()*185;ctx.strokeStyle=random()>.5?'#BED39A70':'#527B4360';ctx.lineWidth=1+random();ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+random()*5-2,y-3-random()*5);ctx.stroke();}
+      ctx.fillStyle='#E2D8BD';ctx.beginPath();ctx.roundRect(225,45,62,188,8);ctx.fill();ctx.strokeStyle='#A89E8290';ctx.lineWidth=2;for(let y=57;y<225;y+=30){ctx.beginPath();ctx.moveTo(225,y);ctx.lineTo(287,y);ctx.stroke();}
+      for(const x of [59,453])for(const y of [58,91,202]){ctx.fillStyle='#5D884D';ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();ctx.fillStyle=space.index%2?'#F3D697':'#E7BFBC';ctx.beginPath();ctx.arc(x-3,y-3,3,0,Math.PI*2);ctx.fill();}
+      ctx.strokeStyle='#CFC5AC';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(130,394);ctx.lineTo(382,394);ctx.stroke();
+      // District color follows the perimeter, keeping the lawn and title clear.
+      ctx.strokeStyle=space.color;ctx.lineWidth=11;ctx.beginPath();ctx.roundRect(16,16,480,480,13);ctx.stroke();
+    }
     return canvasTexture(canvas);
   }
 
@@ -248,8 +261,6 @@ export class SceneAssets {
     for(const [x,z]of [[-4.05,-3.4],[-3.98,-1.2],[-.54,.46],[3.94,-3.15],[3.92,-1.58],[3.95,.25]])this.tree(city,x,z,.50,1);
     this.park(city);
     for(const [x,z]of [[-3.6,-1.02],[-.08,-1.7],[1.04,-1.05],[3.5,-.38]])this.lamp(city,x,z);
-    const car1=this.makeToken(0,'#D98567',false);car1.scale.setScalar(.72);car1.position.set(-2.1,.69,-.75);city.add(car1);
-    const car2=this.makeToken(0,'#CBB570',false);car2.scale.setScalar(.62);car2.position.set(.34,.69,-2.1);car2.rotation.y=Math.PI/2;city.add(car2);
     this.mesh(city,this.box,'#194338',[5.05,.10,1.55],[.5,.62,1.72]);
     this.mesh(city,this.box,'#C6A36A',[4.9,.055,1.40],[.5,.691,1.72],'metal',false);
     this.mesh(city,this.box,'#234C43',[4.8,.025,1.30],[.5,.732,1.72],'matte',false);

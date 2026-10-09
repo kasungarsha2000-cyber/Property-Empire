@@ -39,29 +39,34 @@ export class EventFeedback{
  private layer:HTMLDivElement;
  private timer:ReturnType<typeof setTimeout>|null=null;
  private reduced:boolean;
- constructor(stage:HTMLElement,reduced:boolean,private project?:(property:number)=>{x:number;y:number}|null){this.reduced=reduced;this.layer=document.createElement('div');this.layer.className='event-feedback';this.layer.setAttribute('aria-hidden','true');stage.append(this.layer);}
+ private moving=false;
+ constructor(stage:HTMLElement,reduced:boolean,private project?:(property:number)=>{x:number;y:number}|null){this.reduced=reduced;this.layer=document.createElement('div');this.layer.className='event-feedback';this.layer.setAttribute('aria-live','polite');stage.append(this.layer);}
  configure(reduced:boolean){this.reduced=reduced;if(reduced)this.clearVisual();}
  observe(game:Game,id:string,moving:boolean,animate=true){
   if(this.viewer!==id){this.reset();this.viewer=id;}
+  this.moving=moving;
   if(!animate){this.pending=[];this.clearVisual();this.previous=game;return;}
   this.pending.push(...feedbackNotices(this.previous,game,id));this.previous=game;this.pending=this.pending.slice(-12);
   if(!moving)this.settle();
  }
- settle(){
-  const pending=this.pending;this.pending=[];if(this.reduced||!pending.length)return;
+ settle(arrived=true){
+  if(arrived)this.moving=false;if(this.moving||this.layer.querySelector('.feedback-label'))return;
+  const pending=this.pending;if(this.reduced){this.pending=[];return;}if(!pending.length)return;
   // Prefer the actual payment over a duplicate card or salary explanation.
   const notice=pending.find(n=>n.title==='Rent collected'||n.title==='Rent paid')??pending.find(n=>n.kind==='debt')??pending.at(-1)!;
+  this.pending=pending.filter(n=>n!==notice&&n.title.startsWith('Rent '));
   this.show(notice);
  }
  refreshBalance(){const burst=this.layer.querySelector('.feedback-burst');if(burst)document.querySelector('.portfolio-money')?.classList.add(burst.classList.contains('feedback-positive')?'balance-positive':'balance-negative');}
- reposition(){const burst=this.layer.querySelector<HTMLElement>('.feedback-burst[data-property]');if(!burst||!this.project)return;const point=this.project(Number(burst.dataset.property)),stage=this.layer.parentElement!;burst.hidden=!point;if(point){burst.style.left=`${Math.max(120,Math.min(stage.clientWidth-120,point.x))}px`;burst.style.top=`${Math.max(70,Math.min(stage.clientHeight-60,point.y-45))}px`;}}
- reset(){this.previous=null;this.viewer='';this.pending=[];this.clearVisual();}
+ reposition(){const burst=this.layer.querySelector<HTMLElement>('.feedback-burst[data-property]');if(!burst||!this.project)return;const point=this.project(Number(burst.dataset.property)),stage=this.layer.parentElement!,label=burst.querySelector<HTMLElement>('.feedback-label'),half=(label?.offsetWidth??220)/2,height=label?.offsetHeight??90;burst.hidden=!point;if(point){burst.style.left=`${Math.max(half+12,Math.min(stage.clientWidth-half-12,point.x))}px`;burst.style.top=`${Math.max(12,Math.min(stage.clientHeight-height-12,point.y-45))}px`;}}
+ reset(){this.previous=null;this.viewer='';this.pending=[];this.moving=false;this.clearVisual();}
  private clearVisual(){if(this.timer)clearTimeout(this.timer);this.timer=null;this.layer.replaceChildren();document.querySelectorAll('.balance-positive,.balance-negative').forEach(el=>el.classList.remove('balance-positive','balance-negative'));}
  private show(notice:GameNotice){
   this.clearVisual();const tone=noticeTone(notice),amount=notice.amount??notice.card?.amount;
-  this.layer.innerHTML=`<div class="feedback-burst feedback-${tone}" ${this.project&&notice.property!==undefined?`data-property="${notice.property}"`:''}><div class="feedback-label"><span>${escapeHTML(notice.title)}</span>${amount!==undefined?`<strong>${amount<0?'−':'+'}$${Math.abs(amount).toLocaleString('en-US')}</strong>`:`<strong>${tone==='positive'?'✓':'!'}</strong>`}${notice.title.startsWith('Rent ')?`<small>${escapeHTML(notice.detail)}</small>`:''}</div>${Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return`<i class="feedback-particle" style="--dx:${Math.cos(angle)*85}px;--dy:${Math.sin(angle)*60-25}px;--delay:${i*25}ms"></i>`;}).join('')}</div>`;
+  const rent=notice.title.startsWith('Rent ');
+  this.layer.innerHTML=`<div class="feedback-burst feedback-${tone}" ${this.project&&notice.property!==undefined?`data-property="${notice.property}"`:''}>${rent?`<div class="feedback-label"><span>${escapeHTML(notice.title)}</span><strong>${amount!<0?'−':'+'}$${Math.abs(amount!).toLocaleString('en-US')}</strong><small>${escapeHTML(notice.detail)}</small></div>`:''}${Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return`<i class="feedback-particle" aria-hidden="true" style="--dx:${Math.cos(angle)*85}px;--dy:${Math.sin(angle)*60-25}px;--delay:${i*25}ms"></i>`;}).join('')}</div>`;
   this.reposition();
   this.refreshBalance();
-  this.timer=setTimeout(()=>this.clearVisual(),1400);
+  this.timer=setTimeout(()=>{this.clearVisual();this.settle(false);},rent?8000:1400);
  }
 }

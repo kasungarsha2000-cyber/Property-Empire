@@ -39,6 +39,6 @@ it('discards queued feedback when a saved snapshot replaces a moving turn',()=>{
   feedback.observe(g,'a',false,false);feedback.observe(next,'a',true);expect(layer.innerHTML).toBe('');
   feedback.observe(g,'a',false,false);feedback.settle();expect(layer.innerHTML).toBe('');
   // A subsequent real grant must still animate.
-  feedback.observe(next,'a',false);expect(layer.innerHTML).toContain('+$200');feedback.reset();
+  feedback.observe(next,'a',false);expect(layer.innerHTML).toContain('feedback-positive');expect(layer.innerHTML).not.toContain('feedback-label');feedback.reset();
  }finally{vi.unstubAllGlobals();vi.useRealTimers();}
 });

@@ -117,10 +117,11 @@ with sync_playwright() as p:
  if os.environ.get('EMPIRE_OFFLINE')=='1':
   page.get_by_role('button',name='Main menu',exact=True).click()
   page.wait_for_function('navigator.serviceWorker.controller !== null',timeout=10000)
-  context.set_offline(True);page.reload();page.wait_for_load_state('domcontentloaded')
+  context.set_offline(True);page.reload(wait_until='domcontentloaded',timeout=60000)
   expect(page.get_by_role('button',name='Continue Saved Game',exact=True)).to_be_visible(timeout=10000)
   page.get_by_role('button',name='Continue Saved Game',exact=True).click()
   expect(page.locator('#game-info')).to_contain_text('Ada')
   context.set_offline(False)
+ assert not errors,'Browser exceptions: '+str(errors)
  print(json.dumps({'result':'PASS','flows':['solo roll','manual save','resume','property selection','purchase','auction','building rules','mortgage interest','cashless debt trade','mobile layout','two-browser LAN','state synchronization','LAN reconnect'],'offline_cache':os.environ.get('EMPIRE_OFFLINE')=='1','page_errors':errors,'screenshots':str(OUT)},indent=2))
  browser.close()

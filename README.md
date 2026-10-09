@@ -13,6 +13,8 @@ npm run start:lan
 
 Open **http://localhost:3001**. Production bundles have already been built. Keep the server terminal running while playing LAN games. For a new installation, use Node.js 24 LTS, then `npm install` and `npm run build` first. Ctrl+C stops the server.
 
+You can also double-click **run.bat** in the parent or project folder. It builds changed source, starts the host in the background, and reuses an existing host.
+
 ## Solo play
 
 Choose **Play Solo**, your name and pawn, and one to seven bot opponents. Easy, Medium and Hard use different reserves, auctions, trades and building heuristics. Classic plays to the last surviving player; Quick ends after 80 turns and compares net worth. Starting cash and the optional tax jackpot can be changed.
@@ -41,6 +43,10 @@ Host snapshots and previous backups are stored in `data/saves/` using atomic wri
 ## Find your properties and make a trade
 
 **Your properties** groups your deeds by district, shows progress toward each color set, and labels mortgages and buildings. **Highlight mine on board** marks your spaces, and owned spaces show **Yours** on the board. Select an owned property to inspect and manage it. In **Properties**, use **Your properties** or **Available from bank** to filter the title deeds.
+
+Turn information, centered tools and dice results share one desktop row. Click a board property for one complete deed with ownership, all rents, development costs, mortgages and available actions. Buying, building and rent animate the actual property. Undeveloped plots have grass, paths, shrubs and a thin district-colored border; houses and hotels appear only when built.
+
+Each event uses one confirmation. Rent names both payer and recipient beside the property; receipts remain for eight seconds. Hover or keyboard focus pauses the timer on financial notices and opponent cards. Your drawn cards wait for **Continue**; bots allow nine seconds in solo and twelve seconds on LAN before resolving their cards. The central city has moving traffic, people, an aircraft, weather and a day/night cycle. Reduced motion freezes decorative city effects while keeping information visible.
 
 If you are one deed short of a street group, the portfolio shows its name and owner. **Trade for this property** starts an offer with that deed selected. You can also choose **Trade** during your turn, before or after rolling or while resolving debt. Choose a player, select illustrated cards under **You give** and **You receive**, and enter cash or jail cards. Developed groups explain why their deeds cannot be selected.
 

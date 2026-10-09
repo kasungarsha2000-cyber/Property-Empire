@@ -1,0 +1,17 @@
+/* Motion uses independent translate/scale so each popup retains its anchor. */
+.event-popup{will-change:opacity}
+.receipt-detail{display:block;font-size:11px;line-height:1.5;color:#536d5c;max-width:250px;margin-top:3px}
+.event-popup.event-notice{max-height:110px}
+.feedback-label{animation:readable-rent 8s ease both}
+.moment-copy,.moment-trade .moment-copy{animation:readable-moment 8s ease both}
+@keyframes readable-rent{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}4%,96%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px)}}
+@keyframes readable-moment{0%{opacity:0;transform:translateY(8px) scale(.96)}4%,96%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+.moment-card{opacity:.8;animation:card-effect-away 1.8s ease both}
+@keyframes card-effect-away{0%{opacity:0;translate:0 8px}15%,70%{opacity:.9;translate:0 0}100%{opacity:0;translate:0 -20px}}
+@media(prefers-reduced-motion:reduce){.moment-card{animation:none}}
+@media(prefers-reduced-motion:no-preference){.event-popup{animation:none}}
+.city-status{position:absolute;left:14px;top:47px;z-index:3;background:#fffdf0eb;border:1px solid #d8dec8;color:#3f6153;border-radius:6px;padding:5px 9px;font-size:10px;pointer-events:none;line-height:1.3;box-shadow:0 2px 6px #193f3210}
+@media(max-width:650px){.city-status{left:11px;top:44px;font-size:9px}}
+
+.moment-card.moment-reduced{animation:none}
+@media(prefers-reduced-motion:reduce){.event-feedback{display:block}.event-feedback .feedback-particle{display:none}}

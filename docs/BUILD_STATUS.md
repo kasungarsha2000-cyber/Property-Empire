@@ -3,9 +3,9 @@
 Final `npm run check`: Vitest, strict TypeScript, Vite production frontend, offline cache manifest and tsup Node server passed.
 
 - `apps/web/dist/index.html` and bundled local assets exist.
-- App script: about 256 KB raw / 83 KB gzip after spatial transactions, the saved card-reading phase, 32 card illustrations and match results.
-- Stylesheet: about 81 KB raw / 17 KB gzip, including finite card/transaction/result animations and reduced-motion overrides.
-- Three.js renderer chunk: about 540 KB raw / 138 KB gzip including environment lighting and shared miniature ring geometry.
+- App script: 271.98 KB raw / 88.52 KB gzip, including the cosmetic living city and property effects.
+- Stylesheet: 93.19 KB raw / 19.15 KB gzip, including the unified deed, compact row and readable receipt transitions.
+- Three.js renderer chunk: 542.53 KB raw / 138.08 KB gzip including environment lighting and shared miniature ring geometry.
 - Local font files and stylesheet are bundled; no external runtime downloads.
 - `apps/web/dist/sw.js` precaches 16 generated local assets plus the root route.
 - `apps/server/dist/index.js`: about 55 KB ESM (runtime dependencies resolved from installed node_modules).
