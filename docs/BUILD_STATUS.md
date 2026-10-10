@@ -2,7 +2,7 @@
 
 2026-10-10, after the Android UI redesign.
 
-`npm run check` passes: 226 Vitest tests (7 Windows-only skipped on Linux), strict TypeScript, Vite production build, offline cache manifest (24 assets) and the tsup server bundle.
+`npm run check` passes: 228 Vitest tests (7 Windows-only skipped on Linux), strict TypeScript, Vite production build, offline cache manifest (24 assets) and the tsup server bundle.
 
 | Output | Size |
 |---|---|

@@ -18,7 +18,7 @@ LAN hosting (without a computer) was not implemented.
 
 | Check | Result |
 |---|---|
-| Unit tests (`npm test`) | 226 passed, 7 skipped (Windows-only launcher tests), 0 failed |
+| Unit tests (`npm test`) | 228 passed, 7 skipped (Windows-only launcher tests), 0 failed |
 | Typecheck and production build (`npm run check`) | Pass |
 | Browser suite (`npm run test:browser`, Chromium 141, phone viewport with touch) | 29 passed, 0 failed |
 | Full match driven through the UI (scratch play-through) | 190 turns to elimination, no stalls, no console errors |
@@ -50,7 +50,8 @@ LAN hosting (without a computer) was not implemented.
 - `network.ts` — reports an unreachable host instead of retrying forever before the first connection.
 - `game-sounds.ts`, `match-finale.ts`, `board-moments.ts`, `event-feedback.ts` — new cues, results stats, shared helpers.
 - `apps/server/src/server.ts`, `index.ts` — app WebSocket origin, `SAVE_DIR`.
-- `packages/core/engine.ts` — build/sell/mortgage allowed for the current player while a purchase is pending.
+- `packages/core/engine.ts` — build/sell/mortgage allowed for the current player while a purchase is pending;
+  new `cancelTrade` action (offering player withdraws an unanswered offer).
 
 **Removed** — `event-presenter.ts`, `card-ui.ts`, `ui-components.ts`, 13 legacy stylesheets (417 hard-coded colours),
 15 Python review scripts, `scripts/test-browser.mjs`, `tests/browser-fixtures.ts`, `tests/event-presenter.test.ts`.
@@ -73,11 +74,14 @@ LAN hosting (without a computer) was not implemented.
 - Menu built around the 3D board hero; Continue/Rejoin enabled only when available; setup with token picker,
   steppers, segmented rules and a live summary; lobby with share invite and readiness.
 - Inter for UI type; text size setting; reduced motion; 44–48 px touch targets; safe-area insets.
+- Sheets, dialogs, hand-over and card layers make everything behind them inert; closing sheets returns focus to
+  the control that opened them.
 
 ## Gameplay and correctness
 
 - 48-test rules suite; no engine defects found in the existing rules.
-- New: raising funds while deciding on a purchase (classic rules).
+- New: raising funds while deciding on a purchase (classic rules), and withdrawing an unanswered trade offer so an
+  absent LAN player cannot block the game.
 - Deliberate simplifications kept and documented: trading only on your turn with one offer per turn, no
   building-shortage auctions, mortgaged-deed transfer always charges 10 %.
 

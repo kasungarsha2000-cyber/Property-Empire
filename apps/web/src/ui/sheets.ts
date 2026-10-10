@@ -41,7 +41,7 @@ ${section('Building','Own the whole colour set with no mortgages, then build eve
 ${section('Mortgages','Mortgage a deed for half its price after selling the set’s buildings. Lifting a mortgage costs the value plus 10%. A mortgaged deed received in a trade charges its new owner 10% straight away.')}
 ${section('Jail','Pay $50 before rolling, use a Get Out of Jail Free card, or try for doubles on up to three turns. After a third miss you pay $50 and move. Doubles that free you do not earn another roll. You still collect rent in jail.')}
 ${section('Debt and bankruptcy','If you cannot pay, play pauses so you can sell, mortgage or trade. Bankruptcy to a player hands them your cash, cards and deeds; bankruptcy to the bank sends your deeds to auction.')}
-${section('Trading','On your turn you may offer one trade of deeds, cash and jail cards. Streets in a set with buildings cannot be traded. The other player can accept, decline or counter up to three times.')}
+${section('Trading','On your turn you may offer one trade of deeds, cash and jail cards. Streets in a set with buildings cannot be traded. The other player can accept, decline or counter up to three times, and you can withdraw an offer that has not been answered.')}
 ${g?.config.jackpot?section('House rule: Free Parking jackpot','Taxes collect on Free Parking; landing there collects the pot.'):''}
 ${section('Controls','Drag to rotate the board, pinch to zoom and drag with two fingers to pan. Tap a tile for a quick look; tap Details for the full deed.')}
 <details class="catalog"><summary>All Chance and Community Chest cards</summary>${deckCatalog()}</details>

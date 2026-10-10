@@ -49,6 +49,10 @@ describe('action dock',()=>{
   expect(dockModel(g,ctx(g,{viewer:'c',hotseat:true,allowed:()=>true})).title).toBe('Cleo’s turn');
   expect(dockModel(g,ctx(g,{viewer:'c',allowed:()=>true})).title).toBe('Your turn');
  });
+ it('lets the offering player withdraw an unanswered offer from the dock',()=>{
+  const g=base();g.phase='manage';g.properties[1].owner='b';const offered=applyAction(g,'a',{type:'offerTrade',to:'b',give:[],receive:[1],giveCash:80,receiveCash:0,giveCards:0,receiveCards:0});
+  expect(dockModel(offered,ctx(offered)).primary).toMatchObject({label:'Withdraw offer',action:{type:'cancelTrade'},disabled:false});
+ });
  it('opens trading only to the acting player once per turn',()=>{const g=base();expect(tradeOpen(g,'a')).toBe(true);expect(tradeOpen(g,'b')).toBe(false);g.tradeOffered=true;expect(tradeOpen(g,'a')).toBe(false);});
 });
 

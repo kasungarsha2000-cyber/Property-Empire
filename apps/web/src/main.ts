@@ -194,9 +194,12 @@ function selectSpace(index:number){
 }
 
 // ---------- Overlays ----------
-function openSheet(sheet:Sheet,replace=false){if(replace)sheets=[];preview=null;sheets.push(sheet);render();sheetEl.focus({preventScroll:true});}
-function closeSheets(){sheets=[];trade=null;render();}
-function closeTopSheet(){sheets.pop();if(!sheets.some(s=>s.kind==='trade'))trade=null;render();}
+let sheetOpener:HTMLElement|null=null;
+function openSheet(sheet:Sheet,replace=false){if(!sheets.length&&document.activeElement instanceof HTMLElement)sheetOpener=document.activeElement;if(replace)sheets=[];preview=null;sheets.push(sheet);render();sheetEl.focus({preventScroll:true});}
+/** Return focus to the control that opened the first sheet once all sheets are closed. */
+function restoreFocus(){if(!sheets.length&&sheetOpener){if(sheetOpener.isConnected&&!shell.inert)sheetOpener.focus({preventScroll:true});sheetOpener=null;}}
+function closeSheets(){sheets=[];trade=null;render();restoreFocus();}
+function closeTopSheet(){sheets.pop();if(!sheets.some(s=>s.kind==='trade'))trade=null;render();restoreFocus();}
 function confirm(next:Dialog){dialog=next;render();dialogLayer.querySelector<HTMLButtonElement>('[data-dialog-cancel]')?.focus();}
 function resetMatchUi(){seat=null;handoff=null;sheets=[];dialog=null;preview=null;minimised=null;lastDecision='';cardHidden=null;trade=null;bidDraft=null;observed=null;pendingHaptic=null;clearPending();notices.reset();feedback.reset();moments.reset();moneyLedger.reset();finale.reset();sounds.reset();board?.select(-1);}
 
@@ -228,6 +231,10 @@ function render(){
  // Draw the board only where it can be seen: not behind full-screen pages or a full-height sheet on a phone.
  const covered=sheets.length>0&&sheetEl.classList.contains('tall')&&innerWidth<900;
  board?.setActive((route==='menu'||route==='game'&&!!game)&&!covered);
+ // Modal layers keep keyboard focus and taps inside them; everything behind becomes inert.
+ const ownCard=!cardLayer.hidden&&cardLayer.classList.contains('modal'),results=finale.visible&&route==='game';
+ shell.inert=sheets.length>0||!!dialog||!!handoff||ownCard||results;pageEl.inert=!!dialog||sheets.length>0;
+ sheetLayer.inert=!!dialog||!!handoff;cardLayer.inert=!!dialog||!!handoff||sheets.length>0;finaleLayer.inert=!!dialog||sheets.length>0;
  armBack(route!=='menu'||sheets.length>0||!!dialog);
 }
 function clearStage(){patch(previewHost,'');patch(decisionHost,'');cardLayer.hidden=true;patch(cardLayer,'');stageTools.hidden=true;notices.reset();}

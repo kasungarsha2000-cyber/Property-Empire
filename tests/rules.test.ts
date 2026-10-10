@@ -234,6 +234,12 @@ describe('trades',()=>{
   expect(g.players[1].cards).toEqual(['chance']);expect(g.players[0].cards).toEqual([]);expect(g.properties[39]).toMatchObject({owner:'b',mortgaged:true});expect(g.players[1].cash).toBe(1480);
   expect(()=>validateGame(g)).not.toThrow();
  });
+ it('lets only the offering player withdraw a pending offer, keeping the one-offer limit',()=>{
+  const g=offer(manage(),{giveCash:10});expect(()=>act(g,'b',{type:'cancelTrade'})).toThrow('withdraw');
+  const withdrawn=act(g,'a',{type:'cancelTrade'});expect(withdrawn.phase).toBe('manage');expect(withdrawn.trade).toBeNull();expect(withdrawn.players.map(p=>p.cash)).toEqual([1500,1500,1500]);expect(()=>offer(withdrawn,{giveCash:5})).toThrow('One trade offer');
+  const countered=act(g,'b',{type:'counterTrade',to:'a',give:[],receive:[1],giveCash:0,receiveCash:20,giveCards:0,receiveCards:0});expect(()=>act(countered,'a',{type:'cancelTrade'})).toThrow();expect(act(countered,'b',{type:'cancelTrade'}).phase).toBe('manage');
+  const debt=manage();debt.phase='debt';debt.debt={player:'a',amount:50,creditor:null};debt.players[0].cash=0;const pending=offer(debt,{give:[1],receiveCash:60});expect(act(pending,'a',{type:'cancelTrade'}).phase).toBe('debt');
+ });
  it('only lets the recipient answer',()=>{const g=offer(manage(),{giveCash:10});expect(()=>act(g,'a',{type:'acceptTrade'})).toThrow();expect(()=>act(g,'c',{type:'acceptTrade'})).toThrow();});
 });
 

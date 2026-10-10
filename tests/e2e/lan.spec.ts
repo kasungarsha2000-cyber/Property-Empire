@@ -9,11 +9,14 @@ async function player(browser:Browser){
 }
 /** The seat whose dock offers Roll dice right now. */
 async function roller(pages:Page[]){
- for(let i=0;i<60;i++){for(const page of pages)if(await page.locator('.dock-primary',{hasText:'Roll dice'}).isEnabled().catch(()=>false))return page;await pages[0].waitForTimeout(250);}
+ // count() returns at once; isEnabled() would wait for a button that only the current player's page shows.
+ for(let i=0;i<60;i++){for(const page of pages)if(await page.locator('.dock-primary:not([disabled])',{hasText:'Roll dice'}).count())return page;await pages[0].waitForTimeout(250);}
  throw new Error('Nobody could roll');
 }
 
 test('host and guest share one authoritative match, then the guest rejoins after a reload',async({browser})=>{
+ // Two pages each render the 3D board in software (SwiftShader); allow for a loaded machine.
+ test.setTimeout(180_000);
  const host=await player(browser),guest=await player(browser);
  try{
   await host.page.goto('/');

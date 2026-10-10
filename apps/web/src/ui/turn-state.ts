@@ -77,7 +77,7 @@ export function dockModel(g:Game,ctx:DockContext):DockModel{
   case'trade':{
    const t=g.trade!;
    if(t.to===ctx.viewer)return{actor:t.to,title:`Offer from ${name(t.from)}`,detail:(t.round??0)>0?'A counteroffer is waiting for you':'Review the terms before answering',mood:'you',primary:ctx.panelOpen?null:{label:'Review offer',icon:'trade',command:'open-decision'}};
-   if(t.from===ctx.viewer)return{actor:t.to,title:'Offer sent',detail:`Waiting for ${name(t.to)} to answer`,mood:'other',primary:null};
+   if(t.from===ctx.viewer)return{actor:t.to,title:'Offer sent',detail:`Waiting for ${name(t.to)} to answer`,mood:'other',primary:button('Withdraw offer','close',{type:'cancelTrade'})};
    return{actor:t.to,title:`${name(t.to)} is considering an offer`,detail:`From ${name(t.from)}`,mood:'other',primary:null};
   }
   default:{
