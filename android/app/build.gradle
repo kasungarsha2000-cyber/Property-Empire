@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Release signing: android/keystore.properties (never committed) or ANDROID_KEYSTORE_* environment variables.
+// Without either, assembleRelease produces app-release-unsigned.apk. See docs/ANDROID.md.
+def signingProps = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProps.load(it) }
+def signingValue = { String key, String env -> signingProps.getProperty(key) ?: System.getenv(env) }
+def releaseStore = signingValue('storeFile', 'ANDROID_KEYSTORE_FILE')
+
 android {
     namespace = "com.propertyempire.game"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseStore) {
+            release {
+                storeFile rootProject.file(releaseStore)
+                storePassword signingValue('storePassword', 'ANDROID_KEYSTORE_PASSWORD')
+                keyAlias signingValue('keyAlias', 'ANDROID_KEY_ALIAS')
+                keyPassword signingValue('keyPassword', 'ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseStore) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

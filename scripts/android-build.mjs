@@ -12,4 +12,6 @@ if(!process.env.ANDROID_HOME&&!process.env.ANDROID_SDK_ROOT&&!existsSync(join('a
 run('npm',['run','build']);
 run('npx',['cap','sync','android']);
 run(process.platform==='win32'?'gradlew.bat':'./gradlew',[`assemble${variant}`],{cwd:'android'});
-console.log(`APK: android/app/build/outputs/apk/${variant.toLowerCase()}/app-${variant.toLowerCase()}${variant==='Release'?'-unsigned':''}.apk`);
+const signed=variant==='Debug'||!!process.env.ANDROID_KEYSTORE_FILE||existsSync(join('android','keystore.properties'));
+console.log(`APK: android/app/build/outputs/apk/${variant.toLowerCase()}/app-${variant.toLowerCase()}${signed?'':'-unsigned'}.apk`);
+if(!signed)console.log('Unsigned: add android/keystore.properties (see docs/ANDROID.md) to sign release builds.');

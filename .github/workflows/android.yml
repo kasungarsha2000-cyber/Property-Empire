@@ -1,0 +1,93 @@
+# Builds the Android app on GitHub's runners, which include the Android SDK.
+# Each run uploads the APKs as a workflow artifact and replaces the "android-build" prerelease with them.
+# Release signing is optional: add the repository secrets ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+# ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD to get a signed release APK (see docs/ANDROID.md).
+name: Android APK
+
+on:
+  push:
+    branches: [main, master, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      HAS_SIGNING_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - run: npm ci
+
+      - name: Unit tests, typecheck and web build
+        run: npm run check
+
+      - name: Copy the web build into the Android project
+        run: npx cap sync android
+
+      - name: Release signing key
+        if: env.HAS_SIGNING_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build debug and release APKs
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease
+
+      - name: Name the APKs
+        run: |
+          version=$(sed -n 's/^ *versionName "\(.*\)"/\1/p' android/app/build.gradle)
+          name="property-empire-$version-${GITHUB_SHA::7}"
+          out=android/app/build/outputs/apk
+          mkdir -p dist-apk
+          cp "$out/debug/app-debug.apk" "dist-apk/$name-debug.apk"
+          if [ -f "$out/release/app-release.apk" ]; then
+            cp "$out/release/app-release.apk" "dist-apk/$name-release.apk"
+          else
+            cp "$out/release/app-release-unsigned.apk" "dist-apk/$name-release-unsigned.apk"
+          fi
+          ls -l dist-apk
+          (cd dist-apk && sha256sum *.apk | tee SHA256SUMS.txt)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: property-empire-apk-${{ github.sha }}
+          path: dist-apk/
+          if-no-files-found: error
+
+      - name: Publish the android-build prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-build --yes --cleanup-tag || true
+          signing="The release APK is unsigned: sign it with your release key before installing (docs/ANDROID.md)."
+          if ls dist-apk/*-release.apk >/dev/null 2>&1; then signing="The release APK is signed with the project's release key."; fi
+          gh release create android-build dist-apk/* --prerelease --target "$GITHUB_SHA" \
+            --title "Android build ${GITHUB_SHA::7}" \
+            --notes "Automated build of ${GITHUB_SHA::7} from ${GITHUB_REF_NAME}. The debug APK installs directly for testing. $signing"

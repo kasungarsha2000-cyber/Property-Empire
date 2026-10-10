@@ -15,7 +15,8 @@
     "test:e2e:full": "npm run build && playwright test",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "android:build": "node scripts/android-build.mjs debug"
+    "android:build": "node scripts/android-build.mjs debug",
+    "android:release": "node scripts/android-build.mjs release"
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",
