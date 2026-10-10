@@ -203,13 +203,25 @@ html,body{height:100%;overflow:hidden}
  .shell[data-route=game] #bottom{position:fixed;left:0;right:0;bottom:0}
  .stage-tools{bottom:150px}
  .preview-host{bottom:150px}
- .decision-host{bottom:140px}
+ .decision-host{left:auto;right:var(--s5);bottom:132px;top:var(--s3);width:min(440px,calc(100% - 48px));padding:0;align-items:flex-end}
+ .decision-host>.panel{border-radius:var(--r-xl);box-shadow:var(--e3);max-height:100%}
  .menu-panel{position:absolute;left:var(--s6);bottom:var(--s6);width:420px;border-radius:var(--r-xl);box-shadow:var(--e3);padding-bottom:var(--s4)}
  .shell[data-route=menu]{grid-template-rows:auto minmax(0,1fr) 0}
  .player-strip{justify-content:center}
  .chip-player{flex:0 1 180px}
 }
 @keyframes sheet-side{from{transform:translateX(40px);opacity:.4}to{transform:none;opacity:1}}
+/* Short landscape screens (phones turned sideways in a browser): keep the board usable. */
+@media (orientation:landscape) and (max-height:520px){
+ .hud-line,.dock-status{display:none}
+ .hud{padding-top:4px;padding-bottom:4px}
+ .chip-player{min-height:40px}
+ .dock{padding-top:4px}
+ .tool{min-height:44px}
+ .dock-primary{min-height:44px}
+ .panel{max-height:calc(100vh - 24px)}
+ .card-layer.modal{place-items:start center}
+}
 @media (max-height:640px) and (max-width:899px){
  .dock-status{min-height:30px}
  .tool{min-height:48px}

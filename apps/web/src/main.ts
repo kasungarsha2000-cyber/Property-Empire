@@ -225,17 +225,27 @@ function render(){
  if(route==='game')syncSeat();
  if(route==='menu')renderMenu();else if(route==='game'&&game)renderGame();else renderPage();
  renderSheet();renderDialog();renderHandoff();
+ // Draw the board only where it can be seen: not behind full-screen pages or a full-height sheet on a phone.
+ const covered=sheets.length>0&&sheetEl.classList.contains('tall')&&innerWidth<900;
+ board?.setActive((route==='menu'||route==='game'&&!!game)&&!covered);
  armBack(route!=='menu'||sheets.length>0||!!dialog);
 }
 function clearStage(){patch(previewHost,'');patch(decisionHost,'');cardLayer.hidden=true;patch(cardLayer,'');stageTools.hidden=true;notices.reset();}
 function renderMenu(){
- pageEl.hidden=true;patch(pageEl,'');board?.setActive(true);board?.setIdle(true);clearStage();
+ pageEl.hidden=true;patch(pageEl,'');board?.setIdle(true);clearStage();
  const session=storedSession();
  patch(top,menuTop());patch(bottom,menuPanel({save:saveInfo,session:session?{code:session.code,host:hostLabel(session.url)}:null,native:isNative}));
 }
 function renderPage(){
- board?.setActive(false);board?.setIdle(false);clearStage();pageEl.hidden=false;
- if(route==='lobby'&&network.room)patch(pageEl,lobbyPage({room:network.room,me:network.session?.playerId,hostLabel:hostLabel(network.session?.url??''),native:isNative}));
+ board?.setIdle(false);clearStage();pageEl.hidden=false;
+ if(route==='lobby'&&network.room){
+  // Room updates re-render the lobby; keep the host's unsent opponent changes.
+  const form=pageEl.querySelector<HTMLFormElement>('#room-config'),edits=form?.dataset.dirty?{bots:form.querySelector<HTMLInputElement>('[name="bots"]')?.value,difficulty:new FormData(form).get('difficulty')}:null;
+  if(patch(pageEl,lobbyPage({room:network.room,me:network.session?.playerId,hostLabel:hostLabel(network.session?.url??''),native:isNative}))&&edits){
+   const next=pageEl.querySelector<HTMLFormElement>('#room-config');
+   if(next){next.dataset.dirty='1';const bots=next.querySelector<HTMLInputElement>('[name="bots"]');if(bots&&edits.bots)bots.value=edits.bots;next.querySelector<HTMLInputElement>(`[name="difficulty"][value="${edits.difficulty}"]`)?.click();}
+  }
+ }
  else if(route==='connecting')patch(pageEl,connectingPage('Connecting to the host…','Make sure the host is running and that this device is on the same network.'));
  else if(route==='solo'||route==='host'||route==='join'){
   const player=storedPlayer();
@@ -256,7 +266,7 @@ function decisionMarkup(decision:Decision,me:string){
  }
 }
 function renderGame(){
- pageEl.hidden=true;patch(pageEl,'');board?.setActive(true);board?.setIdle(false);
+ pageEl.hidden=true;patch(pageEl,'');board?.setIdle(false);
  const g=game!,me=viewer(),moving=!!board?.isAnimating,decision=viewerDecision(g,me);
  if(decision&&decision.key!==lastDecision){
   lastDecision=decision.key;minimised=null;
@@ -279,7 +289,7 @@ function renderGame(){
  if(cardOpen&&card){
   const mine=card.player===me,drawer=g.players.find(p=>p.id===card.player);
   cardLayer.hidden=false;cardLayer.className=`layer card-layer ${mine?'modal':'observer'}`;
-  patch(cardLayer,cardReveal(g,{viewer:me,canResolve:!check({type:'resolveCard'}),canContinueBot:!!drawer?.bot&&networkReady(),reduced:reduced()}));
+  if(patch(cardLayer,cardReveal(g,{viewer:me,canResolve:!check({type:'resolveCard'}),canContinueBot:!!drawer?.bot&&networkReady(),reduced:reduced()}))&&mine)cardLayer.querySelector<HTMLButtonElement>('[data-action]')?.focus({preventScroll:true});
  }else{cardLayer.hidden=true;patch(cardLayer,'');}
  if(me){finale.update(g,me);}
  stage.setAttribute('aria-busy',String(moving));
@@ -391,7 +401,9 @@ function openTrade(partner?:string,draft?:TradeState['draft']){
  if(!game)return;const me=viewer();
  if(!me||!(draft?.type==='counterTrade'?canCounter():canTrade())){toast(game.tradeOffered?'You have already made a trade offer this turn.':'You can propose a trade during your turn.');return;}
  const others=game.players.filter(p=>p.id!==me&&!p.bankrupt);const to=draft?.to??partner??others[0]?.id;if(!to)return;
- trade={draft:draft??emptyDraft(to),side:draft&&!draft.give.length&&draft.receive.length?'receive':'give',step:'build'};
+ // Open on the side the draft already uses; a request for someone else's deed starts on "You receive".
+ const givesNothing=!!draft&&!draft.give.length&&!draft.giveCash&&!draft.giveCards;
+ trade={draft:draft??emptyDraft(to),side:givesNothing&&(draft!.receive.length||draft!.receiveCash)?'receive':'give',step:'build'};
  sheets=sheets.filter(s=>s.kind!=='trade');openSheet({kind:'trade'});
 }
 function refreshTradeFooter(){if(!game||!trade)return;const me=viewer();const footer=sheetScroll.querySelector<HTMLElement>('.trade-footer');if(me&&footer)footer.innerHTML=tradeFooter(game,me,trade.draft);}
@@ -475,13 +487,14 @@ document.addEventListener('change',event=>{
 document.addEventListener('input',event=>{
  const input=event.target as HTMLInputElement;
  if(input.closest('#setup-form'))updateSetupSummary();
+ const roomForm=input.closest<HTMLFormElement>('#room-config');if(roomForm)roomForm.dataset.dirty='1';
  if(input.dataset.amountField&&trade&&game&&viewer()){trade={...trade,draft:setAmount(game,viewer()!,trade.draft,input.dataset.amountField as 'giveCash',Number(input.value))};refreshTradeFooter();}
  if(input.id==='bid-amount'&&game){const decision=viewerDecision(game,viewer());const value=Math.floor(Number(input.value));if(decision&&Number.isFinite(value)){bidDraft={key:decision.key,value};const bid=decisionHost.querySelector<HTMLButtonElement>('[data-do="place-bid"]');if(bid){bid.disabled=!!check({type:'bid',amount:value});bid.querySelector('span')!.textContent=`Bid ${money(Math.max(0,value))}`;}}}
 });
 document.addEventListener('submit',event=>{
  event.preventDefault();const form=event.target as HTMLFormElement;
  if(form.id==='setup-form')submitSetup(form);
- else if(form.id==='room-config'){const data=new FormData(form);network.send({type:'CONFIG',botCount:Number(data.get('bots')||0),difficulty:String(data.get('difficulty')??'medium'),config:network.room?.config??{}});}
+ else if(form.id==='room-config'){delete form.dataset.dirty;const data=new FormData(form);network.send({type:'CONFIG',botCount:Number(data.get('bots')||0),difficulty:String(data.get('difficulty')??'medium'),config:network.room?.config??{}});}
 });
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&back())event.preventDefault();

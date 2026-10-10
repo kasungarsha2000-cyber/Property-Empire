@@ -1,6 +1,6 @@
-# Property Empire 3D
+# Property Empire
 
-An original 3D property-trading game for a solo player with bots or friends on a local network. Built with strict TypeScript, Three.js, Vite and an authoritative Node WebSocket server. No accounts or cloud service. Fonts and artwork are local; the board, city, pawns and dice use procedural geometry.
+An original 3D property-trading game played on a miniature city board: solo against computer rivals, pass-and-play with friends on one device, or over a local network. Built with strict TypeScript, Three.js, Vite and an authoritative Node WebSocket host, and packaged for Android with Capacitor. No accounts or cloud service; fonts and artwork are local and the board, city, pawns and dice are procedural geometry.
 
 ## Start playing on this PC
 
@@ -17,6 +17,10 @@ This terminal command keeps the server in the foreground; Ctrl+C stops it. Produ
 
 The batch launcher rebuilds changed source and reuses a host from the same folder. If another copy occupies port 3001, close its host or set `PORT` to a different number. Logs are in `data/launcher-*.log`. `run.bat -NoBrowser` starts the host without opening a browser.
 
+## Play on Android
+
+The `android/` folder is a Capacitor project around the same web build. Build and install it with Android Studio or `npm run android:build`; requirements, LAN setup on phones, the device test checklist and current limits are in [docs/ANDROID.md](docs/ANDROID.md). The APK has not been built in this repository's CI environment because the Android SDK could not be downloaded there.
+
 ## Send the game to a friend
 
 Send **PropertyEmpire3D-Windows.zip** from the parent folder. Your friend should extract the whole ZIP into any folder, open its **PropertyEmpire3D** folder, run **setup.bat** once, then use **run.bat** to play. Keep the folder together when moving it. A Windows x64 runtime and production dependencies are included in this package, so the extracted version can launch offline; setup downloads a matching runtime if needed on another supported architecture. A source-only copy needs internet access for first setup. Your saves and host data are excluded from the ZIP.
@@ -29,48 +33,45 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-game.ps1
 
 This packages source, local assets, current builds and production dependencies. It refuses to overwrite an existing ZIP unless you pass `-Force`. `-SkipBuild` is available after a fresh manual build; stale bundles are rejected.
 
-## Solo play
+## Solo and pass-and-play
 
-Choose **Play Solo**, your name and pawn, and one to seven bot opponents. Easy, Medium and Hard use different reserves, auctions, trades and building heuristics. Classic plays to the last surviving player; Quick ends after 80 turns and compares net worth. Starting cash and the optional tax jackpot can be changed.
+Choose **Play solo**, enter your name and token, and pick 0–7 computer opponents (Easy, Medium or Hard). Under **Players on this device** add friends who share the phone or computer; the game asks you to hand the device over whenever another person must act. Rules: starting cash, Classic (last player standing), Quick (80 turns) or Extended (160 turns) by net worth, and the optional Free Parking jackpot, which is labelled as a house rule.
 
-Solo uses the rules engine in the browser and does not open a WebSocket connection. To serve only the frontend, run `npm run dev` and visit **http://localhost:5173**, or serve `apps/web/dist` with any static HTTP server. A LAN game server is unnecessary for solo.
+Solo games run entirely in the browser or app, work offline, and save after every accepted action in this browser's or app's IndexedDB (`property-empire-saves`). **Continue saved game** on the main menu shows the turn and when it was saved; **Settings → Restore previous solo save** loads the save before the latest one. Each browser profile, URL origin and the Android app keep separate saves.
 
-Solo saves automatically after accepted actions in this browser's IndexedDB database `property-empire-saves`. **Save game** also saves manually. **Continue Saved Game** resumes the full phase, random generator, decks and held cards. Settings offers **Restore previous solo save**. Each browser profile and URL origin has separate saves.
-
-The production service worker precaches the HTML, scripts, fonts and styles. After a successful load on **localhost or HTTPS**, cached solo play survives an offline reload. Service workers are normally unavailable on plain HTTP Wi-Fi IP addresses. On those addresses, serve the files locally whenever opening the game; internet access is still unnecessary. Clearing site data removes browser saves and cached assets.
+The production service worker precaches the app on `localhost` and HTTPS origins so cached solo play survives an offline reload. It is not used inside the Android app, where all files are bundled.
 
 ## Host a game over Wi-Fi or hotspot
 
-1. Put the computer and phones on the same reachable Wi-Fi network or hotspot.
-2. Run `npm run start:lan` on the computer. It serves both the browser app and `/ws` on port **3001**, bound to `0.0.0.0`.
-3. Open the printed **Wi-Fi IP URL** on every device. At delivery, this computer's Wi-Fi URL was **http://192.168.1.222:3001**. The address can change; the launcher prints current addresses. Ignore virtual-adapter addresses such as the WSL network if using Wi-Fi phones.
-4. One player chooses **Create LAN Game**, configures bots and the match, and creates a room.
-5. Friends choose **Join LAN Game**, enter the six-character room code, and select **Ready to play**. A shared `?room=CODE` invite opens the join screen directly.
-6. The host chooses **Start match** once 2–8 connected players are ready. The host can update bot opponents in the lobby; this resets the other humans' readiness.
+1. Put the host computer and every phone on the same reachable Wi-Fi network or hotspot.
+2. Run **run.bat** (or `npm run start:lan`) on the computer. It serves the browser app and `/ws` on port **3001** and prints its **Wi-Fi IP URL**, for example `http://192.168.1.222:3001`.
+3. Browser players open that URL. Android players enter the address (for example `192.168.1.222:3001`) under **Host computer**; the app remembers it.
+4. One player chooses **Host LAN game**, sets computer opponents and rules, and creates the room. **Share invite** sends the room code and host address.
+5. Friends choose **Join LAN game**, enter the six-character room code and press **I'm ready**. A `?room=CODE` link opens the join screen directly.
+6. The host presses **Start match** when 2–8 connected players are ready. Changing opponents in the lobby asks guests to confirm again.
 
-Copy the invite while using the **Wi-Fi URL**. A phone's `localhost` means that phone, not the host computer. The optional Server address field supports manual addresses such as `ws://192.168.1.222:3001/ws`. The default is derived from the page's own origin.
+The server owns dice, actions and bot decisions; every client renders the same canonical state and revision. Commands carry an id and the revision they were made against, so double taps and retries cannot apply twice, and the UI locks a button until the host answers. Losing a connection pauses only decisions waiting on that player; the client retries automatically and **Rejoin LAN game** restores the original seat after a reload. An unreachable address or a wrong room code returns to the form with the reason.
 
-The server owns dice, actions and bot decisions. All human clients receive canonical snapshots and revisions. Losing a connection pauses any decision awaiting that human. The client retries, and **Rejoin LAN Game** restores the original seat after a reload. Opening the same saved seat in another tab replaces its previous connection. A reconnect secret is stored only in the browser; invite links contain only the room code.
+Host snapshots and their previous backups are stored in `data/saves/` (or `SAVE_DIR`) using atomic writes; restarting the server reloads compatible rooms. **Save game** in a LAN match waits for the host to confirm the write.
 
-Host snapshots and previous backups are stored in `data/saves/` using atomic writes. Restarting the server loads compatible rooms. Players rejoin using their existing browser profile and original URL. **Save game** in LAN mode waits for a successful host write. A corrupt host snapshot is ignored with a console notice; a previous `.json.bak` can be restored by copying it over its matching `.json` with the server stopped.
+## Playing on a phone
 
-## Find your properties and make a trade
+- **Top:** turn number and compact player chips with cash, the active player highlighted, and badges for bots, jail and disconnected players. Tap a chip for that player's overview and, on your turn, **Trade with…**.
+- **Board:** drag to rotate, pinch to zoom, two-finger drag to pan; the round button resets the camera. Tap a tile for a quick preview without interrupting play; **Details** opens the full title deed.
+- **Dock:** one large button shows the only valid next step (Roll dice, End turn, Roll again, Review purchase, Read card…). Beside it are **Properties**, **Trade**, **Bank** and **Menu**.
+- **Decisions** rise from the bottom: buying (with *Raise cash* when short), auctions with quick bid increments, jail options with reasons for unavailable ones, debt with what you can still raise, and incoming offers with **Accept / Counter / Decline**. The arrow hides a decision to look at the board without declining it.
+- **Chance and Community Chest** cards rise and flip, show their rules and amounts, and apply when you press **Continue**. Computer players' cards appear smaller with their own Continue.
+- **Properties** groups deeds by colour set with progress and one-tap build, sell and mortgage buttons that the rules engine checks. **Trade** opens a two-sided builder (You give / You receive), a plain-language summary and a review step. **Bank** lists balances and money history.
+- **Back** (Android button, browser Back or Escape) closes the top layer first, minimises decisions instead of declining them, and opens the game menu when nothing else is open.
+- **Settings:** sound effects, music, haptics, animation speed, reduced motion, graphics quality, camera sensitivity, text size and highlighting your tiles.
 
-**Your properties** groups your deeds by district, shows progress toward each color set, and labels mortgages and buildings. **Highlight mine on board** marks your spaces, and owned spaces show **Yours** on the board. Select an owned property to inspect and manage it. In **Properties**, use **Your properties** or **Available from bank** to filter the title deeds.
-
-Turn information, centered tools and dice results share one desktop row. Click a board property for one complete deed with ownership, all rents, development costs, mortgages and available actions. Buying, building and rent animate the actual property. Undeveloped plots have grass, paths, shrubs and a vibrant district-colored border; houses and hotels appear only when built.
-
-Each event uses one confirmation. Rent names both payer and recipient beside the property; small receipts last 2.2 seconds and trade confirmations last 2.8 seconds. Starting the next pawn move clears the previous cosmetic receipt. Purchase decisions, Chance and Community Chest cards appear at the right edge of the board without resizing it. Hover or keyboard focus pauses opponent cards. Your drawn cards wait for **Continue**; bots allow nine seconds in solo and twelve seconds on LAN before resolving their cards. Every player’s nametag shows actual cash received or paid after arrival. Accepted trades reveal the illustrated deeds, cash and jail cards being exchanged. Use Continue on an opponent bot’s Chance/Community Chest card to apply it sooner; another human’s card remains their decision. The central city has framed windows, rooftop gardens/pergolas/solar panels, storefront signs, moving traffic, people, an aircraft, weather and a day/night cycle. Dice bounce across the foreground felt, with deck and pair collisions, instead of staying in fixed lanes. Reduced motion freezes decorative city effects while keeping information visible.
-
-If you are one deed short of a street group, the portfolio shows its name and owner. **Trade for this property** starts an offer with that deed selected. You can also choose **Trade** during your turn, before or after rolling or while resolving debt. Choose a player, select illustrated cards under **You give** and **You receive**, and enter cash or jail cards. Developed groups explain why their deeds cannot be selected.
-
-**Review trade** shows each player's items, cash after acceptance, mortgage transfer fees, debt repayment and any newly completed color sets. **Edit offer** preserves your selections; **Offer trade** sends it for the other player's decision. Incoming offers show the same comparison, with **Accept trade** and **Decline trade** beneath the board. Each turn permits one offer.
+On tablets and computers the same layout uses a floating dock, side sheets and decision panels on the right.
 
 ## Game rules
 
 - Original 40-space board, starting cash $1,500 and $200 salary for passing or landing on Start. Salary is awarded once per crossing.
 - Two six-sided dice. Doubles earn another roll; three consecutive doubles send the player to jail.
-- Buy unowned property or auction it. Every active player, including the declining player, may bid. Passing withdraws that bidder for this auction. Bids cannot exceed available cash; highest remaining bidder wins.
+- Buy unowned property or auction it. While deciding you may mortgage or sell buildings to raise the price. Every active player, including the declining player, may bid. Passing withdraws that bidder for this auction. Bids cannot exceed available cash; highest remaining bidder wins.
 - Automatic rent. Complete undeveloped street groups pay double base rent. Stations pay $25, $50, $100 or $200 based on ownership count. Utilities pay 4× or 10× the dice total. Mortgaged deeds charge no rent. Opportunity movement cards can change these multipliers.
 - Own the complete street group, clear every group mortgage, and build evenly. Four houses on each street unlock hotels. The bank supplies 32 houses and 12 hotels. A sold hotel needs four replacement houses; **Sell group buildings** liquidates the entire developed group if replacement stock is unavailable. Buildings sell at half their total cost.
 - Mortgage value is half the deed's purchase price. Sell all group buildings first. Lifting a mortgage costs its value plus rounded-up 10% interest. A transferred mortgaged deed remains mortgaged and charges its receiver 10% transfer interest; later lifting it has the normal cost.
@@ -81,51 +82,28 @@ If you are one deed short of a street group, the portfolio shows its name and ow
 - Free Parking is a rest space by default. The optional jackpot collects board taxes, rather than unrelated fees.
 - Quick games rank surviving players by cash plus deed value (mortgage value for mortgaged deeds) and construction cost. Ties keep the existing player order.
 
-## Controls
-
-Drag the board to orbit, right-drag to pan, and point the mouse at a board location before scrolling to zoom toward it. Touch supports pinch zoom; **+ / −** adjusts zoom and **Reset camera** restores the view. Click/tap a tile, or open **Properties** to choose any space with a keyboard. A deed popup shows its owner, rent and available asset actions; **Focus this property** closes the popup and locates the tile. The board fills the available match area. Building stock is shown in the Properties gallery. Purchases, auctions, debt, jail and incoming trades appear in decision popups. Closing one returns its actions to the floating turn controls. Destination popups wait for dice and pawn movement to finish. Dice tumble to varied positions in their tray. Property squares have buildings only after houses or hotels are built. Chance and Community Chest draws show card faces with exact instructions and effect annotations; Continue applies the card. Closing it leaves Continue in the turn controls. **Cards** opens both complete decks. Rent, salary and purchase confirmations appear as separate, brief notices; Escape dismisses them. The board stays in view on desktop and remains sticky while scrolling on mobile. Settings offers normal/fast/reduced motion, three graphics quality levels, and optional sounds. Native dialogs provide keyboard focus containment. If 3D cannot initialize, the property list and turn controls remain available.
-
-Your tiles have gold outlines and a **✓ YOURS** badge. Click a deed in **Your properties** to focus the board camera on it. Purchase and rent receipts use a compact notice that disappears after three seconds. Game tools sit directly after the dice and turn information within the same panel, with a compact line of buttons. Fullscreen hides the website header and adds Exit fullscreen, Settings and How to Play to that line. Narrow screens scroll within the controls. Declining an incoming trade offers **Build counteroffer** or **Decline without counteroffer**. Counteroffers start with the reversed current terms and require review before sending. Bots propose feasible revised cash terms when rejecting an offer. Each negotiation allows up to three counteroffers, then an accept or decline decision.
-
-Properties opens the full deed gallery with ownership filters and full-height deed rows. Selecting an owned deed opens a larger popup with all rents, costs and live building/mortgage controls. Click a player's name/card in the match overview to see their cash, net worth, rent totals, location, jail cards and properties; **Trade with…** opens the trade builder for that player when allowed. **Sound on/off** mutes or enables local dice, step, purchase, money, card, building, trade, jail and victory effects. New browser profiles start with sound enabled after an interaction; saved mute preferences are kept. Pawns hop, face their route and briefly celebrate purchases/building. Personal gains and acquisitions have a brief coin effect and balance pulse; payments, jail and debt use a warning effect. Effects wait for pawn arrival, leave controls clickable and use actual payments rather than unpaid card obligations. Reduced motion suppresses these effects and keeps arrivals instant.
-
-Double-click **run.bat** in `D:\Other\Monopoly Game` or the project folder to launch. It checks Node, installs dependencies and builds if needed, starts a hidden game server, then opens the browser. Running it again reopens the existing server. Logs are in `PropertyEmpire3D/data/launcher-server.log` and `launcher-error.log`. Your saves stay in place.
-
-The turn/dice row keeps the same size before rolling, during movement and after arrival, so the board and toolbar stay still. Tools are centered after the turn information; narrow screens scroll within that row. Opponents' arrivals, purchases, payments, salaries, buildings, jail/debt and card draws appear in named popups after their pawns settle. Opponent cards use the same card faces and annotations, support scrolling, and dismiss automatically; bots pause briefly to read before continuing. Your own decisions and cards take priority. Earlier-save restoration clears discarded activity.
-
-Chance and Community Chest cards fly from their physical board decks after the pawn arrives. All 32 cards have distinct illustrated scenes and animations. Read the instructions, then choose **Continue** to apply money, movement, jail or other effects. Unread cards are saved and synchronized across LAN clients; their effects cannot be claimed twice. Movement cards can lead to another card, which also waits to be read. Card receipts describe the completed effect separately.
-
-Paid rent appears beside its property with the amount, payer and recipient. Buying a property adds an animated ownership seal, and accepted trades show exchanging deed cards. Outer-edge owner plaques identify **YOURS** or the other owner's name. Refined tile borders, district lettering and brass details improve the tabletop appearance. Match results show the winner, your position and standings, with a trophy/confetti celebration or a quieter loss animation; results can be reopened after dismissal. Reduced motion keeps static labels and results while disabling decorative motion.
-
-All eight pawns have owner-colored enamel bases, brass rims and distinctive details. Houses have pitched roofs, eaves, windows, doors, chimneys and entrance steps. Hotels use taller stepped architecture, rows of windows, a canopy and HOTEL signage. Undeveloped properties remain empty.
-
 ## Development and production
 
-```powershell
-npm install
-npm run dev        # Solo frontend, localhost:5173
-npm run dev:lan    # Vite frontend :5173 + Node WS host :3001
+```bash
+npm ci
+npm run dev           # solo frontend, http://localhost:5173
+npm run dev:lan       # Vite frontend :5173 + Node WS host :3001
 npm run typecheck
-npm test
-npm run build
-npm run start:lan  # Production frontend + WS on :3001
+npm test              # Vitest: rules engine, UI state and markup, server, storage
+npm run build         # typecheck, web build, offline cache manifest, server bundle
+npm run start:lan     # production frontend + WS host on :3001
+npm run test:browser  # Playwright end-to-end suite against the production build (build first)
+npm run android:sync  # build and copy the web app into android/
+npm run android:build # debug APK (needs the Android SDK)
 ```
 
-Development uses Vite's `/ws` proxy. Production uses one Node HTTP/WS origin. Output: `apps/web/dist/` and `apps/server/dist/index.js`. `PORT` and `HOST` may override defaults. `ALLOWED_ORIGINS` supplies an explicit comma-separated WS origin allowlist when using an HTTPS reverse proxy. For external HTTPS deployment, serve `/ws` through a reverse proxy that supports WebSocket upgrades and use `wss://`; solo static assets may be hosted independently. No remote hosting was configured.
+Development uses Vite's `/ws` proxy; production serves the web app and `/ws` from one Node origin. Output: `apps/web/dist/` and `apps/server/dist/index.js`. `PORT`, `HOST`, `SAVE_DIR` and `ALLOWED_ORIGINS` (comma-separated WebSocket origins for an HTTPS reverse proxy; include `http://localhost` for the Android app) configure the host.
 
-## Run browser tests
+Code map: `packages/core` is the rules engine, validation and bots shared by browser, app and host. `apps/web/src/ui` holds the interface (design tokens in `tokens.css`, turn state and dock logic in `turn-state.ts`, panels, sheets and screens); `board-view.ts` and `scene-assets.ts` draw the 3D board; `platform.ts` bridges Android. Design decisions are recorded in `docs/android-ui-audit.md` and `docs/android-ui-implementation-plan.md`.
 
-The supplied `.venv` has Python Playwright, and the tests use installed Google Chrome. Start the production server, then run:
+## Browser tests
 
-```powershell
-$env:EMPIRE_URL="http://127.0.0.1:3001"
-$env:EMPIRE_OFFLINE="1"
-npm run test:browser
-```
-
-For a fresh environment: `python -m venv .venv`, then `.\.venv\Scripts\python.exe -m pip install playwright`. The launcher detects this project environment. Alternatively set `EMPIRE_PYTHON` to a Python executable with Playwright installed. The test runner writes validated fixtures and screenshots under `test-artifacts/`. No browser binaries need downloading when Chrome is installed.
-
-See [test results](docs/TEST_RESULTS.md), [build status](docs/BUILD_STATUS.md) and [progress](docs/PROGRESS.md).
+`npm run test:browser` runs `tests/e2e` with Playwright: it starts the production host on port 3199 with a temporary save folder and drives a phone-sized Chromium with touch emulation through menus, every decision panel, trading, properties, saves, Back navigation, LAN host/guest/rejoin, connection errors, layouts from 360 px phones to desktop and an automated play-through. Install the browser once with `npx playwright install chromium`. Reports go to `test-artifacts/e2e-report`.
 
 ## Troubleshooting
 
@@ -135,9 +113,11 @@ See [test results](docs/TEST_RESULTS.md), [build status](docs/BUILD_STATUS.md) a
 - **Connecting from HTTPS:** insecure `ws://` is blocked. Use a secure reverse-proxied `wss://` endpoint and its allowed origin.
 - **Slow graphics:** choose Low quality or Fast/Reduced motion, close heavy background tabs, or enable browser hardware acceleration. Context loss gives a reload recovery notice; accepted game actions were saved separately from rendering.
 - **Save error:** check browser storage permissions for solo or available disk space and `data/saves/` access for LAN. A host save failure produces an error, never a success acknowledgment.
+- **The Android app cannot reach the host:** enter the computer's Wi-Fi address with the port (for example `192.168.1.5:3001`), keep the host running, and if you configured `ALLOWED_ORIGINS`, add `http://localhost`.
+- **The 3D board does not appear in the Android app:** update *Android System WebView* and Chrome from the Play Store; the app needs WebView 111 or newer.
 
 ## Credits and verification limits
 
-Original board names, event wording, brand and geometry. Three.js, ws, Zod and the build tools retain their upstream licenses. Nunito and Fredoka are bundled through Fontsource; retain their font licenses when distributing assets.
+Original board names, card wording, artwork, icons, sounds and music (synthesised in the browser). Three.js, ws, Zod, Capacitor and the build tools keep their upstream licenses. Inter, Nunito and Fredoka are bundled through Fontsource under the SIL Open Font License; retain their licenses when distributing.
 
-Automated verification used Chrome on this Windows computer, including two isolated client profiles, responsive viewports and offline caching. Physical phones, router-to-phone gameplay, hotspots, real low-end GPU performance, Firefox and Safari have not been tested. There is no claim of universal 60 fps. Limited building stock is allocated through serialized turns, so no simultaneous stock contention occurs in this version.
+Verified in this repository: Vitest unit tests, strict TypeScript, production builds and the Playwright suite in headless Chromium (software WebGL) at phone, tablet and desktop sizes, including two LAN clients against the real host. Not verified: physical Android devices, an Android emulator, the Gradle/APK build (Android SDK unavailable in the build environment), Safari, Firefox, router-to-phone or hotspot play, and frame rates on real low-end GPUs. See [docs/android-ui-report.md](docs/android-ui-report.md).

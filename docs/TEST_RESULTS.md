@@ -1,4 +1,20 @@
-# Executed tests — 2026-10-08
+# Executed tests
+
+## Android UI redesign — 2026-10-10
+
+Environment: Linux, Node 22.22, Chromium 141 (Playwright 1.56.1, headless, SwiftShader WebGL). No Android SDK, emulator or physical device was available.
+
+- `npm run check`: **226 Vitest tests passed in 23 files** (7 Windows-only launcher tests skipped on Linux), strict TypeScript, Vite production build, offline cache manifest and server bundle.
+  - New `tests/rules.test.ts` (48 tests): dice and doubles, third doubles to jail without moving or salary, Start salary when passing and landing, Go to Jail, every jail path (miss, doubles release without an extra roll, third-miss fine and move, fine paid through debt, bail, jail card returned to its deck, rent collected in jail), every Chance and Community Chest card kind including nearest station/utility rent, back-three chains into another card, repairs, pay/collect from every player and debt during a card, auctions, rent tiers for streets, stations and utilities, building stock, hotels, even selling, mortgages, trades (decline, ownership, duplicates, jail cards, mortgage interest, recipient only), bankruptcy to the bank and to a player, and save round-trips in every pending phase. No engine defects were found; raising funds during a purchase decision was added.
+  - New UI tests: title deed and tile preview, notice feed timing, decision detection and the action dock (including pass-and-play naming), purchase/auction/jail/debt/trade panels, card reveal, trade builder logic, properties sheet, money history, settings migration and LAN host-address parsing. The server suite now checks the Android app origin.
+- `npm run test:browser`: **29 Playwright tests passed** (6.8 min, 2 workers) against the production host with a temporary save folder, in a 393×852 touch-emulated phone viewport unless stated:
+  menu with Continue disabled without a save; setup summary and start; browser Back through screens and layers; leave and continue a match; settings applied and persisted; rules and all 32 cards; pass-and-play hand-over; buy; auction win; minimised decision reopened and Back not declining; Chance double station rent after Continue; Community Chest hide and reopen; jail fine and unavailable card; debt reduced by mortgage then confirmed bankruptcy and results; accepting an incoming offer; trade builder review and bot answer; counteroffer; building through the properties sheet and deed; board tap preview to deed; bank history and player overview; LAN host and guest in separate browser contexts sharing state, then the guest rejoining after a reload; missing room message; unreachable host message; layouts without horizontal scroll and with ≥44 px tools at 360×640, 412×915, 800×1280 and 1280×800; eight player chips; and an automated play-through to turn 16.
+- Automated full-match play-through (scratch script, same UI): a solo match driven only by the interface ran 190 turns to elimination with purchases, auctions, cards, jail, rejected bot offers, raising funds and bankruptcy, with no stalls and no console errors.
+- Screenshots of every screen and panel were reviewed at 393×852, 800×1280, 1440×900 and 852×393.
+
+Not executed: Gradle/APK build (Android SDK download host blocked), Android emulator or devices, Safari, Firefox, real Wi-Fi between devices, low-end GPU frame rates.
+
+# Executed tests — earlier entries
 
 ## Menu credit and short right-side popups — 2026-10-09
 

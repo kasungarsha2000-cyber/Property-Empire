@@ -12,7 +12,7 @@ export function hudMarkup(g:Game,ctx:HudContext){
   const label=`${p.name}${p.id===ctx.viewer?' (you)':''}: ${money(p.cash)}${p.bankrupt?', bankrupt':p.jailed?', in jail':''}${p.bot?', computer player':''}${p.id===active.id?', current turn':''}`;
   return `<button class="${classes}" data-player="${esc(p.id)}" aria-label="${esc(label)}">${avatar(g,p,'sm')}${badge}<span class="cp-text"><b>${p.id===ctx.viewer&&!ctx.hotseat?'You':esc(p.name)}</b><span class="player-cash">${money(p.cash)}</span></span></button>`;
  }).join('');
- return `<div class="hud"><div class="hud-line"><span class="round">Turn ${g.turn}${g.config.turnLimit?` of ${g.config.turnLimit}`:''}</span><span class="sep">·</span><span>${ctx.lan?`Room ${esc(ctx.room??'')}`:`${live} players`}</span>${ctx.lan?`<span class="conn ${ctx.online?'':'off'}"><i></i>${ctx.online?'Connected':'Reconnecting'}</span>`:''}</div><div class="player-strip" data-count="${g.players.length}" role="list" aria-label="Players">${chips}</div></div>`;
+ return `<div class="hud"><div class="hud-line"><span class="round">Turn ${g.turn}${g.config.turnLimit?` of ${g.config.turnLimit}`:''}</span><span class="sep">·</span><span>${ctx.lan?`Room ${esc(ctx.room??'')}`:`${live} players`}</span>${ctx.lan?`<span class="conn ${ctx.online?'':'off'}"><i></i>${ctx.online?'Connected':'Reconnecting'}</span>`:''}</div><div class="player-strip" data-count="${g.players.length}" role="group" aria-label="Players">${chips}</div></div>`;
 }
 
 export function dockMarkup(g:Game,model:DockModel,tools:{canTrade:boolean;incoming:boolean;compact?:boolean}){

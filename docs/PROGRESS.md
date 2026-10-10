@@ -62,3 +62,15 @@ Dice now travel across the full foreground felt with fixed-step gravity/rebounds
 Portable setup installs a verified supported Node runtime into the game folder, uses local npm caching and preserves saves. run.bat works after extraction/moving, detaches the host and checks folder/process ownership. The package script includes production dependencies and optional runtime while excluding saves/dev files; stale build certification and changed bundle content are rejected. All 160 automated tests and production builds pass; development Chrome flows and screenshots were verified.
 
 The actual 50.2 MB Windows ZIP passed moved/extracted-folder launch with no global Node/npm on PATH, built-asset serving, LAN save persistence and same-host reuse. A fresh browser service-worker inspection and offline solo resume/purchase passed. Physical clean-PC and ARM64 tests remain unperformed.
+
+## 2026-10-10 — Android UI redesign
+
+- Audit and implementation plan: `docs/android-ui-audit.md`, `docs/android-ui-implementation-plan.md`.
+- Rules regression suite (48 tests); raising funds is now allowed while deciding on a purchase.
+- New mobile-first interface on design tokens: HUD with player chips, full-height board with portrait framing,
+  contextual dock, decision panels, card reveal, tile preview and full deed, properties, trade builder, bank history,
+  settings, game menu, menus and setup, results; one Back path; pass-and-play; music; haptics.
+- Capacitor Android project with original icon and splash, LAN support from the app, lifecycle handling.
+- Playwright browser suite replaces the Windows-only Python scripts.
+- Report: `docs/android-ui-report.md`.
+

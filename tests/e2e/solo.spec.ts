@@ -166,3 +166,18 @@ test('bank history and player overview reflect the purchase',async({page})=>{
  await expect(sheet(page)).toContainText('Medium bot');
  await expect(sheet(page).getByRole('button',{name:'Trade with Ben'})).toBeEnabled();
 });
+
+test('a counteroffer starts from the reversed terms and gets an answer from the bot',async({page})=>{
+ await continueGame(page,fixture('incomingTrade'));
+ await page.locator('.panel.trade-offer').getByRole('button',{name:'Counter'}).click();
+ const builder=sheet(page);
+ await expect(builder.getByRole('heading',{name:'Counteroffer'})).toBeVisible();
+ await expect(builder.locator('.trade-footer')).toContainText('You give $100. You receive Copper Lane.');
+ await builder.locator('[data-step-field="giveCash"][data-step="-10"]').click();
+ await expect(builder.locator('.trade-footer')).toContainText('You give $90. You receive Copper Lane.');
+ await builder.getByRole('button',{name:'Review offer'}).click();
+ await builder.getByRole('button',{name:'Send counteroffer'}).click();
+ // Ben either accepts $90 or proposes revised terms of his own.
+ const offer=page.locator('.panel.trade-offer');
+ await expect.poll(async()=>await offer.count()?await offer.innerText():await chipCash(page,'human').innerText(),{timeout:15_000}).toMatch(/Counteroffer 2|\$1,410/);
+});

@@ -1,18 +1,19 @@
 # Build status
 
-Final `npm run check`: Vitest, strict TypeScript, Vite production frontend, offline cache manifest and tsup Node server passed.
+2026-10-10, after the Android UI redesign.
 
-- `apps/web/dist/index.html` and bundled local assets exist.
-- App script: 286.11 KB raw / 93.23 KB gzip, including the cosmetic living city, short receipts and front-page resume buttons.
-- Stylesheet: 105.36 KB raw / 21.61 KB gzip, including right-side decisions and front-page developer credit.
-- Three.js renderer chunk: 542.54 KB raw / 138.09 KB gzip including environment lighting and shared miniature ring geometry.
-- Local font files and stylesheet are bundled; gameplay makes no external asset requests.
-- `apps/web/dist/sw.js` precaches 16 generated local assets plus the root route.
-- `apps/server/dist/index.js`: 56.24 KB ESM (runtime dependencies resolved from installed node_modules).
-- Verified runtime: Node 24.21.0, npm 11.19.0, Windows, installed Google Chrome.
+`npm run check` passes: 226 Vitest tests (7 Windows-only skipped on Linux), strict TypeScript, Vite production build, offline cache manifest (24 assets) and the tsup server bundle.
 
-Vite reports two upstream Zod comment-annotation warnings; it removes the comments and builds successfully. No build or type errors remain. The dedicated Three.js renderer chunk now exceeds Vite's 500 KB advisory size threshold after adding environment lighting.
+| Output | Size |
+|---|---|
+| `apps/web/dist/assets/index-*.js` (app) | 336 KB raw |
+| `apps/web/dist/assets/three-*.js` (Three.js renderer chunk) | 543 KB raw / 138 KB gzip |
+| `apps/web/dist/assets/index-*.css` | 68 KB raw / 13.7 KB gzip (was 105 KB across 13 stylesheets) |
+| Fonts | Inter (Latin and Latin Extended) for the UI; Fredoka 600 and Nunito 800 for board textures only |
+| `apps/server/dist/index.js` | 58 KB ESM |
 
-Production launch: `npm run start:lan`; browser http://localhost:3001. The host prints network IP URLs.
+Vite still warns that the Three.js chunk exceeds 500 KB; it is loaded once and cached.
 
-2026-10-09: 161 tests in 21 files pass, including portable launcher/package, authoritative bot-card Continue and short receipt/movement regressions. Fixed-step dice, player cash nametags, refined card/trade UI, enhanced city geometry and static batching are included. The Windows share package includes a verified local Node runtime and production dependencies. Purchase/card decisions now sit on the right; the front page includes separate resume buttons and “Developed by Kasun Samarasinghe.”
+Android: `android/` is a Capacitor 8.5.2 project (compileSdk/targetSdk 36, minSdk 24). `npx cap sync android` succeeds and all Android XML resources parse. **The Gradle build has not been run** because the Android SDK could not be downloaded in this environment (`dl.google.com` denied by network policy). Use `npm run android:build` on a machine with the SDK; see [ANDROID.md](ANDROID.md).
+
+`npm audit` reports a moderate `uuid` advisory inside the iOS `xcode` helper used by the dev-only `@capacitor/cli`; it is not part of the shipped app and the only automatic fix is a CLI downgrade.
