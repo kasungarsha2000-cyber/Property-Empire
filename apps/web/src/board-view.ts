@@ -8,7 +8,9 @@ import type { Settings } from './storage';
 import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
 import {pawnPose} from './pawn-motion';
 import {CityLife} from './city-life';
-import {movementRoute,diceLanding,dicePose,type DiceLanding} from './animation-plan';
+import {movementRoute} from './animation-plan';
+import {DICE_FIELD,INITIAL_DICE,planDiceRoll,sampleDiceRoll,type DiceRest,type DiceRollPlan} from './dice-physics';
+import {batchStaticScene} from './static-batch';
 import {propertyMotions,propertyMotionPose,propertyMotionStart,type PropertyMotion} from './property-motion';
 
 type Movement = {points: THREE.Vector3[]; start: number; duration: number;lastStep:number};
@@ -28,9 +30,8 @@ export class BoardView {
  private diceTextures: THREE.CanvasTexture[][] = [];
  private diceUntil = 0;
  private diceStarted = 0;
- private diceRest:DiceLanding[]=[{x:-.65,z:3.5,yaw:0},{x:.95,z:3.5,yaw:0}];
- private diceFrom:DiceLanding[]=[];
- private diceSpin:number[]=[19,23];
+ private diceRest:DiceRest[]=INITIAL_DICE.map(die=>({...die}));
+ private dicePlan:DiceRollPlan|null=null;
  private wasRolling = false;
  private playbackActive=false;
  private flourishes=new Map<string,{start:number;duration:number}>();
@@ -41,6 +42,7 @@ export class BoardView {
  onFrame:()=>void=()=>{};
  get isAnimating(){return this.paths.size>0||performance.now()<this.diceUntil;}
  private dirty = true;
+ private overlayDirty=true;
  private state: Game | null = null;
  private lastSize = '';
  private fitDistance = 28;
@@ -53,6 +55,8 @@ export class BoardView {
  private cityStatus=document.createElement('div');
  private motionPreference=matchMedia('(prefers-reduced-motion:reduce)');
  private lastSunShadow=0;
+ private keyLight:THREE.DirectionalLight;
+ private get reduced(){return this.settings.speed==='reduced'||this.motionPreference.matches;}
 
  constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
   this.settings = settings;
@@ -74,7 +78,7 @@ export class BoardView {
   this.scene.environmentIntensity = .40;
   environment.dispose(); pmrem.dispose();
   const hemisphere=new THREE.HemisphereLight('#FFF2DA', '#577A85', .65);this.scene.add(hemisphere);
-  const key = new THREE.DirectionalLight('#FFF0CE', 1.8);
+  const key = this.keyLight=new THREE.DirectionalLight('#FFF0CE', 1.8);
   key.position.set(-3, 14, 7); key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   Object.assign(key.shadow.camera, {left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 35});
@@ -87,9 +91,10 @@ export class BoardView {
   this.controls.enablePan = true; this.controls.screenSpacePanning = false; this.controls.zoomToCursor = true;
   this.controls.minDistance = 4; this.controls.maxDistance = 55;
   this.controls.minPolarAngle = .15; this.controls.maxPolarAngle = Math.PI * .43;
-  this.controls.addEventListener('change', () => { this.dirty = true; });
+  this.controls.addEventListener('change', () => { this.dirty = true;this.overlayDirty=true; });
   this.controls.addEventListener('start',()=>{this.customizedView=true;});
   this.assets.buildBoard(this.scene); this.assets.buildCity(this.scene);
+  batchStaticScene(this.scene);
   this.cityLife=new CityLife(this.scene,this.assets,{key,fill,hemisphere});
   this.cityStatus.className='city-status';this.cityStatus.textContent=this.cityLife.status;this.cityStatus.setAttribute('aria-label','City weather and time of day');element.parentElement?.append(this.cityStatus);
   this.motionPreference.addEventListener('change',()=>this.configure(this.settings));
@@ -107,7 +112,7 @@ export class BoardView {
    const textures = Array.from({length: 6}, (_, face) => diceTexture(face + 1, i === 1)); this.diceTextures.push(textures);
    const materials = [3, 2, 0, 5, 1, 4].map(face => new THREE.MeshStandardMaterial({map: textures[face], roughness: .31, metalness: .06}));
    const die = new THREE.Mesh(dieGeometry, materials);
-   die.position.set(this.diceRest[i].x, 1.07, 3.5); die.castShadow = true; die.receiveShadow = true;
+   die.position.set(this.diceRest[i].x, DICE_FIELD.floor+.375, this.diceRest[i].z); die.castShadow = true; die.receiveShadow = true;
    this.dice.push(die); this.scene.add(die);
   }
   let down = {x: 0, y: 0};
@@ -133,8 +138,8 @@ export class BoardView {
   const propertyChanges=animate&&this.settings.speed!=='reduced'&&!this.motionPreference.matches?propertyMotions(old,game):[];
   const roll=old&&animate?game.log.filter(event=>event.id>old.eventSeq&&event.kind==='roll').at(-1):undefined;
   if(roll){
-   this.diceRest=diceLanding();this.diceFrom=this.dice.map(die=>({x:die.position.x,z:die.position.z,yaw:die.rotation.y}));this.diceSpin=this.dice.map(()=>16+Math.random()*12);
-   this.diceStarted=now;if(this.settings.speed!=='reduced')this.diceUntil=now+(this.settings.speed==='fast'?350:950);
+   this.dicePlan=planDiceRoll(this.dice.map(die=>({x:die.position.x,z:die.position.z,yaw:die.rotation.y})));this.diceRest=this.dicePlan.rest;
+   this.diceStarted=now;if(!this.reduced)this.diceUntil=now+(this.settings.speed==='fast'?350:1150);
   }
   const rolled=roll?.text.match(/rolls (\d) \+ (\d)/);
   this.dice.forEach((die, i) => {
@@ -156,13 +161,13 @@ export class BoardView {
    const point = spacePosition(player.position).add(offset); point.y = TOKEN_HEIGHT;
    const previous = old?.players.find(other => other.id === player.id);
    const route=old&&animate?movementRoute(old,game,player.id):[];
-   if (previous && route.length && animate && this.settings.speed !== 'reduced') {
+   if (previous && route.length && animate && !this.reduced) {
     const steps=route.length,points = [token.position.clone()];
     for(const index of route){const next=spacePosition(index).add(offset);next.y=TOKEN_HEIGHT;points.push(next);}
     this.paths.set(player.id, {points, start: Math.max(now, this.diceUntil), duration: steps * (this.settings.speed === 'fast' ? 85 : 180),lastStep:-1});
    } else if (!this.paths.has(player.id)) token.position.copy(point);
   });
-  if(old&&animate&&this.settings.speed!=='reduced'){for(const p of game.players){if(game.winner===p.id&&old.winner!==p.id||game.properties.some((v,i)=>v.owner===p.id&&(old.properties[i].owner!==p.id||v.level>old.properties[i].level)))this.flourishes.set(p.id,{start:now,duration:520});}}
+  if(old&&animate&&!this.reduced){for(const p of game.players){if(game.winner===p.id&&old.winner!==p.id||game.properties.some((v,i)=>v.owner===p.id&&(old.properties[i].owner!==p.id||v.level>old.properties[i].level)))this.flourishes.set(p.id,{start:now,duration:520});}}
   this.assets.owners.forEach((mesh, index) => {
    const property = game.properties[index], player = game.players.find(other => other.id === property.owner); mesh.visible = !!player;
    if (player) mesh.material = this.assets.material(property.mortgaged ? '#858B85' : PLAYER_COLORS[player.token ?? game.players.indexOf(player)], 'lacquer');
@@ -187,12 +192,12 @@ export class BoardView {
    for(const house of growing)house.scale.y=.001;
    ring.visible=start<=now;this.scene.add(ring);this.propertyEffects.set(motion.property,{motion,start,ring,growing});
   }
-  this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
+  this.renderer.shadowMap.needsUpdate = true; this.dirty = true;this.overlayDirty=true;
   this.playbackActive=this.isAnimating;
  }
  select(index: number) { this.selection.visible = index >= 0; if (index >= 0) { this.selection.position.copy(spacePosition(index)); this.selection.position.y = .659; } this.dirty = true; }
  projectSpace(index:number){const point=spacePosition(index);point.y=1.1;return this.project(point);}
- projectDeck(deck:'chance'|'community'){return this.project(new THREE.Vector3(deck==='chance'?3.4:-3.65,.85,deck==='chance'?2.99:3.5));}
+ projectDeck(deck:'chance'|'community'){return this.project(new THREE.Vector3(deck==='chance'?3.4:-3.65,.85,deck==='chance'?2.99:2.9));}
  private project(point:THREE.Vector3){point.project(this.camera);if(point.z<-1||point.z>1)return null;return{x:(point.x+1)*this.element.clientWidth/2,y:(1-point.y)*this.element.clientHeight/2};}
  setViewer(id:string|null,highlight=true){this.viewerId=id;this.highlightMine=highlight;this.refreshOwnership();}
  private refreshOwnership(){
@@ -212,14 +217,18 @@ export class BoardView {
  reset() { this.customizedView=false;this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
  configure(settings: Settings) {
   this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
+  const snapPlayback=this.reduced&&this.playbackActive;
+  const shadowSize=settings.quality==='high'?2048:1024;
+  if(this.keyLight.shadow.mapSize.x!==shadowSize){this.keyLight.shadow.mapSize.set(shadowSize,shadowSize);this.keyLight.shadow.map?.dispose();this.keyLight.shadow.map=null;}
   this.cityLife.configure(settings.speed==='reduced'||this.motionPreference.matches,settings.quality);
   if(settings.speed==='reduced'||this.motionPreference.matches)this.clearPropertyEffects();
   this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
-  if (settings.speed === 'reduced') { this.paths.clear();this.flourishes.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
+  if (this.reduced) { this.paths.clear();this.flourishes.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
+  if(snapPlayback)queueMicrotask(()=>this.onSettled());
  }
  private resize() {
   const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return;
-  this.lastSize = key; this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+  this.lastSize = key;this.overlayDirty=true; this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
   // Fit the physical board to the available stage, including its corner-to-corner width.
   const horizontal = new THREE.Vector3(this.viewDirection.z, 0, -this.viewDirection.x).normalize(), vertical = new THREE.Vector3().crossVectors(this.viewDirection, horizontal).normalize();
   let required = 0; const tangent = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
@@ -234,20 +243,23 @@ export class BoardView {
   if (document.hidden) return;
   const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0||this.flourishes.size>0;
   const ambient=this.cityLife.update(now);if(this.cityStatus.textContent!==this.cityLife.status)this.cityStatus.textContent=this.cityLife.status;
+  const dicePoses=rolling&&this.dicePlan?sampleDiceRoll(this.dicePlan,Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted))):null;
   this.dice.forEach((die,i)=>{
    const rest=this.diceRest[i];
-   if(rolling){const t=Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted)),pose=dicePose(this.diceFrom[i],rest,t,this.diceSpin[i],i);die.position.set(pose.x,pose.y,pose.z);die.rotation.set(...pose.rotation);}
-   else{die.position.set(rest.x,1.07,rest.z);die.rotation.set(0,rest.yaw,0);}
+   if(dicePoses){const pose=dicePoses[i];die.position.set(pose.x,pose.y,pose.z);die.rotation.set(...pose.rotation);}
+   else{die.position.set(rest.x,DICE_FIELD.floor+.375,rest.z);die.rotation.set(0,rest.yaw,0);}
   });this.wasRolling=rolling;
   for (const [id, path] of this.paths) {
    if (now < path.start) continue;
    const t = Math.min(1, (now - path.start) / path.duration), f = t * (path.points.length - 1), index = Math.min(path.points.length - 2, Math.floor(f)), local = f - index, token = this.tokens.get(id)!;
    const pose=pawnPose(local),size=token.userData.baseScale??1;token.position.lerpVectors(path.points[index],path.points[index+1],pose.progress);token.position.y+=pose.height;
-   token.rotation.set(pose.lean,Math.atan2(path.points[index+1].x-path.points[index].x,path.points[index+1].z-path.points[index].z),-pose.lean*.6);token.scale.set(size*pose.scaleXZ,size*pose.scaleY,size*pose.scaleXZ);
+   let heading=Math.atan2(path.points[index+1].x-path.points[index].x,path.points[index+1].z-path.points[index].z);
+   if(index>0&&local<.22){const before=Math.atan2(path.points[index].x-path.points[index-1].x,path.points[index].z-path.points[index-1].z),delta=Math.atan2(Math.sin(heading-before),Math.cos(heading-before)),blend=local/.22;heading=before+delta*blend*blend*(3-2*blend);}
+   token.rotation.set(pose.lean,heading,-pose.lean*.6);token.scale.set(size*pose.scaleXZ,size*pose.scaleY,size*pose.scaleXZ);
    if(index!==path.lastStep){path.lastStep=index;this.onStep();}
    if(t>=1){token.position.copy(path.points.at(-1)!);token.rotation.x=token.rotation.z=0;token.scale.setScalar(size);this.paths.delete(id);}
   }
-  for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.18;token.rotation.z=Math.sin(t*Math.PI*4)*(1-t)*.12;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.10));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
+  for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.08;token.rotation.z=Math.sin(t*Math.PI*2)*(1-t)*.025;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.04));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
   const propertyAnimating=this.propertyEffects.size>0;
   for(const [index,effect]of this.propertyEffects){
    const pose=propertyMotionPose(effect.motion.kind,now-effect.start,this.settings.speed==='reduced'||this.motionPreference.matches);
@@ -256,7 +268,13 @@ export class BoardView {
    if(pose.done)this.finishPropertyEffect(index);
   }
   if (this.state) { const player = this.state.players[this.state.current], token = this.tokens.get(player.id); this.halo.visible = !!token?.visible; if (token) { this.halo.position.copy(token.position); this.halo.position.y = .655; (this.halo.material as THREE.MeshBasicMaterial).color.set(PLAYER_COLORS[player.token ?? this.state.current]); } }
-  if (this.dirty || animating || ambient || propertyAnimating) { if (animating||propertyAnimating||ambient&&now-this.lastSunShadow>5000){this.renderer.shadowMap.needsUpdate=true;this.lastSunShadow=now;} this.renderer.render(this.scene, this.camera); this.dirty = false;this.onFrame(); }
+  if (this.dirty || animating || ambient || propertyAnimating) {
+   const shadowInterval=this.settings.quality==='high'?1000/18:1000/12;
+   const settled=animating&&!rolling&&!this.paths.size&&!this.flourishes.size||propertyAnimating&&!this.propertyEffects.size;
+   if(settled||(animating||propertyAnimating)&&now-this.lastSunShadow>=shadowInterval||ambient&&now-this.lastSunShadow>5000){this.renderer.shadowMap.needsUpdate=true;this.lastSunShadow=now;}
+   this.renderer.render(this.scene, this.camera); this.dirty = false;
+   if(this.overlayDirty){this.overlayDirty=false;this.onFrame();}
+  }
   if(this.playbackActive&&!this.isAnimating){this.playbackActive=false;queueMicrotask(()=>this.onSettled());}
  }
  private finishPropertyEffect(index:number){const effect=this.propertyEffects.get(index);if(!effect)return;for(const house of effect.growing)house.scale.y=1;this.scene.remove(effect.ring);effect.ring.material.dispose();this.propertyEffects.delete(index);}

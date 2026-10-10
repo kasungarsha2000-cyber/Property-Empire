@@ -6,6 +6,9 @@ OUT=Path('test-artifacts');OUT.mkdir(exist_ok=True)
 with sync_playwright() as p:
  browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-webgl','--use-angle=swiftshader'])
  context=browser.new_context(viewport={'width':1440,'height':960})
+ # Functional smoke tests use software WebGL; high-quality visuals have a
+ # separate renderer probe. Keep the two-peer LAN journey within its budget.
+ context.add_init_script("localStorage.setItem('empire-settings',JSON.stringify({speed:'normal',quality:'low',sound:false}))")
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.goto(BASE);page.wait_for_load_state('networkidle')
  page.screenshot(path=str(OUT/'menu-desktop.png'),full_page=True)
@@ -115,6 +118,7 @@ with sync_playwright() as p:
  expect(other.locator('#revision')).to_have_text('1',timeout=10000)
  assert not errors,'Browser exceptions: '+str(errors)
  if os.environ.get('EMPIRE_OFFLINE')=='1':
+  other.close()
   page.get_by_role('button',name='Main menu',exact=True).click()
   page.wait_for_function('navigator.serviceWorker.controller !== null',timeout=10000)
   context.set_offline(True);page.reload(wait_until='domcontentloaded',timeout=60000)

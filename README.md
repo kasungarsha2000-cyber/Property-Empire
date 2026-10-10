@@ -4,16 +4,30 @@ An original 3D property-trading game for a solo player with bots or friends on a
 
 ## Start playing on this PC
 
-Double-click **Start Property Empire.cmd** in the parent folder, or run:
+Double-click **setup.bat** once, then **run.bat** in the game folder. Setup downloads a supported Node.js runtime into `.runtime/node`, verifies its official SHA256 checksum, and prepares missing dependencies/builds. It needs no administrator rights or global installation. The launcher starts a hidden local host and opens **http://localhost:3001**.
+
+For development, you can also run:
 
 ```powershell
 cd "D:\Other\Monopoly Game\PropertyEmpire3D"
 npm run start:lan
 ```
 
-Open **http://localhost:3001**. Production bundles have already been built. Keep the server terminal running while playing LAN games. For a new installation, use Node.js 24 LTS, then `npm install` and `npm run build` first. Ctrl+C stops the server.
+This terminal command keeps the server in the foreground; Ctrl+C stops it. Production bundles have already been built.
 
-You can also double-click **run.bat** in the parent or project folder. It builds changed source, starts the host in the background, and reuses an existing host.
+The batch launcher rebuilds changed source and reuses a host from the same folder. If another copy occupies port 3001, close its host or set `PORT` to a different number. Logs are in `data/launcher-*.log`. `run.bat -NoBrowser` starts the host without opening a browser.
+
+## Send the game to a friend
+
+Send **PropertyEmpire3D-Windows.zip** from the parent folder. Your friend should extract the whole ZIP into any folder, open its **PropertyEmpire3D** folder, run **setup.bat** once, then use **run.bat** to play. Keep the folder together when moving it. A Windows x64 runtime and production dependencies are included in this package, so the extracted version can launch offline; setup downloads a matching runtime if needed on another supported architecture. A source-only copy needs internet access for first setup. Your saves and host data are excluded from the ZIP.
+
+To prepare a fresh share package yourself:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-game.ps1 -IncludeRuntime
+```
+
+This packages source, local assets, current builds and production dependencies. It refuses to overwrite an existing ZIP unless you pass `-Force`. `-SkipBuild` is available after a fresh manual build; stale bundles are rejected.
 
 ## Solo play
 
@@ -44,9 +58,9 @@ Host snapshots and previous backups are stored in `data/saves/` using atomic wri
 
 **Your properties** groups your deeds by district, shows progress toward each color set, and labels mortgages and buildings. **Highlight mine on board** marks your spaces, and owned spaces show **Yours** on the board. Select an owned property to inspect and manage it. In **Properties**, use **Your properties** or **Available from bank** to filter the title deeds.
 
-Turn information, centered tools and dice results share one desktop row. Click a board property for one complete deed with ownership, all rents, development costs, mortgages and available actions. Buying, building and rent animate the actual property. Undeveloped plots have grass, paths, shrubs and a thin district-colored border; houses and hotels appear only when built.
+Turn information, centered tools and dice results share one desktop row. Click a board property for one complete deed with ownership, all rents, development costs, mortgages and available actions. Buying, building and rent animate the actual property. Undeveloped plots have grass, paths, shrubs and a vibrant district-colored border; houses and hotels appear only when built.
 
-Each event uses one confirmation. Rent names both payer and recipient beside the property; receipts remain for eight seconds. Hover or keyboard focus pauses the timer on financial notices and opponent cards. Your drawn cards wait for **Continue**; bots allow nine seconds in solo and twelve seconds on LAN before resolving their cards. The central city has moving traffic, people, an aircraft, weather and a day/night cycle. Reduced motion freezes decorative city effects while keeping information visible.
+Each event uses one confirmation. Rent names both payer and recipient beside the property; small receipts last 2.2 seconds and trade confirmations last 2.8 seconds. Starting the next pawn move clears the previous cosmetic receipt. Purchase decisions, Chance and Community Chest cards appear at the right edge of the board without resizing it. Hover or keyboard focus pauses opponent cards. Your drawn cards wait for **Continue**; bots allow nine seconds in solo and twelve seconds on LAN before resolving their cards. Every player’s nametag shows actual cash received or paid after arrival. Accepted trades reveal the illustrated deeds, cash and jail cards being exchanged. Use Continue on an opponent bot’s Chance/Community Chest card to apply it sooner; another human’s card remains their decision. The central city has framed windows, rooftop gardens/pergolas/solar panels, storefront signs, moving traffic, people, an aircraft, weather and a day/night cycle. Dice bounce across the foreground felt, with deck and pair collisions, instead of staying in fixed lanes. Reduced motion freezes decorative city effects while keeping information visible.
 
 If you are one deed short of a street group, the portfolio shows its name and owner. **Trade for this property** starts an offer with that deed selected. You can also choose **Trade** during your turn, before or after rolling or while resolving debt. Choose a player, select illustrated cards under **You give** and **You receive**, and enter cash or jail cards. Developed groups explain why their deeds cannot be selected.
 

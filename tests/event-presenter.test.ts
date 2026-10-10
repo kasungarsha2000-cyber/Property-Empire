@@ -30,8 +30,11 @@ it('leaves spatial rent and purchase confirmations to one board notification',()
  presenter.update(g,'a',null);presenter.update(applyAction(g,'a',{type:'buy'}),'a',null);expect(host.hidden).toBe(true);presenter.reset();
  g.phase='roll';g.pendingProperty=null;g.properties[9].owner='b';presenter.update(g,'a',null);presenter.update(applyAction(g,'a',{type:'roll'}),'a',null);expect(host.hidden).toBe(true);presenter.reset();
 });
-it('keeps a financial receipt readable for eight seconds',()=>{
- vi.useFakeTimers();try{const {host,presenter}=setup(),g=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'b',name:'Ben',bot:true}]},42);g.current=0;g.players[0].position=39;presenter.update(g,'a',null);presenter.update(applyAction(g,'a',{type:'roll'}),'a',null);expect(host.hidden).toBe(false);vi.advanceTimersByTime(7000);expect(host.hidden).toBe(false);vi.advanceTimersByTime(1100);expect(host.hidden).toBe(true);presenter.reset();}finally{vi.useRealTimers();}
+it('dismisses a small financial receipt after 2.2 seconds without blocking play',()=>{
+ vi.useFakeTimers();try{const {host,presenter}=setup(),g=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'b',name:'Ben',bot:true}]},42);g.current=0;g.players[0].position=39;presenter.update(g,'a',null);presenter.update(applyAction(g,'a',{type:'roll'}),'a',null);expect(host.hidden).toBe(false);expect(presenter.hasBlockingCard).toBe(false);vi.advanceTimersByTime(2199);expect(host.hidden).toBe(false);vi.advanceTimersByTime(1);expect(host.hidden).toBe(true);presenter.reset();}finally{vi.useRealTimers();}
+});
+it('discards an old small receipt when the next pawn starts moving',()=>{
+ vi.useFakeTimers();try{const {host,presenter}=setup(),g=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'b',name:'Ben',bot:true}]},42);g.current=0;g.players[0].position=39;presenter.update(g,'a',null);presenter.update(applyAction(g,'a',{type:'roll'}),'a',null);expect(host.hidden).toBe(false);presenter.setMoving(true);expect(host.hidden).toBe(true);presenter.setMoving(false);expect(host.hidden).toBe(true);presenter.reset();}finally{vi.useRealTimers();}
 });
 it('lets the viewer decision take priority over an opponent card',()=>{
  vi.useFakeTimers();try{
@@ -48,4 +51,10 @@ it('discards an opponent card when restoring an earlier save in the same match',
   presenter.update(g,'a',null);presenter.update(applyAction(g,'b',{type:'roll'}),'a',null);expect(host.hidden).toBe(false);
   presenter.update(g,'a',null);expect(host.hidden).toBe(true);expect(presenter.hasBlockingCard).toBe(false);presenter.reset();
  }finally{vi.useRealTimers();}
+});
+it('offers an observer Continue action that dismisses only the displayed observer card',()=>{
+ const {host,presenter}=setup();const game=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'b',name:'Ben',bot:true}]},42);game.current=1;game.players[1].position=24;game.decks.community=[2,...game.decks.community.filter(i=>i!==2)];
+ presenter.update(game,'a',null);const drawn=applyAction(game,'b',{type:'roll'});presenter.update(drawn,'a',null);
+ expect(host.innerHTML).toContain('data-do="continue-observer-card"');expect(presenter.observerCard?.player).toBe('Ben');expect(presenter.observerCardEvent).toBe(drawn.pendingCard!.event);expect(presenter.dismissObserverCard()).toBe(true);expect(host.hidden).toBe(true);expect(presenter.observerCardEvent).toBe(null);
+ presenter.update(drawn,'a',{key:'own-card',kind:'card',title:'Your card',html:'<button data-do="continue-card">Continue</button>'});expect(presenter.dismissObserverCard()).toBe(false);expect(host.innerHTML).toContain('continue-card');expect(host.hidden).toBe(false);presenter.reset();
 });

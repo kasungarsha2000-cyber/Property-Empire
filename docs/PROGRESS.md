@@ -1,5 +1,7 @@
 # Progress
 
+2026-10-09 follow-up: Small rent/money notices now expire after 2.2 seconds and trade confirmations after 2.8 seconds. The previous cosmetic receipt clears as the next pawn starts moving; new receipts still wait for arrival. Purchase, Chance and Community Chest decisions sit at the board's right edge with reachable sticky actions on short screens. Cards still wait for Continue. Continue Saved Game and Rejoin LAN Game are separate labeled menu buttons. Front-page credit: Developed by Kasun Samarasinghe.
+
 Design source: supplied JSON; user authorized implementation.
 
 - Workspace inspection: empty; Node 24.21.0 and npm 11.19.0 available.
@@ -52,3 +54,11 @@ Verification: 105 automated tests, strict TypeScript and production builds pass.
 Financial confirmations are consolidated: one purchase/build/trade board receipt, one named property rent label, and one income/payment notice. Text remains for eight seconds, with hover/focus pausing event notices. Card effects are decorative after reading, without a second financial explanation. Bots allow nine seconds in solo and twelve on LAN. Property purchases/transfers/rent pulse the actual tile; new houses/hotels rise into place. Queue retention and movement gates preserve rent notices until arrival. All 131 automated tests, strict TypeScript/builds and seven targeted development Chrome scripts pass. Independent receipt repairs are confirmed.
 
 Final production verification: all thirteen Chrome scripts and the separate reduced-motion check passed across the final cycle, including offline resume, LAN synchronization/reconnect, no-shift rolls, single/readable notifications, unified deeds, sound/trading and results. A real-time purchase receipt stayed readable beyond four seconds and its screenshot was inspected. The latest production bundles include the colored tile perimeter and the host remains healthy on port 3001.
+
+2026-10-09 cash, dice, city and distribution update: each player’s nametag animates booked money gains/losses after arrival and survives UI rerenders. Accepted trades show the named illustrated assets and a settled confirmation. Popups use refined ivory/forest/brass styling; own and opponent cards keep a visible Continue button, and bot cards can be resolved sooner in solo or through an authenticated authoritative LAN message. The original card-reading rule remains intact for humans.
+
+Dice now travel across the full foreground felt with fixed-step gravity/rebounds, deck and pair collisions, independent of render cadence. Vibrant district borders frame landscaped properties. City roofs, windows, storefronts and park details are enhanced. Repeated static meshes are instanced without changing original tile picking; city timing retains dropped-frame time, shadows are refreshed at bounded cadence and final settlement, and pawn travel avoids the exaggerated stop/hop at each square. OS reduced motion snaps and flushes the normal arrival sequence.
+
+Portable setup installs a verified supported Node runtime into the game folder, uses local npm caching and preserves saves. run.bat works after extraction/moving, detaches the host and checks folder/process ownership. The package script includes production dependencies and optional runtime while excluding saves/dev files; stale build certification and changed bundle content are rejected. All 160 automated tests and production builds pass; development Chrome flows and screenshots were verified.
+
+The actual 50.2 MB Windows ZIP passed moved/extracted-folder launch with no global Node/npm on PATH, built-asset serving, LAN save persistence and same-host reuse. A fresh browser service-worker inspection and offline solo resume/purchase passed. Physical clean-PC and ARM64 tests remain unperformed.

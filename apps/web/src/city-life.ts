@@ -144,9 +144,13 @@ export class CityLife {
   update(now: number): boolean {
     if (!Number.isFinite(now)) return false;
     if (this.reduced && !this.dirty) return false;
-    const interval = this.quality === 'low' ? 1000 / 15 : 1000 / 30;
-    if (!this.dirty && this.last !== null && now - this.last < interval) return false;
-    const dt = this.last === null || this.reduced ? 0 : THREE.MathUtils.clamp((now - this.last) / 1000, 0, .1);
+    const interval = this.quality === 'low' ? 1000 / 30 : 1000 / 60;
+    // A small tolerance avoids losing alternating frames to floating-point timestamps.
+    if (!this.dirty && this.last !== null && now - this.last < interval - .5) return false;
+    const gap=this.last===null?0:now-this.last;
+    // Visibility resets the clock. Ignore long suspended gaps, but retain elapsed
+    // time from ordinary dropped frames so traffic/weather never run in slow motion.
+    const dt = this.reduced||gap>5000?0:Math.max(0,gap/1000);
     this.last = now; this.dirty = false; this.elapsed += dt * 1000;
     const seconds = this.reduced ? 0 : this.elapsed / 1000, cycle = cityCycle(seconds);
     this.status = `${cycle.period} · ${cycle.weather}`;
@@ -158,10 +162,14 @@ export class CityLife {
     const signalTime = wrap(seconds, 40), horizontalGreen = signalTime < 18, verticalGreen = signalTime >= 20 && signalTime < 38;
     this.signals.setColorAt(0, new THREE.Color(horizontalGreen ? '#85DA9C' : '#E97866'));
     this.signals.setColorAt(1, new THREE.Color(verticalGreen ? '#85DA9C' : '#E97866')); this.signals.instanceColor!.needsUpdate = true;
-    for (let i = 0; i < 6; i++) {
-      const before = trafficPose(this.trafficTime[i], i), next = trafficPose(this.trafficTime[i] + dt, i);
-      const stop = i < 4 ? !horizontalGreen && ((before.x <= -.18 && next.x > -.18) || (before.x >= .88 && next.x < .88))
-        : !verticalGreen && ((before.z <= -1.22 && next.z > -1.22) || (before.z >= -.28 && next.z < -.28));
+    // Substeps keep signal/queue collision checks reliable at a low rendering FPS.
+    const steps=Math.max(1,Math.ceil(dt/.05)),step=dt/steps;
+    for(let tick=0;tick<steps;tick++){
+     const light=wrap(seconds-dt+step*(tick+1),40),horizontal=light<18,vertical=light>=20&&light<38;
+     for(let i=0;i<6;i++){
+      const before = trafficPose(this.trafficTime[i], i), next = trafficPose(this.trafficTime[i] + step, i);
+      const stop = i < 4 ? !horizontal && ((before.x <= -.18 && next.x > -.18) || (before.x >= .88 && next.x < .88))
+        : !vertical && ((before.z <= -1.22 && next.z > -1.22) || (before.z >= -.28 && next.z < -.28));
       // A queued vehicle holds followers back; parallel opposite lanes remain free.
       const queued = this.trafficTime.some((time, j) => {
         if (i === j) return false;
@@ -170,7 +178,10 @@ export class CityLife {
         const side = dx * Math.sin(next.heading) + dz * Math.cos(next.heading);
         return dx * dx + dz * dz < .24 * .24 || (forward > 0 && forward < .60 && Math.abs(side) < .17);
       });
-      if (!stop && !queued) this.trafficTime[i] += dt;
+      if (!stop && !queued) this.trafficTime[i] += step;
+     }
+    }
+    for (let i = 0; i < 6; i++) {
       const pose = trafficPose(this.reduced ? 0 : this.trafficTime[i], i), bus = i === 3;
       const length = bus ? .56 : .36;
       this.setPart(this.body, i, pose, [0, .105, 0], [length, bus ? .20 : .12, .19]);

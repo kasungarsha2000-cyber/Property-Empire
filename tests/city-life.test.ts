@@ -64,8 +64,20 @@ describe('living city cycles and movement', () => {
 
   it('throttles ambient frames to configured quality', () => {
     const {life} = fixture(); life.configure(false, 'low');
-    expect(life.update(0)).toBe(true); expect(life.update(30)).toBe(false); expect(life.update(67)).toBe(true);
-    life.configure(false, 'high'); expect(life.update(68)).toBe(true); expect(life.update(90)).toBe(false); expect(life.update(102)).toBe(true);
+    expect(life.update(0)).toBe(true); expect(life.update(16)).toBe(false); expect(life.update(34)).toBe(true);
+    life.configure(false, 'high'); expect(life.update(35)).toBe(true); expect(life.update(43)).toBe(false); expect(life.update(52)).toBe(true);
+  });
+
+  it('keeps the city clock and aircraft at real speed when render frames drop',()=>{
+    const {life,scene}=fixture();life.update(0);life.update(1000);
+    const aircraft=scene.getObjectByName('city-aircraft')!,pose=aircraftPose(1);
+    expect(aircraft.position.x).toBeCloseTo(pose.x);expect(aircraft.position.z).toBeCloseTo(pose.z);
+  });
+
+  it('does not lose alternate frames at a 60 Hz browser cadence',()=>{
+    const {life}=fixture();life.configure(false,'high');let frames=0;
+    for(let frame=0;frame<=120;frame++)if(life.update(frame*1000/60))frames++;
+    expect(frames).toBeGreaterThanOrEqual(119);
   });
 
   it('freezes all ambient transforms and weather under reduced motion', () => {

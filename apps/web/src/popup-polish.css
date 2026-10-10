@@ -1,0 +1,96 @@
+/* Player balances stay fixed; effects are attached to each nametag. */
+#player-ledger [data-player]{position:relative;isolation:isolate;overflow:visible}
+#player-ledger .player-cash{font-variant-numeric:tabular-nums;transform-origin:center right}
+.ledger-delta{position:absolute;z-index:5;right:7px;top:-11px;pointer-events:none;display:flex;align-items:center;gap:4px;white-space:nowrap;color:#245e48;font-size:12px;font-weight:900;line-height:1;border:1px solid #bbd8c7;border-radius:20px;background:#f1f9ed;box-shadow:0 3px 10px #193c3420;padding:5px 8px;animation:ledger-arrive 360ms cubic-bezier(.2,.8,.2,1) both}
+.ledger-loss{color:#8b4636;border-color:#e3c3ae;background:#fff2e7}
+.ledger-delta-copy{font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.ledger-coins{width:13px;height:13px;display:block;position:absolute;left:calc(-1 * var(--ledger-distance,90px));top:8px}
+.ledger-coins i{display:block;position:absolute;inset:1px;border:1px solid #a38232;border-radius:50%;background:#ebd492;box-shadow:inset 0 0 0 2px #f7e4ab;animation:ledger-coin-in 600ms cubic-bezier(.2,.8,.25,1) both}
+.ledger-coins i:nth-child(2){animation-delay:65ms}.ledger-coins i:nth-child(3){animation-delay:130ms}
+.ledger-loss .ledger-coins i{animation-name:ledger-coin-out}
+@keyframes ledger-arrive{from{opacity:0;translate:0 6px;scale:.92}to{opacity:1;translate:0 0;scale:1}}
+@keyframes ledger-coin-in{0%{opacity:0;transform:translate(var(--ledger-distance,90px),-18px) scale(.65)}45%{opacity:1;transform:translate(calc(var(--ledger-distance,90px) * .48),-21px) scale(1)}80%{opacity:1;transform:translate(0,6px) scale(1)}100%{opacity:0;transform:translate(0,6px) scale(.7)}}
+@keyframes ledger-coin-out{0%{opacity:0;transform:translate(0,6px) scale(.65)}20%{opacity:1;transform:translate(0,6px) scale(1)}65%{opacity:1;transform:translate(calc(var(--ledger-distance,90px) * .5),-21px) scale(1)}100%{opacity:0;transform:translate(var(--ledger-distance,90px),-18px) scale(.7)}}
+.ledger-reduced,.ledger-reduced *{animation:none!important}.ledger-reduced .ledger-coins{display:none}
+
+/* Ivory, brass and forest details keep popups part of the board's world. */
+.event-popup{border-color:#d0d6c5;border-radius:18px;background:#fffdf7;box-shadow:0 16px 44px #203d3522,0 3px 8px #203d3510}
+.event-popup h2{font-size:25px;letter-spacing:-.3px;line-height:1.2}
+.event-popup .event-close{border-radius:50%;width:44px;min-height:44px;right:5px;top:5px;color:#526758}
+.event-popup .event-close:hover{background:#edf0e5}
+.event-popup .observer-label{display:inline-block;padding:4px 9px;margin-bottom:8px;border:1px solid #dddec8;border-radius:20px;color:#5a684d;background:#f2f2e6;font-size:10px;font-weight:900;letter-spacing:.3px}
+.event-popup.event-observer{width:min(338px,calc(100% - 28px));padding:17px;max-height:calc(100% - 86px)}
+.event-observer>h2{font-size:21px;padding-right:26px;margin-bottom:12px}
+.event-popup .deck-card{border-radius:13px;border-color:#d5d4b8;background:linear-gradient(160deg,#fffdf7,#f5f2e7);box-shadow:inset 0 1px 0 #ffffff}
+.event-popup .card-face-top{border-bottom:1px solid #dcd9c9;padding-bottom:8px;color:#626d54}
+.event-popup .card-face-top>span{font-weight:900;letter-spacing:.35px}
+.event-popup .card-illustration{height:75px;margin:8px 0 4px}
+.event-popup .card-scene-title{font-size:23px;color:#27484c;line-height:1.2}
+.event-popup .card-instruction{font-size:16px;line-height:1.5;color:#334c43;margin-top:8px}
+.event-popup .card-effect{margin-top:13px;border:1px solid #dfdfcb;border-radius:9px;background:#f0f1e4;padding:9px 11px;font-variant-numeric:tabular-nums}
+.event-popup .card-annotations{font-size:12px;line-height:1.5;color:#566955}
+.event-popup .event-actions button{border-radius:10px;font-size:13px;min-height:44px}
+.event-popup.event-card .event-actions{position:sticky;bottom:-1px;z-index:2;margin-top:12px;padding:10px 0 2px;background:linear-gradient(#fffdf7e8,#fffdf7 30%);box-shadow:0 -8px 12px #fffdf780}
+.event-popup .observer-continue{margin-top:12px}
+.event-popup .observer-continue button{justify-content:space-between;padding-inline:15px}
+.event-popup.event-notice{max-height:136px;gap:11px;border-left:3px solid #639179;border-radius:13px;overflow:visible;padding:13px 45px 13px 12px;box-shadow:0 5px 18px #203d3518;background:#fffdf7}
+.receipt-badge{width:31px;height:34px;display:grid;place-items:center;border-radius:9px;background:#e8f0e3;color:#4a755c;flex:none}
+.receipt-badge.receipt-paid{background:#f2e9da;color:#987247}.receipt-badge svg{width:23px;height:23px}
+.event-notice .transaction-copy>strong{font-size:13px;line-height:1.3}
+.event-notice .receipt-detail{font-size:12px;line-height:1.4;color:#5a6c5e;max-width:240px}
+.event-notice .transaction-amount{font-size:19px;margin-left:auto;line-height:1;white-space:nowrap}
+.event-notice .event-close{top:50%;right:1px;width:40px;min-height:40px}
+.event-popup .event-property-price{border-color:#ddd9c9;padding-top:13px}
+.event-popup .event-art{border-radius:11px;border:1px solid #e3e2d1}
+.event-popup .trade-summary-columns>section{border-radius:10px;background:#f4f4e9;padding:12px}
+
+/* The confirmed trade shows the assets themselves and settles into a receipt. */
+.board-moment.moment-trade{width:min(440px,calc(100% - 28px));top:36%;filter:none}
+.trade-confirmation{padding:17px;text-align:left;border:1px solid #cfd7c6;border-radius:18px;background:#fffdf7;box-shadow:0 10px 30px #193c3424;max-height:min(490px,65vh);overflow:auto;pointer-events:auto;scrollbar-width:thin;animation:trade-confirm-in 400ms cubic-bezier(.2,.8,.25,1) both}
+.trade-complete-head{display:flex;align-items:center;gap:10px;padding-bottom:13px;border-bottom:1px solid #e3e3d3}
+.trade-complete-head>div{min-width:0}.trade-complete-head>div>span{display:block;font-size:10px;letter-spacing:.7px;text-transform:uppercase;font-weight:900;color:#5c7159}
+.trade-complete-head>div>strong{font-family:'Fredoka',sans-serif;font-size:21px;font-weight:500;line-height:1.25;color:#294b4d;display:block;overflow-wrap:anywhere}
+.trade-settled{height:34px;width:34px;border-radius:50%;background:#e6f0dc;color:#3b7454;display:grid;place-items:center;flex:none;animation:trade-seal-in 380ms 380ms cubic-bezier(.2,.8,.25,1) both}.trade-settled svg{height:23px;width:23px}
+.trade-exchange{display:grid;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);align-items:start;gap:5px;margin-top:12px}
+.trade-transfer{min-width:0;animation:trade-give-in 440ms cubic-bezier(.2,.8,.25,1) both}.trade-transfer.transfer-receive{animation-name:trade-receive-in}
+.trade-transfer>header{margin-bottom:9px;line-height:1.3}.trade-transfer>header strong{display:block;font-size:13px;color:#294b4d;overflow-wrap:anywhere}.trade-transfer>header span{font-size:11px;color:#5c705b;overflow-wrap:anywhere}
+.trade-transfer-arrow{align-self:center;text-align:center;color:#a58b52;font-size:24px;animation:trade-arrow-settle 440ms ease-out both}
+.trade-assets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.trade-assets>*:only-child{grid-column:1/-1}
+.trade-mini-deed{min-width:0;overflow:hidden;border:1px solid #dbddcd;border-top:4px solid var(--deed-color);border-radius:8px;background:#fbfaf1;box-shadow:0 2px 3px #193c3409}
+.trade-mini-art{height:58px;overflow:hidden;background:#efeee1}.trade-mini-art .property-art{width:100%;height:100%;display:block;object-fit:cover}
+.trade-mini-deed>strong{font-size:11px;line-height:1.2;display:block;color:#2a4440;padding:6px 6px 2px;overflow-wrap:anywhere}.trade-mini-deed>small{display:block;font-size:9px;color:#66765b;padding:0 6px 7px}
+.trade-mini-cash,.trade-mini-card{min-width:0;padding:9px 6px;border:1px solid #cfdcc1;border-radius:8px;text-align:center;background:#eff3e4;color:#487154;display:grid;justify-items:center;align-content:center;gap:3px}
+.trade-mini-card{border-color:#dfd7b9;background:#f7f2e2;color:#927441}
+.trade-mini-cash svg,.trade-mini-card svg{width:31px;height:24px}.trade-mini-cash strong{font-size:16px;font-variant-numeric:tabular-nums}.trade-mini-card strong{font-size:11px}.trade-mini-cash small,.trade-mini-card small{font-size:10px;line-height:1.3}
+.trade-empty-transfer{font-size:11px;line-height:1.5;padding:20px 6px;color:#64745f;border:1px dashed #d4d9c5;border-radius:8px;grid-column:1/-1;text-align:center}
+.trade-settlement-note{margin-top:13px;border-top:1px solid #e3e3d3;padding-top:10px;font-size:11px;color:#64765b;text-align:center}
+@keyframes trade-confirm-in{from{opacity:0;translate:0 9px;scale:.96}to{opacity:1;translate:0 0;scale:1}}
+@keyframes trade-give-in{from{opacity:0;translate:-25px 9px;rotate:-2deg}to{opacity:1;translate:0 0;rotate:0deg}}
+@keyframes trade-receive-in{from{opacity:0;translate:25px -9px;rotate:2deg}to{opacity:1;translate:0 0;rotate:0deg}}
+@keyframes trade-seal-in{from{opacity:0;scale:.8}to{opacity:1;scale:1}}
+@keyframes trade-arrow-settle{from{opacity:0;scale:.85}to{opacity:1;scale:1}}
+.moment-reduced .trade-confirmation,.moment-reduced .trade-transfer,.moment-reduced .trade-settled,.moment-reduced .trade-transfer-arrow{animation:none!important}
+@media(max-width:650px){
+ .event-popup.event-observer{padding:14px;max-height:calc(100% - 80px)}
+ .event-popup .card-instruction{font-size:15px}.event-popup .card-scene-title{font-size:21px}.event-popup .card-illustration{height:58px}.event-popup .card-annotations{font-size:11px}
+ .event-popup.event-notice{gap:8px;max-height:128px;padding:10px 37px 10px 10px}.receipt-badge{width:25px;height:29px}.receipt-badge svg{width:20px;height:20px}.event-notice .receipt-detail{font-size:11px}.event-notice .transaction-copy>strong{font-size:12px}.event-notice .transaction-amount{font-size:17px}
+ .board-moment.moment-trade{top:35%;width:calc(100% - 22px)}.trade-confirmation{padding:12px;max-height:min(340px,52vh)}.trade-complete-head>div>strong{font-size:18px}.trade-exchange{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:4px}.trade-transfer-arrow{font-size:20px}.trade-assets{gap:5px}.trade-mini-art{height:48px}
+ .ledger-delta{font-size:11px;top:-9px;right:4px;padding:4px 6px}
+}
+@media(prefers-reduced-motion:reduce){.ledger-delta,.ledger-delta *,.trade-confirmation,.trade-transfer,.trade-settled,.trade-transfer-arrow{animation:none!important}.ledger-coins{display:none}}
+
+/* Decisions sit above the board at its right edge, without resizing the canvas. */
+.event-popup.event-purchase,.event-popup.event-card,.event-popup.event-decision.event-card{left:auto;right:14px;top:74px;transform:none;max-height:calc(100% - 88px)}
+.event-popup.event-purchase{width:min(510px,calc(100% - 28px))}
+.board-moment.moment-trade{left:auto;right:14px;top:74px;transform:none;width:min(360px,calc(100% - 28px))}
+.trade-confirmation{animation-duration:220ms}
+.trade-transfer,.trade-transfer-arrow{animation-duration:280ms}
+.trade-settled{animation-duration:220ms;animation-delay:180ms}
+@media(max-width:650px){
+ .event-popup.event-purchase,.event-popup.event-card,.event-popup.event-decision.event-card{right:11px;top:64px;max-height:calc(100% - 76px);width:calc(100% - 22px)}
+ .board-moment.moment-trade{right:11px;top:64px;width:calc(100% - 22px)}
+}
+@media(max-height:520px){
+ .event-popup.event-purchase,.event-popup.event-card,.event-popup.event-decision.event-card,.board-moment.moment-trade{top:12px;max-height:calc(100% - 24px)}
+ .trade-confirmation{max-height:calc(100dvh - 190px)}
+}

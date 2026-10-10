@@ -102,7 +102,7 @@ with sync_playwright() as p:
               const path=view.paths.get('human');view.diceUntil=0;path.start=performance.now()-90;view.frame();const token=view.tokens.get('human');const mid={height:token.position.y,scaleY:token.scale.y,angle:token.rotation.y,steps};
               view.configure({speed:'reduced',quality:'low',sound:false});view.frame();const end={busy:view.isAnimating,height:token.position.y,scaleY:token.scale.y,lean:token.rotation.z};view.controls.dispose();view.renderer.dispose();host.remove();return{mid,end};
             }''',{'before':fixtures['animatedRoll'],'after':fixtures['pawnRoll']})
-            assert result['mid']['height']>.95 and result['mid']['scaleY']>1.1 and result['mid']['steps']==1,result
+            assert result['mid']['height']>.82 and result['mid']['scaleY']>1.04 and result['mid']['steps']==1,result
             assert not result['end']['busy'] and abs(result['end']['height']-.68)<.001 and result['end']['scaleY']==1 and result['end']['lean']==0,result
             print(json.dumps({'pawn_pose':result}))
         assert not errors,errors

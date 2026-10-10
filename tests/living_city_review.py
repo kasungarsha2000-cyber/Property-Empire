@@ -23,36 +23,39 @@ with sync_playwright() as p:
         page.locator('#event-popup').get_by_role('button',name='Buy for $120',exact=True).click()
         expect(page.locator('.moment-purchase .moment-copy')).to_contain_text('Ada owns Pier Avenue')
         expect(page.locator('#event-popup')).to_be_hidden();expect(page.locator('.feedback-label')).to_have_count(0)
-        page.clock.run_for(400)
+        # Jump to the reading checkpoint; rendering every synthetic animation
+        # frame queues GPU work in SwiftShader without testing receipt timing.
+        page.clock.fast_forward(400)
         # Playwright's timer clock and the CSS animation timeline are separate.
-        page.locator('.moment-copy').evaluate('e=>e.getAnimations().forEach(a=>{a.pause();a.currentTime=3500})')
-        page.screenshot(path=str(out/'living-purchase-board.png'))
-        page.clock.fast_forward(6500)
+        page.locator('.moment-copy').evaluate('e=>e.getAnimations().forEach(a=>{a.pause();a.currentTime=1000})')
+        page.clock.run_for(35)
+        page.screenshot(path=str(out/'living-purchase-board.png'),animations='disabled')
+        page.clock.fast_forward(1300)
         expect(page.locator('.moment-purchase')).to_be_visible()
         appearance=page.locator('.moment-copy').evaluate("e=>({opacity:getComputedStyle(e).opacity,name:getComputedStyle(e).animationName,duration:getComputedStyle(e).animationDuration,current:e.getAnimations().map(a=>a.currentTime)})")
-        assert appearance['name']=='readable-moment' and appearance['duration']=='8s',appearance
-        page.locator('.moment-copy').evaluate('e=>e.getAnimations().forEach(a=>a.currentTime=7000)')
+        assert appearance['name']=='readable-moment' and appearance['duration']=='2.2s',appearance
+        page.locator('.moment-copy').evaluate('e=>e.getAnimations().forEach(a=>a.currentTime=1800)')
         assert float(page.locator('.moment-copy').evaluate('e=>getComputedStyle(e).opacity'))>.99
-        page.clock.fast_forward(1300);expect(page.locator('.moment-purchase')).to_have_count(0)
-        menu();page.emulate_media(reduced_motion='reduce')
+        page.clock.fast_forward(500);expect(page.locator('.moment-purchase')).to_have_count(0)
+        menu();page.emulate_media(reduced_motion='no-preference')
         rent=copy.deepcopy(fixtures['animatedRoll']);rent['current']=1;rent['properties'][9]['owner']='human';load(rent)
         page.clock.fast_forward(1000);expect(page.locator('.feedback-label')).to_have_count(0)
-        page.clock.fast_forward(3000)
+        page.emulate_media(reduced_motion='reduce');page.clock.fast_forward(3000)
         expect(page.locator('.feedback-label')).to_contain_text('Ben pays Ada')
         expect(page.locator('.feedback-label')).to_be_visible();expect(page.locator('#event-popup')).to_be_hidden()
         assert page.locator('.event-feedback').evaluate("e=>getComputedStyle(e).display!=='none'")
         assert page.locator('.feedback-particle').first.evaluate("e=>getComputedStyle(e).display==='none'")
-        page.screenshot(path=str(out/'living-reduced-rent.png'))
+        page.clock.run_for(35)
+        page.screenshot(path=str(out/'living-reduced-rent.png'),animations='disabled')
         menu();page.emulate_media(reduced_motion='no-preference');load(fixtures['community'])
         page.get_by_role('button',name='Roll dice',exact=True).click();page.clock.fast_forward(3000)
         expect(page.locator('#event-popup')).to_contain_text('Community Chest')
         page.locator('#event-popup').get_by_role('button',name='Continue',exact=True).click()
         expect(page.locator('#event-popup.event-notice')).to_contain_text('+$200')
         expect(page.locator('.moment-card .moment-copy')).to_have_count(0);expect(page.locator('.feedback-label')).to_have_count(0)
-        page.locator('#event-popup').hover();page.clock.fast_forward(10000)
+        page.locator('#event-popup').hover();page.clock.fast_forward(1500)
         expect(page.locator('#event-popup')).to_be_visible()
-        page.mouse.move(5,5);page.clock.fast_forward(7000);expect(page.locator('#event-popup')).to_be_visible()
-        page.clock.fast_forward(1100);expect(page.locator('#event-popup')).to_be_hidden()
+        page.mouse.move(5,5);page.clock.fast_forward(800);expect(page.locator('#event-popup')).to_be_hidden()
         menu()
         # Use a fresh, unmocked browser clock for the real reading-time check.
         page.close();page=browser.new_page(viewport={'width':1440,'height':900})
@@ -62,11 +65,13 @@ with sync_playwright() as p:
         purchased_at=time.monotonic()
         page.get_by_role('button',name='Buy for $60',exact=True).click()
         page.wait_for_function("document.querySelector('.moment-copy')&&Number(getComputedStyle(document.querySelector('.moment-copy')).opacity)>.99")
-        page.screenshot(path=str(out/'living-purchase-readable-realtime.png'))
-        remaining=4500-(time.monotonic()-purchased_at)*1000
+        remaining=1000-(time.monotonic()-purchased_at)*1000
         if remaining>0:page.wait_for_timeout(remaining)
         expect(page.locator('.moment-purchase .moment-copy')).to_contain_text('Ada owns Copper Lane')
         assert float(page.locator('.moment-copy').evaluate('e=>getComputedStyle(e).opacity'))>.99
+        remaining=2600-(time.monotonic()-purchased_at)*1000
+        if remaining>0:page.wait_for_timeout(remaining)
+        expect(page.locator('.moment-purchase')).to_have_count(0)
         menu()
         probe=None
         if ':5173' in base:
@@ -93,7 +98,7 @@ with sync_playwright() as p:
               return{initialBuildings,districts,border,grass,changed,growth,ownership};
             }''',fixtures)
             assert probe['initialBuildings']==0 and probe['districts']==28,probe
-            assert probe['border'][:3]==[167,124,87] and probe['grass'][1]>probe['grass'][0],probe
+            assert probe['border'][:3]==[184,117,56] and probe['grass'][1]>probe['grass'][0],probe
             assert all(probe['changed'].values()),probe
             assert probe['growth']['kind']=='build' and not probe['growth']['blocksTurn'],probe
             assert probe['growth']['before']<.01 and .5<probe['growth']['during']<1 and probe['growth']['after']==1,probe

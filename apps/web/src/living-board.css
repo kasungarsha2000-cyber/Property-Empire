@@ -2,8 +2,8 @@
 .event-popup{will-change:opacity}
 .receipt-detail{display:block;font-size:11px;line-height:1.5;color:#536d5c;max-width:250px;margin-top:3px}
 .event-popup.event-notice{max-height:110px}
-.feedback-label{animation:readable-rent 8s ease both}
-.moment-copy,.moment-trade .moment-copy{animation:readable-moment 8s ease both}
+.feedback-label{animation:readable-rent 2.2s ease both}
+.moment-copy,.moment-trade .moment-copy{animation:readable-moment 2.2s ease both}
 @keyframes readable-rent{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}4%,96%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px)}}
 @keyframes readable-moment{0%{opacity:0;transform:translateY(8px) scale(.96)}4%,96%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
 .moment-card{opacity:.8;animation:card-effect-away 1.8s ease both}

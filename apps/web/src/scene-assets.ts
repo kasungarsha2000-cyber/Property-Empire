@@ -6,6 +6,8 @@ import {propertyDesign} from './property-art';
 export const TILE_HEIGHT = .55;
 export const TOKEN_HEIGHT = .68;
 export const TOKEN_NAMES = ['Roadster', 'Rocket', 'Sailboat', 'Robot', 'Crown', 'Airship', 'Cat', 'Gem'];
+// Richer ink on the perimeter preserves each district's established identity.
+const DISTRICT_INK: Record<string,string> = {amber:'#B87538',sky:'#27B9D6',rose:'#CE58AC',orange:'#F29230',red:'#ED5856',yellow:'#DAB329',green:'#2BAE77',blue:'#397BD1',transport:'#536E8E',utility:'#54896C'};
 export function spacePosition(index: number) {
   const side = Math.floor(index / 10), step = index % 10;
   return side === 0 ? new THREE.Vector3(5.5 - step * 1.1, TILE_HEIGHT, 5.5)
@@ -131,7 +133,7 @@ export class SceneAssets {
       if (space.price) {
         // Small landscaped lots leave the playing lane and title unobstructed.
         for(const x of [-.435,.435])this.mesh(group,this.sphere,space.index%3?'#6E9559':'#55866B',[.044,.044,.057],[x,.117,-.35],'matte',false);
-        const district=this.mesh(group,this.cylinder,space.color,[.052,.018,.052],[-.50,.066,.65],'lacquer',false);district.userData.district=space.group;
+        const district=this.mesh(group,this.cylinder,DISTRICT_INK[space.group]??space.color,[.052,.018,.052],[-.50,.066,.65],'lacquer',false);district.userData.district=space.group;
       }
       const owner = this.mesh(group, this.box, '#D8CCB4', [.90, .035, .20], [0, .04, .65], 'lacquer', false);
       owner.visible = false; this.owners.push(owner); scene.add(group);
@@ -177,7 +179,7 @@ export class SceneAssets {
       for(const x of [59,453])for(const y of [58,91,202]){ctx.fillStyle='#5D884D';ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();ctx.fillStyle=space.index%2?'#F3D697':'#E7BFBC';ctx.beginPath();ctx.arc(x-3,y-3,3,0,Math.PI*2);ctx.fill();}
       ctx.strokeStyle='#CFC5AC';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(130,394);ctx.lineTo(382,394);ctx.stroke();
       // District color follows the perimeter, keeping the lawn and title clear.
-      ctx.strokeStyle=space.color;ctx.lineWidth=11;ctx.beginPath();ctx.roundRect(16,16,480,480,13);ctx.stroke();
+      ctx.strokeStyle=DISTRICT_INK[space.group]??space.color;ctx.lineWidth=16;ctx.beginPath();ctx.roundRect(16,16,480,480,13);ctx.stroke();
     }
     return canvasTexture(canvas);
   }
@@ -267,10 +269,8 @@ export class SceneAssets {
     this.title=new THREE.Mesh(new THREE.PlaneGeometry(4.52,1.15),new THREE.MeshBasicMaterial({map:this.titleTexture(),transparent:true,toneMapped:false}));
     this.title.rotation.x=-Math.PI/2;this.title.position.set(.5,.75,1.72);city.add(this.title);
     this.cardDeck(city,3.4,2.99,'#895C94','Chance');
-    this.cardDeck(city,-3.65,3.5,'#C69855','Community Chest');
-    this.mesh(city,this.box,'#183B35',[3.88,.075,1.93],[.15,.61,3.45]);
-    this.mesh(city,this.box,'#C1A370',[3.71,.016,1.78],[.15,.654,3.45],'metal',false);
-    this.mesh(city,this.box,'#326658',[3.61,.024,1.68],[.15,.672,3.45]);
+    this.cardDeck(city,-3.65,2.9,'#C69855','Community Chest');
+    // The foreground stays at the board's felt height for free dice movement.
   }
 
   private tower(parent:THREE.Object3D,x:number,z:number,w:number,d:number,h:number,color:string,style:number,seed:number) {
@@ -281,17 +281,62 @@ export class SceneAssets {
     const levels=Math.floor(h/.35),columns=w>1.1?3:2;
     for(let row=0;row<levels;row++)for(let col=0;col<columns;col++){
       const y=floor+.34+row*.34;
-      this.glassWindows.push({position:[x+(col-(columns-1)/2)*.28,y,z+d/2+.012],rotation:0,lit:(row+col+seed)%4===0});
-      this.glassWindows.push({position:[x+w/2+.012,y,z+(col-(columns-1)/2)*.25],rotation:Math.PI/2,lit:(row+col+seed)%5===0});
+      const frontX=x+(col-(columns-1)/2)*.28,sideZ=z+(col-(columns-1)/2)*.25;
+      this.mesh(parent,this.box,'#E7DFCC',[.18,.24,.012],[frontX,y,z+d/2+.007],'matte',false);
+      this.mesh(parent,this.box,'#E7DFCC',[.012,.24,.18],[x+w/2+.007,y,sideZ],'matte',false);
+      this.mesh(parent,this.box,'#E7DFCC',[.20,.024,.046],[frontX,y-.115,z+d/2+.023],'matte',false);
+      this.glassWindows.push({position:[frontX,y,z+d/2+.018],rotation:0,lit:(row+col+seed)%4===0});
+      this.glassWindows.push({position:[x+w/2+.018,y,sideZ],rotation:Math.PI/2,lit:(row+col+seed)%5===0});
     }
+    for(let row=1;row<levels;row+=2)this.mesh(parent,this.box,'#E7DFCC',[w+.035,.027,d+.035],[x,floor+.16+row*.34,z],'matte',false);
+    // Shallow corner pilasters give the blocks a crafted, architectural silhouette.
+    for(const side of [-1,1])this.mesh(parent,this.box,'#E7DFCC',[.037,h-.05,.04],[x+side*(w/2-.027),floor+h/2+.10,z+d/2+.014],'matte',false);
     if(style===1||style===2){this.mesh(parent,this.box,color,[w*.69,.39,d*.68],[x,floor+h+.32,z]);this.mesh(parent,this.box,'#D6D2BF',[w*.74,.07,d*.73],[x,floor+h+.53,z]);}
     if(style===2){this.mesh(parent,this.cylinder,'#CBA96D',[.032,.55,.032],[x,floor+h+.80,z],'metal',false);this.mesh(parent,this.sphere,'#E6BE70',[.065,.065,.065],[x,floor+h+1.08,z],'metal',false);}
-    else this.mesh(parent,this.box,'#9DA5A0',[.22,.13,.24],[x+.2,floor+h+.25,z-.14],'metal',false);
+    else if(style!==1)this.mesh(parent,this.box,'#9DA5A0',[.22,.13,.24],[x+w*.30,floor+h+.25,z+d*.20],'metal',false);
     if(style===3){
       this.mesh(parent,this.box,'#304C50',[w*.75,.31,.02],[x,floor+.31,z+d/2+.02],'glass',false);
       for(let i=0;i<5;i++){const awning=this.mesh(parent,this.box,i%2?'#F5E7D1':color,[w/5,.07,.32],[x-w*.4+i*w/5,floor+.67,z+d/2+.13],'matte',false);awning.rotation.x=.16;}
+      for(const offset of [-.27,.27])this.mesh(parent,this.box,'#E7DFCC',[.025,.27,.03],[x+offset*w,floor+.31,z+d/2+.035],'matte',false);
+      this.storefront(parent,x,floor+.50,z+d/2+.048,w*.72,seed%2?'Café':'Market');
+    }else if(style===0){
+      this.storefront(parent,x+.12,floor+.18,z+d/2+.043,w*.44,seed%2?'Gallery':'Market');
     }
+    this.rooftop(parent,x,z,w,d,floor+h+.19,style);
     this.mesh(parent,this.box,'#334D50',[.17,.30,.018],[x-.2,floor+.20,z+d/2+.023],'glass',false);
+  }
+
+  private rooftop(parent:THREE.Object3D,x:number,z:number,w:number,d:number,y:number,style:number){
+    if(style===1||style===2){
+      // Solar equipment sits below the existing antenna and within the upper cap.
+      for(const offset of [-.16,.16]){
+        const panel=this.mesh(parent,this.box,'#304F66',[w*.23,.025,d*.35],[x+offset*w,y+.42,z-.10*d],'glass',false);panel.rotation.x=-.18;
+        this.mesh(parent,this.box,'#D6D2BF',[w*.25,.018,d*.37],[x+offset*w,y+.397,z-.10*d],'metal',false);
+      }
+      return;
+    }
+    this.mesh(parent,this.box,'#D5C7A3',[w*.82,.019,d*.78],[x,y+.006,z],'matte',false);
+    for(const side of [-1,1])this.mesh(parent,this.box,'#E7DFCC',[w*.91,.083,.035],[x,y+.042,z+side*d*.44],'matte',false);
+    for(const side of [-1,1])this.mesh(parent,this.box,'#E7DFCC',[.035,.083,d*.88],[x+side*w*.44,y+.042,z],'matte',false);
+    this.mesh(parent,this.box,'#A67B50',[w*.57,.082,.15],[x-w*.06,y+.06,z-d*.26],'matte',false);
+    for(let shrub=0;shrub<3;shrub++)this.mesh(parent,this.sphere,shrub%2?'#78A878':'#5A9470',[.09,.074,.068],[x+(shrub-1)*w*.18-w*.06,y+.126,z-d*.26],'matte',false);
+    this.mesh(parent,this.box,'#A67B50',[w*.37,.039,.12],[x-w*.15,y+.047,z+d*.23],'matte',false);
+    if(style===3){
+      // A low pergola adds scale without extending into the street or dice floor.
+      for(const px of [-.28,.13])for(const pz of [-.10,.20])this.mesh(parent,this.box,'#E7DFCC',[.025,.25,.025],[x+px*w,y+.15,z+pz*d],'matte',false);
+      for(let slat=0;slat<4;slat++)this.mesh(parent,this.box,'#E7DFCC',[w*.47,.021,.027],[x-w*.075,y+.28,z+d*(-.12+slat*.115)],'matte',false);
+    }
+  }
+
+  private storefront(parent:THREE.Object3D,x:number,y:number,z:number,width:number,label:string){
+    const key=`city-sign-${label}`;let material=this.facades.get(key);
+    if(!material){
+      const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const ctx=canvas.getContext('2d')!;
+      ctx.fillStyle='#234C43';ctx.fillRect(0,0,768,192);ctx.strokeStyle='#DAB777';ctx.lineWidth=10;ctx.strokeRect(12,12,744,168);
+      ctx.fillStyle='#F5E7D1';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='600 122px Fredoka, sans-serif';ctx.fillText(label,384,98,660);
+      material=new THREE.MeshBasicMaterial({map:canvasTexture(canvas),toneMapped:false});this.facades.set(key,material);
+    }
+    const sign=new THREE.Mesh(this.face,material);sign.scale.set(width,.11,1);sign.position.set(x,y,z);parent.add(sign);
   }
 
   private windows(parent:THREE.Object3D) {
@@ -310,6 +355,13 @@ export class SceneAssets {
     this.mesh(parent,this.box,'#C1C5A2',[2.2,.085,1.92],[-3.29,.59,1.84],'matte',false);
     this.mesh(parent,this.box,'#829E6A',[2.06,.027,1.79],[-3.29,.65,1.84],'matte',false);
     this.mesh(parent,this.box,'#D5C7A3',[.24,.025,1.83],[-3.29,.678,1.84],'matte',false);
+    this.mesh(parent,this.box,'#D5C7A3',[1.97,.020,.16],[-3.29,.676,2.05],'matte',false);
+    for(let paver=0;paver<9;paver++)this.mesh(parent,this.box,paver%2?'#E7DFCC':'#C9C1AA',[.19,.006,.17],[-3.29,.694,1.08+paver*.18],'matte',false);
+    for(const [flowerX,flowerZ]of [[-3.94,1.10],[-2.61,1.16],[-3.94,1.99]]){
+      this.mesh(parent,this.box,'#A67B50',[.37,.055,.22],[flowerX,.701,flowerZ],'matte',false);
+      this.mesh(parent,this.box,'#5A9470',[.32,.037,.18],[flowerX,.744,flowerZ],'matte',false);
+      for(let bloom=0;bloom<5;bloom++)this.mesh(parent,this.sphere,bloom%2?'#E7BFBC':'#E6BE70',[.035,.027,.035],[flowerX+(bloom-2)*.060,.78,flowerZ+(bloom%2?-.043:.043)],'matte',false);
+    }
     this.tree(parent,-3.9,1.48,.32,1.12);this.tree(parent,-2.66,2.30,.38,1);
     this.mesh(parent,this.cylinder,'#DDD4BC',[.46,.105,.46],[-3.13,.735,1.75]);
     this.mesh(parent,this.cylinder,'#4B9BBD',[.38,.025,.38],[-3.13,.80,1.75],'glass',false);

@@ -1,5 +1,11 @@
 # Executed tests — 2026-10-08
 
+## Menu credit and short right-side popups — 2026-10-09
+
+`npm run check` passed 161 tests in 21 files, strict TypeScript and both production builds. Production Chrome `menu_popup_review.py` passed desktop 1440×900, tablet 1024×650, portrait 390×844 and landscape 844×390: separate resume buttons, exact developer credit, right-aligned purchase/Chance/Community Chest panels, reachable sticky actions, unchanged board geometry, human card effects waiting for Continue, 2.2-second rent expiry, 2.8-second trade expiry, and the next bot movement clearing an old confirmation.
+
+Production `polished_game_review.py` passed cash changes on both nametags, illustrated trade confirmation, right-side opponent cards, bot Continue, human Continue, reduced-motion settlement and mobile actions, with no page errors. Its mobile bounds check settles the compositor animation first because a mocked JavaScript timer does not advance the card's CSS/WAAPI flight. The refreshed 50.2 MB share ZIP contains the credit and matches all 18 current built browser/server files by SHA-256.
+
 ## Spatial transactions, read-first cards and results — 2026-10-09
 
 Final `npm run check`: **105 tests passed in 12 files**, followed by strict TypeScript and both production builds. App 256.42 KB / 83.19 KB gzip; CSS 81.44 KB / 17.29 KB gzip; Three 540.36 KB / 137.64 KB gzip; server 55.25 KB. The offline manifest contains 16 local assets.
@@ -120,3 +126,15 @@ Independent review found OS-reduced rent was hidden, queued personal rents could
 All thirteen production Chrome scripts and the separate reduced-motion check passed across the final verification cycle, with zero page exceptions, including offline saved-game resume and two-client LAN synchronization/reconnect. The baseline offline reload now waits explicitly for DOMContentLoaded before asserting the cached app can resume; its former default load deadline timed out under software rendering. An older exact deed-class assertion was updated for the new reduced-motion class. The first six production scripts passed, then the corrected game-feel script and remaining seven checks passed; no product code changed between these runs.
 
 A real-time purchase check confirms the full receipt remains opaque and readable beyond four seconds without a mocked CSS clock; its screenshot was inspected. The production host is healthy on port 3001. Physical-device/GPU and other-browser limits recorded above remain unchanged.
+
+## Cash, dice, city quality and portable Windows setup — 2026-10-09
+
+`npm run check`: **160 tests passed in 21 files**, strict TypeScript and both production builds passed. New tests exercise fixed-step pair/deck/floor clearance through chained rolls and fractional samples; preserved static mesh world transforms/raycast targets; city time under dropped frames and 60 Hz cadence; actual per-player cash changes, arrival deferral, rerender preservation, direction reversals and expiry; illustrated accepted-trade assets; strict authenticated bot-card Continue with stale/duplicate/human rejection; and portable setup/launcher/package behavior. Setup verifies official Node download checksums, preserves saves, handles moved folders and occupied ports, rejects stale packaging and detects changed built assets.
+
+Development Chrome `polished_game_review.py` passed with no page errors: purchase loss without row shift, rent gain/loss for both nametags after arrival, illustrated accepted trade with eight-second reading time, immediate bot-card Continue, own-card manual Continue, OS reduced-motion cancellation settlement, mobile visible sticky Continue, live city details, static tile picking, and a final animation shadow refresh. Day/night screenshots and desktop/mobile cards were inspected.
+
+The comparative SwiftShader probe found 459 drawing calls before changes and 220 after city detail and static batching. At a simulated 60 Hz cadence, two seconds now produces 121 Medium/High city updates instead of 43, and 61 Low updates instead of 28. A 1000 ms dropped frame now advances the city by 1000 ms rather than 100 ms. Shadows refresh at a bounded cadence plus final settlement, and ambient rendering no longer repositions DOM receipts every frame. These are diagnostic comparisons, not a claim of measured physical-device FPS.
+
+Independent review findings repaired: final stale shadows, OS motion-preference cancellation skipping settlement, and SkipBuild stamping stale output. The official Node 24.21.0 x64 download/checksum/reuse was exercised. ARM64 and a physically clean Windows PC remain untested.
+
+Actual share-package check: **PASS**, 50.2 MB ZIP. Extracted and moved to a folder containing spaces and `&`, removed global Node/npm from PATH, ran actual setup.bat and run.bat, served built HTML/CSS/JS and the cache manifest, created/saved a LAN room through the packaged ws module, and reused the same host on a second launch. The test host was stopped by its recorded runtime path/start time; the original production host remains active. A separate fresh-context offline cache inspection/resume/purchase passed with all generated assets present. A two-peer combined smoke run timed out during offline reload under software rendering; its offline phase now closes the peer tab and functional rendering uses Low quality, while the separate city probe covers higher quality.

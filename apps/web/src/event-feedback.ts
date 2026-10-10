@@ -2,6 +2,7 @@ import type {Game} from '../../../packages/core/types';
 import {CARDS} from '../../../packages/core/board';
 import {gameNotices,type GameNotice} from './game-events';
 import {escapeHTML} from './ui-components';
+import {SMALL_NOTICE_MS} from './presentation-timing';
 export type EventTone='positive'|'negative'|'neutral';
 export function noticeTone(notice:GameNotice):EventTone{
  if(['purchase','build','salary'].includes(notice.kind))return'positive';
@@ -44,7 +45,7 @@ export class EventFeedback{
  configure(reduced:boolean){this.reduced=reduced;if(reduced)this.clearVisual();}
  observe(game:Game,id:string,moving:boolean,animate=true){
   if(this.viewer!==id){this.reset();this.viewer=id;}
-  this.moving=moving;
+  if(moving&&!this.moving)this.clearVisual();this.moving=moving;
   if(!animate){this.pending=[];this.clearVisual();this.previous=game;return;}
   this.pending.push(...feedbackNotices(this.previous,game,id));this.previous=game;this.pending=this.pending.slice(-12);
   if(!moving)this.settle();
@@ -67,6 +68,6 @@ export class EventFeedback{
   this.layer.innerHTML=`<div class="feedback-burst feedback-${tone}" ${this.project&&notice.property!==undefined?`data-property="${notice.property}"`:''}>${rent?`<div class="feedback-label"><span>${escapeHTML(notice.title)}</span><strong>${amount!<0?'−':'+'}$${Math.abs(amount!).toLocaleString('en-US')}</strong><small>${escapeHTML(notice.detail)}</small></div>`:''}${Array.from({length:8},(_,i)=>{const angle=i*Math.PI/4;return`<i class="feedback-particle" aria-hidden="true" style="--dx:${Math.cos(angle)*85}px;--dy:${Math.sin(angle)*60-25}px;--delay:${i*25}ms"></i>`;}).join('')}</div>`;
   this.reposition();
   this.refreshBalance();
-  this.timer=setTimeout(()=>{this.clearVisual();this.settle(false);},rent?8000:1400);
+  this.timer=setTimeout(()=>{this.clearVisual();this.settle(false);},rent?SMALL_NOTICE_MS:1400);
  }
 }

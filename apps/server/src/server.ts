@@ -19,6 +19,7 @@ const messageSchema=z.union([
  z.object({type:z.literal('READY'),ready:z.boolean()}).strict(),
  z.object({type:z.literal('CONFIG'),botCount,difficulty,config:settings}).strict(),
  z.object({type:z.enum(['START','SYNC','SAVE','LEAVE','PING'])}).strict(),
+ z.object({type:z.literal('CONTINUE_BOT_CARD'),event:z.number().int().min(1).max(Number.MAX_SAFE_INTEGER)}).strict(),
  z.object({type:z.literal('ACTION'),id:z.string().min(1).max(64),revision:z.number().int().min(0),action:actionSchema}).strict()
 ]);
 const hash=(secret:string)=>createHash('sha256').update(secret).digest('hex');
@@ -54,6 +55,15 @@ export async function startServer(options:ServerOptions={}){
   if(m.type==='READY'){if(r.game)throw new Error('The match has already started');p.ready=m.ready;broadcast(r,false);return;}
   if(m.type==='CONFIG'){if(r.host!==p.id||r.game)throw new Error('Only the lobby host can change settings');bots(r,m.botCount,m.difficulty);r.config={...r.config,...m.config};r.members.filter(v=>!v.bot&&v.id!==r.host).forEach(v=>v.ready=false);broadcast(r,false);return;}
   if(m.type==='START'){if(r.host!==p.id)throw new Error('Only the host can start');if(r.game)throw new Error('The match has already started');if(r.members.length<2||r.members.some(v=>!v.ready||(!v.bot&&v.socket?.readyState!==WebSocket.OPEN)))throw new Error('Need 2–8 connected and ready players');r.game=createGame({players:r.members.map(({id,name,bot,difficulty,token})=>({id,name,bot,difficulty,token})),...r.config},randomBytes(4).readUInt32LE());broadcast(r);return;}
+  if(m.type==='CONTINUE_BOT_CARD'){
+   if(p.bot||p.socket!==ws||!r.members.includes(p))throw new Error('Only a seated human can continue a bot card');
+   const pending=r.game?.pendingCard;
+   if(r.game?.phase!=='card'||!pending||pending.event!==m.event)throw new Error('The card changed. Sync and try again');
+   const bot=r.members.find(member=>member.id===pending.player);
+   if(!bot?.bot||!r.game.players.find(player=>player.id===pending.player)?.bot||actionPlayer(r.game)!==pending.player)throw new Error('Only a bot card can be continued by an observer');
+   if(r.timer){clearTimeout(r.timer);r.timer=null;}
+   r.game=applyAction(r.game,pending.player,{type:'resolveCard'});broadcast(r);return;
+  }
   if(m.type==='ACTION'){if(!r.game)throw new Error('Match has not started');if(r.seen.has(p.id+':'+m.id))throw new Error('Duplicate command');if(m.revision!==r.game.revision)throw new Error('State changed. Sync and try again');r.game=applyAction(r.game,p.id,m.action);r.seen.add(p.id+':'+m.id);if(r.seen.size>10000)r.seen.delete(r.seen.values().next().value!);broadcast(r);}
  }catch(e){send(ws,{type:'ERROR',error:e instanceof z.ZodError?'Invalid message or action':e instanceof Error?e.message:'Command failed'});}});ws.on('close',()=>detach(ws));});
  await new Promise<void>((ok,fail)=>{http.once('error',fail);http.listen(options.port??3001,options.host??'0.0.0.0',()=>ok());});

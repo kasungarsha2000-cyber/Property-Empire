@@ -15,7 +15,8 @@ it('plays a card cue and money cue for an actual card payout',()=>{
 });
 it('pawn hops leave and return to the tile with stable scale and a higher midpoint',()=>{
  const start=pawnPose(0),peak=pawnPose(.5),end=pawnPose(1);
- expect(start.height).toBe(0);expect(end.height).toBeCloseTo(0);expect(peak.height).toBeGreaterThan(.3);
+ expect(start.height).toBe(0);expect(end.height).toBeCloseTo(0);expect(peak.height).toBeGreaterThan(.15);expect(peak.height).toBeLessThan(.25);
  expect(start.scaleY).toBe(1);expect(end.scaleY).toBeCloseTo(1);expect(peak.scaleY).toBeGreaterThan(1);
  expect(peak.progress).toBeCloseTo(.5);
+ expect(pawnPose(.25).progress).toBe(.25);expect(peak.scaleY).toBeLessThan(1.08);
 });

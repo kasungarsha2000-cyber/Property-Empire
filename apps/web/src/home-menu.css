@@ -1,0 +1,15 @@
+/* Resume actions remain secondary to starting a new game, with clear targets. */
+.menu-resume-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.menu-resume-button{display:flex;align-items:center;justify-content:flex-start;text-align:left;gap:9px;padding:13px 11px;min-height:88px;border:1px solid #cdd8c7;border-radius:12px;background:#f5f8ee;color:#264e40;box-shadow:0 2px 0 #dbe2d3}
+.menu-resume-button:only-child{grid-column:1/-1;min-height:66px}
+.menu-resume-button>span:last-child{min-width:0}
+.menu-resume-button strong{display:block;font-size:12px;line-height:1.4}
+.menu-resume-button small{display:block;font-size:10px;font-weight:600;line-height:1.4;margin-top:4px;color:#647462}
+.menu-resume-button .resume-icon{display:grid;place-items:center;flex:none;width:28px;height:32px;color:#427859}
+.menu-resume-button .resume-icon svg{width:22px;height:22px}
+.menu-rejoin-button{background:#fffaf0;border-color:#dfd8c3;box-shadow:0 2px 0 #e5dfcf}
+.menu-rejoin-button .resume-icon{color:#92733c}
+.menu-resume-button:hover:enabled{background:#e7efdd;border-color:#8fa786;box-shadow:0 3px 8px #294b4020}
+.menu-rejoin-button:hover:enabled{background:#f8efdc;border-color:#baa47d}
+.hero>.developer-credit{margin-top:24px;color:#677360;font-size:12px;line-height:1.6}
+.developer-credit strong{color:#345344;font-weight:800}
