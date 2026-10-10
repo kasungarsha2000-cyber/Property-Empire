@@ -2,7 +2,7 @@ import type {Game} from '../../../../packages/core/types';
 import {avatar,esc,icon,money} from './dom';
 import type {DockModel} from './turn-state';
 
-export interface HudContext {viewer:string|null;lan:boolean;room?:string;online:boolean;offline:Set<string>}
+export interface HudContext {viewer:string|null;lan:boolean;room?:string;online:boolean;offline:Set<string>;hotseat?:boolean}
 
 export function hudMarkup(g:Game,ctx:HudContext){
  const active=g.players[g.current],live=g.players.filter(p=>!p.bankrupt).length;
@@ -10,7 +10,7 @@ export function hudMarkup(g:Game,ctx:HudContext){
   const classes=['chip-player',p.id===active.id&&g.phase!=='ended'?'active':'',p.id===ctx.viewer?'mine':'',p.bankrupt?'out':'',ctx.offline.has(p.id)?'offline':''].filter(Boolean).join(' ');
   const badge=p.bankrupt?'':ctx.offline.has(p.id)?`<span class="cp-badge offline">${icon('offline')}</span>`:p.jailed?`<span class="cp-badge jail">${icon('jail')}</span>`:p.bot?`<span class="cp-badge">${icon('bot')}</span>`:'';
   const label=`${p.name}${p.id===ctx.viewer?' (you)':''}: ${money(p.cash)}${p.bankrupt?', bankrupt':p.jailed?', in jail':''}${p.bot?', computer player':''}${p.id===active.id?', current turn':''}`;
-  return `<button class="${classes}" data-player="${esc(p.id)}" aria-label="${esc(label)}">${avatar(g,p,'sm')}${badge}<span class="cp-text"><b>${p.id===ctx.viewer?'You':esc(p.name)}</b><span class="player-cash">${money(p.cash)}</span></span></button>`;
+  return `<button class="${classes}" data-player="${esc(p.id)}" aria-label="${esc(label)}">${avatar(g,p,'sm')}${badge}<span class="cp-text"><b>${p.id===ctx.viewer&&!ctx.hotseat?'You':esc(p.name)}</b><span class="player-cash">${money(p.cash)}</span></span></button>`;
  }).join('');
  return `<div class="hud"><div class="hud-line"><span class="round">Turn ${g.turn}${g.config.turnLimit?` of ${g.config.turnLimit}`:''}</span><span class="sep">·</span><span>${ctx.lan?`Room ${esc(ctx.room??'')}`:`${live} players`}</span>${ctx.lan?`<span class="conn ${ctx.online?'':'off'}"><i></i>${ctx.online?'Connected':'Reconnecting'}</span>`:''}</div><div class="player-strip" data-count="${g.players.length}" role="list" aria-label="Players">${chips}</div></div>`;
 }

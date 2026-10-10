@@ -15,6 +15,7 @@ export interface Settings {
  reducedMotion:boolean;
  quality:'low'|'medium'|'high';
  sound:boolean;
+ music:boolean;
  haptics:boolean;
  camera:'gentle'|'normal'|'quick';
  textSize:'default'|'large'|'larger';
@@ -22,7 +23,12 @@ export interface Settings {
 }
 export const systemReducedMotion=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const isReduced=(settings:Settings)=>settings.reducedMotion||systemReducedMotion();
-export function defaultSettings():Settings{return{speed:'normal',reducedMotion:false,quality:'medium',sound:true,haptics:true,camera:'normal',textSize:'default',highlightMine:true};}
+/** Older phones start on Low graphics; players can raise it in Settings. */
+function defaultQuality():Settings['quality']{
+ const nav=typeof navigator==='undefined'?null:navigator as Navigator&{deviceMemory?:number};
+ return nav&&((nav.deviceMemory!==undefined&&nav.deviceMemory<=3)||(nav.hardwareConcurrency!==undefined&&nav.hardwareConcurrency<=4))?'low':'medium';
+}
+export function defaultSettings():Settings{return{speed:'normal',reducedMotion:false,quality:defaultQuality(),sound:true,music:false,haptics:true,camera:'normal',textSize:'default',highlightMine:true};}
 /** Accepts current settings and the earlier {speed:'normal'|'fast'|'reduced',quality,sound} format. */
 export function normalizeSettings(value:unknown):Settings{
  const d=defaultSettings(),v=(value&&typeof value==='object'?value:{}) as Record<string,unknown>;
@@ -32,6 +38,7 @@ export function normalizeSettings(value:unknown):Settings{
   reducedMotion:typeof v.reducedMotion==='boolean'?v.reducedMotion:v.speed==='reduced',
   quality:pick('quality',['low','medium','high'] as const,d.quality),
   sound:typeof v.sound==='boolean'?v.sound:d.sound,
+  music:typeof v.music==='boolean'?v.music:d.music,
   haptics:typeof v.haptics==='boolean'?v.haptics:d.haptics,
   camera:pick('camera',['gentle','normal','quick'] as const,d.camera),
   textSize:pick('textSize',['default','large','larger'] as const,d.textSize),

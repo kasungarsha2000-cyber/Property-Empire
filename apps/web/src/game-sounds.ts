@@ -1,10 +1,10 @@
 import type {Game} from '../../../packages/core/types';
-export type SoundCue='dice'|'step'|'purchase'|'money'|'card'|'build'|'trade'|'jail'|'victory';
+export type SoundCue='dice'|'step'|'purchase'|'money'|'card'|'build'|'trade'|'jail'|'victory'|'bid'|'bankrupt';
 export function soundCues(before:Game|null,after:Game):SoundCue[]{
  if(!before||after.eventSeq<=before.eventSeq)return[];
  const cues=new Set<SoundCue>();
  for(const event of after.log.filter(e=>e.id>before.eventSeq)){
-  const cue=({roll:'dice',purchase:'purchase',payment:'money',salary:'money',card:'card',build:'build',trade:'trade',jail:'jail',winner:'victory'} as Record<string,SoundCue>)[event.kind];
+  const cue=({roll:'dice',purchase:'purchase',payment:'money',salary:'money',card:'card',build:'build',trade:'trade',jail:'jail',winner:'victory',auction:'bid',bankruptcy:'bankrupt'} as Record<string,SoundCue>)[event.kind];
   if(cue)cues.add(cue);
  }
  if(after.players.some(p=>p.cash>(before.players.find(old=>old.id===p.id)?.cash??p.cash)))cues.add('money');
@@ -49,7 +49,7 @@ export class GameSounds{
    const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();source.buffer=buffer;filter.type='highpass';filter.frequency.value=800;gain.gain.value=.06;
    source.connect(filter);filter.connect(gain);gain.connect(ctx.destination);source.start(now);source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};return;
   }
-  const notes:Record<Exclude<SoundCue,'dice'>,number[]>={step:[160],purchase:[523,659,784],money:[880,1175],card:[440,660],build:[330,440,660],trade:[392,523],jail:[330,220],victory:[523,659,784,1047]};
+  const notes:Record<Exclude<SoundCue,'dice'>,number[]>={step:[160],purchase:[523,659,784],money:[880,1175],card:[440,660],build:[330,440,660],trade:[392,523],jail:[330,220],victory:[523,659,784,1047],bid:[740],bankrupt:[392,330,262]};
   notes[cue].forEach((note,i)=>tone(note,now+i*(cue==='step'?0:.09),cue==='step'?.06:cue==='victory'?.24:.14,cue==='step'?'triangle':'sine',cue==='step'?.022:.035));
  }
 }

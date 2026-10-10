@@ -44,6 +44,11 @@ describe('action dock',()=>{
   expect(drawn.phase).toBe('card');expect(dockModel(drawn,ctx(drawn)).primary?.label).toBe('Read card');expect(dockModel(drawn,ctx(drawn,{cardOpen:true})).primary).toBeNull();
   expect(dockModel(drawn,ctx(drawn,{viewer:'b'})).title).toMatch(/^Ada drew/);
  });
+ it('names the seated player instead of “you” when several humans share the device',()=>{
+  const g=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'c',name:'Cleo',bot:false}]},42);g.current=1;
+  expect(dockModel(g,ctx(g,{viewer:'c',hotseat:true,allowed:()=>true})).title).toBe('Cleo’s turn');
+  expect(dockModel(g,ctx(g,{viewer:'c',allowed:()=>true})).title).toBe('Your turn');
+ });
  it('opens trading only to the acting player once per turn',()=>{const g=base();expect(tradeOpen(g,'a')).toBe(true);expect(tradeOpen(g,'b')).toBe(false);g.tradeOffered=true;expect(tradeOpen(g,'a')).toBe(false);});
 });
 

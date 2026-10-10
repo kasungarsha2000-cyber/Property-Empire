@@ -16,7 +16,7 @@ export function menuPanel(ctx:MenuContext){
  const saveLine=loading?'Checking this device…':save?`Turn ${save.turn} · ${save.players} players · saved ${ago(save.savedAt)}${save.finished?' · finished':''}`:'No saved game on this device yet';
  return `<div class="menu-panel">
 <div class="menu-heading"><h1>PROPERTY EMPIRE</h1><p>Buy streets, build a skyline and outlast your rivals.</p></div>
-<button class="btn primary hero-button" data-nav="solo">${icon('dice')}<span><b>Play solo</b><small>You against 1–7 computer rivals</small></span>${icon('chevron')}</button>
+<button class="btn primary hero-button" data-nav="solo">${icon('dice')}<span><b>Play solo</b><small>Computer rivals, or friends on this device</small></span>${icon('chevron')}</button>
 <div class="menu-row"><button class="btn secondary" data-nav="host">${icon('wifi')}<span>Host LAN game</span></button><button class="btn secondary" data-nav="join">${icon('join')}<span>Join LAN game</span></button></div>
 <div class="menu-resume">
 <button class="list-button" data-do="continue" ${save?'':'disabled'}>${icon('save')}<span><b>Continue saved game</b><small>${esc(saveLine)}</small></span>${icon('chevron')}</button>
@@ -44,12 +44,13 @@ function hostField(value:string,required:boolean,label='Host computer'){
 
 export interface SetupContext {kind:'solo'|'host'|'join';name:string;token:number;host:string;native:boolean;room?:string}
 export function setupPage(ctx:SetupContext){
- const title={solo:'New solo game',host:'Host a LAN game',join:'Join a LAN game'}[ctx.kind];
+ const title={solo:'New game',host:'Host a LAN game',join:'Join a LAN game'}[ctx.kind];
  const you=`<section class="form-card"><h2>You</h2><label class="field"><span class="field-label">Name</span><input name="name" value="${esc(ctx.name)}" maxlength="24" required autocomplete="nickname"></label>${tokenPicker(ctx.token)}</section>`;
- const opponents=`<section class="form-card"><h2>${ctx.kind==='host'?'Computer opponents':'Opponents'}</h2>${numberStepper('bots','Bots',ctx.kind==='solo'?3:1,ctx.kind==='solo'?1:0,7,ctx.kind==='host'?'Friends who join take the other seats':'')}${radios('difficulty','Difficulty',[['easy','Easy'],['medium','Medium'],['hard','Hard']],'medium')}</section>`;
+ const local=ctx.kind==='solo'?`<section class="form-card"><h2>Players on this device <span class="count">Pass and play</span></h2><div class="local-players" data-local-players></div><button type="button" class="btn secondary" data-do="add-local-player">${icon('plus')}<span>Add a player</span></button><p class="field-note">Friends sharing this phone take turns; hand it over when the game asks.</p></section>`:'';
+ const opponents=`<section class="form-card"><h2>${ctx.kind==='host'?'Computer opponents':'Opponents'}</h2>${numberStepper('bots','Bots',ctx.kind==='solo'?3:1,0,7,ctx.kind==='host'?'Friends who join take the other seats':'')}${radios('difficulty','Difficulty',[['easy','Easy'],['medium','Medium'],['hard','Hard']],'medium')}</section>`;
  const body=ctx.kind==='join'
   ?`${you}<section class="form-card"><h2>Room</h2><label class="field"><span class="field-label">Room code</span><input name="code" class="code-input" value="${esc(ctx.room??'')}" required minlength="6" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="A1B2C3" pattern="[A-Za-z0-9]{6}"></label></section>${ctx.native?hostField(ctx.host,true):`<details class="form-card advanced"><summary>Host address</summary>${hostField(ctx.host,false,'Different host')}</details>`}`
-  :`${you}${opponents}${rules()}${ctx.kind==='host'?(ctx.native?hostField(ctx.host,true):`<details class="form-card advanced"><summary>Host address</summary>${hostField(ctx.host,false,'Different host')}</details>`):''}`;
+  :`${you}${local}${opponents}${rules()}${ctx.kind==='host'?(ctx.native?hostField(ctx.host,true):`<details class="form-card advanced"><summary>Host address</summary>${hostField(ctx.host,false,'Different host')}</details>`):''}`;
  const action={solo:'Start game',host:'Create room',join:'Join room'}[ctx.kind];
  return `<div class="page setup-page"><header class="page-head"><button class="btn icon-only quiet" data-nav="menu" aria-label="Back to the main menu">${icon('back')}</button><h1>${title}</h1></header><form id="setup-form" class="page-body" data-kind="${ctx.kind}" novalidate>${body}</form><footer class="page-foot"><p class="summary" data-setup-summary></p><button class="btn primary block" type="submit" form="setup-form">${action} ${icon('chevron')}</button></footer></div>`;
 }
@@ -70,4 +71,9 @@ ${isHost?`<form id="room-config" class="form-card"><h2>Computer opponents</h2>${
 
 export function connectingPage(message:string,detail:string){
  return `<div class="page connecting-page"><header class="page-head"><button class="btn icon-only quiet" data-do="cancel-connect" aria-label="Cancel">${icon('back')}</button><h1>Connecting</h1></header><div class="page-body centered"><span class="spinner" aria-hidden="true"></span><p class="lead">${esc(message)}</p><p class="field-note">${esc(detail)}</p><button class="btn secondary" data-do="cancel-connect">Cancel</button></div></div>`;
+}
+
+/** One extra human seat in pass-and-play setup. */
+export function localPlayerRow(index:number,token:number){
+ return `<div class="local-player" data-local-index="${index}"><span class="avatar avatar-sm" style="--player:${PLAYER_COLORS[token]}">${tokenIcon(token)}</span><input name="localName" value="Player ${index+2}" maxlength="24" required aria-label="Name of player ${index+2}" autocomplete="off"><select name="localToken" aria-label="Token of player ${index+2}">${PLAYER_COLORS.map((_,i)=>`<option value="${i}" ${i===token?'selected':''}>${esc(TOKEN_NAMES[i])}</option>`).join('')}</select><button type="button" class="btn icon-only quiet" data-do="remove-local-player" aria-label="Remove player ${index+2}">${icon('close')}</button></div>`;
 }

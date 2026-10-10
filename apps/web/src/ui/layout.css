@@ -61,6 +61,17 @@ html,body{height:100%;overflow:hidden}
 .room-code{font-size:2.5rem;letter-spacing:.18em;font-weight:750;color:var(--emerald-deep);font-variant-numeric:tabular-nums;padding-left:.18em}
 .room-actions{display:flex;gap:var(--s2);justify-content:center}
 .members{display:grid;gap:var(--s2)}
+.local-players{display:grid;gap:var(--s2)}
+.local-players:empty{display:none}
+.local-player{display:grid;grid-template-columns:auto minmax(0,1fr) 112px auto;align-items:center;gap:var(--s2)}
+.local-player input,.local-player select{min-height:var(--tap);padding:0 12px;border:1px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-md);min-width:0;width:100%}
+.local-player input:focus,.local-player select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--emerald-soft)}
+.handoff{position:fixed;inset:0;z-index:48;display:grid;place-items:center;padding:calc(var(--safe-t) + var(--s4)) var(--s4) calc(var(--safe-b) + var(--s4));background:rgba(18,63,52,.92);color:#fff;text-align:center;animation:fade-in var(--t-panel) var(--ease) both}
+.handoff-card{display:grid;justify-items:center;gap:var(--s3);max-width:340px}
+.handoff-card .avatar{width:84px;height:84px;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+.handoff-card h2{font-size:var(--fs-2xl)}
+.handoff-card p{color:rgba(255,255,255,.78);font-size:var(--fs-md)}
+.handoff-card .btn{min-width:240px;background:#fff;color:var(--emerald-deep)}
 .member{display:flex;align-items:center;gap:var(--s3);min-height:48px}
 .member-name{flex:1;min-width:0;display:grid}
 .member-name small{font-size:var(--fs-xs);color:var(--text-2)}

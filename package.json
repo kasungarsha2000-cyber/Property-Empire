@@ -10,8 +10,12 @@
     "build": "npm run typecheck && vite build && node scripts/cache-manifest.mjs && tsup apps/server/src/index.ts --format esm --out-dir apps/server/dist --external ws",
     "start:lan": "node apps/server/dist/index.js",
     "test": "vitest run",
-    "test:browser": "node scripts/test-browser.mjs",
-    "check": "npm run test && npm run build"
+    "test:browser": "playwright test",
+    "check": "npm run test && npm run build",
+    "test:e2e:full": "npm run build && playwright test",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:build": "node scripts/android-build.mjs debug"
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",

@@ -21,11 +21,12 @@ import {EventFeedback} from './event-feedback';
 import {MoneyLedger} from './money-ledger';
 import {MatchFinale} from './match-finale';
 import {GameSounds} from './game-sounds';
+import {AmbientMusic} from './ambient-music';
 import {loadGame,saveGame,saveSummary,readSettings,writeSettings,isReduced,systemReducedMotion,type SaveSummary,type Settings} from './storage';
 import {Network,storedSession,defaultSocketUrl} from './network';
 import {isNative,hapticsSupported,haptic,setHaptics,initPlatform,armBack,shareText,type HapticKind} from './platform';
 import {socketUrlFromHost,hostLabel,rememberedHost,rememberHost} from './lan-address';
-import {esc,icon,money,patch} from './ui/dom';
+import {esc,icon,money,patch,avatar} from './ui/dom';
 import {viewerDecision,dockModel,tradeOpen,type Decision} from './ui/turn-state';
 import {hudMarkup,dockMarkup} from './ui/hud';
 import {deedPreview,deedSheet,friendlyReason} from './ui/deed';
@@ -34,7 +35,7 @@ import {cardReveal} from './ui/card-reveal';
 import {portfolioSheet,type PortfolioFilter} from './ui/portfolio';
 import {tradeBuilderSheet,tradeFooter,emptyDraft,togglePick,setAmount,changePartner,tradeIssue,type TradeState,type TradeSide} from './ui/trade-builder';
 import {settingsSheet,gameMenuSheet,rulesSheet,playerSheet,bankSheet} from './ui/sheets';
-import {menuTop,menuPanel,setupPage,lobbyPage,connectingPage} from './ui/screens';
+import {menuTop,menuPanel,setupPage,lobbyPage,connectingPage,localPlayerRow} from './ui/screens';
 import {NoticeFeed} from './ui/notices';
 
 type Route='menu'|'solo'|'host'|'join'|'lobby'|'connecting'|'game';
@@ -48,6 +49,7 @@ app.innerHTML=`<div class="shell" id="shell" data-route="menu"><header id="top">
 <div class="layer sheet-layer" id="sheet-layer" hidden><div class="sheet-scrim" data-do="close-sheet"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1"><header class="sheet-head" id="sheet-head"></header><div class="sheet-scroll" id="sheet-scroll"></div></section></div>
 <div class="layer card-layer" id="card-layer" hidden></div>
 <div class="layer finale-layer" id="finale-layer"></div>
+<div id="handoff" hidden></div>
 <div class="layer dialog-layer" id="dialog-layer" hidden></div>
 <div id="toast" role="status" aria-live="polite"></div>`;
 const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
@@ -64,9 +66,12 @@ let saveInfo:SaveSummary|null|undefined=undefined,formRoute:'host'|'join'='join'
 let botTimer:ReturnType<typeof setTimeout>|null=null,toastTimer:ReturnType<typeof setTimeout>|null=null;
 let pendingCommand:{revision:number;timer:ReturnType<typeof setTimeout>}|null=null;
 let pendingHaptic:HapticKind|null=null,paused=false,savingFailed=false,lastActive='',lastSheet='';
+/** Pass and play: the human currently holding the device, and a pending hand-over to another human. */
+let seat:string|null=null,handoff:string|null=null;
 
 const reduced=()=>isReduced(settings);
 const sounds=new GameSounds(settings.sound);
+const music=new AmbientMusic(settings.music);
 setHaptics(settings.haptics);
 const feedback=new EventFeedback(stage,reduced(),property=>board?.projectSpace(property)??null);
 const moments=new BoardMoments(stage,property=>board?.projectSpace(property)??null,reduced);
@@ -93,7 +98,7 @@ const network=new Network(()=>{
  if(pendingCommand&&(!network.game||network.game.revision!==pendingCommand.revision))clearPending();
  if(network.game){
   const changed=game!==network.game;game=network.game;
-  if(route!=='game'){route='game';resetMatchUi();updateBoard(false);board?.reset();}
+  if(route!=='game'){route='game';resetMatchUi();updateBoard(false);render();board?.reset();return;}
   else if(changed)updateBoard(true);
  }else if(network.room&&(route==='connecting'||route==='lobby'))route='lobby';
  render();
@@ -108,10 +113,19 @@ function networkReady(){return mode==='solo'||network.connected;}
 function clearPending(){if(pendingCommand){clearTimeout(pendingCommand.timer);pendingCommand=null;}}
 
 // ---------- Rules access ----------
-function viewer():string|null{if(!game)return null;return mode==='lan'?network.session?.playerId??null:game.players.find(p=>!p.bot)?.id??null;}
+function hotseat(){return mode==='solo'&&!!game&&game.players.filter(p=>!p.bot).length>1;}
+function viewer():string|null{if(!game)return null;if(mode==='lan')return network.session?.playerId??null;return hotseat()&&seat?seat:game.players.find(p=>!p.bot)?.id??null;}
+/** The device follows whichever human must act; a hand-over screen appears unless bids are going round an auction. */
+function syncSeat(){
+ if(!game||!hotseat())return;
+ const actor=actionPlayer(game),player=actor?game.players.find(p=>p.id===actor):null;
+ if(!seat){seat=player&&!player.bot?player.id:game.players.find(p=>!p.bot&&!p.bankrupt)?.id??null;handoff=seat;}
+ else if(player&&!player.bot&&player.id!==seat){seat=player.id;if(game.phase!=='auction')handoff=player.id;}
+}
 /** Null when the viewer may perform the action now; otherwise a reason (usually the engine's own message). */
 function check(action:Action):string|null{
  const id=viewer();if(!game||!id)return'Unavailable';
+ if(handoff)return'Pass the device first';
  if(board?.isAnimating)return'Wait for the pawn to arrive';
  if(!networkReady())return'Reconnecting to the host';
  if(pendingCommand)return'Sending…';
@@ -162,7 +176,7 @@ function viewerHaptic(before:Game,after:Game,id:string):HapticKind|null{
 }
 let observed:Game|null=null;
 function updateBoard(animate=true){
- if(!game)return;const me=viewer(),before=observed;observed=game;
+ if(!game)return;syncSeat();const me=viewer(),before=observed;observed=game;
  board?.setViewer(me,settings.highlightMine);board?.update(game,animate);
  const moving=!!board?.isAnimating;
  sounds.observe(game,moving,animate);moneyLedger.observe(game,moving,animate);
@@ -184,11 +198,12 @@ function openSheet(sheet:Sheet,replace=false){if(replace)sheets=[];preview=null;
 function closeSheets(){sheets=[];trade=null;render();}
 function closeTopSheet(){sheets.pop();if(!sheets.some(s=>s.kind==='trade'))trade=null;render();}
 function confirm(next:Dialog){dialog=next;render();dialogLayer.querySelector<HTMLButtonElement>('[data-dialog-cancel]')?.focus();}
-function resetMatchUi(){sheets=[];dialog=null;preview=null;minimised=null;lastDecision='';cardHidden=null;trade=null;bidDraft=null;observed=null;pendingHaptic=null;clearPending();notices.reset();feedback.reset();moments.reset();moneyLedger.reset();finale.reset();sounds.reset();board?.select(-1);}
+function resetMatchUi(){seat=null;handoff=null;sheets=[];dialog=null;preview=null;minimised=null;lastDecision='';cardHidden=null;trade=null;bidDraft=null;observed=null;pendingHaptic=null;clearPending();notices.reset();feedback.reset();moments.reset();moneyLedger.reset();finale.reset();sounds.reset();board?.select(-1);}
 
 /** System Back: dialog → sheet → finale → preview → card → decision panel → game menu. */
 function back():boolean{
  if(dialog){dialog=null;render();return true;}
+ if(handoff){handoff=null;render();return true;}
  if(sheets.length){closeTopSheet();return true;}
  if(route==='game'&&game){
   if(finale.visible){finale.dismiss();render();return true;}
@@ -207,8 +222,9 @@ function back():boolean{
 function render(){
  const root=document.documentElement;root.classList.toggle('reduced-motion',reduced());root.dataset.textSize=settings.textSize;
  shell.dataset.route=route==='game'?'game':route==='menu'?'menu':'page';
+ if(route==='game')syncSeat();
  if(route==='menu')renderMenu();else if(route==='game'&&game)renderGame();else renderPage();
- renderSheet();renderDialog();
+ renderSheet();renderDialog();renderHandoff();
  armBack(route!=='menu'||sheets.length>0||!!dialog);
 }
 function clearStage(){patch(previewHost,'');patch(decisionHost,'');cardLayer.hidden=true;patch(cardLayer,'');stageTools.hidden=true;notices.reset();}
@@ -250,10 +266,10 @@ function renderGame(){
  const panelOpen=!!decision&&minimised!==decision.key&&!moving&&!!me;
  const card=g.pendingCard??null,cardOpen=!!card&&cardHidden!==card.event&&!moving;
  const offline=new Set((mode==='lan'?network.room?.members.filter(m=>!m.bot&&!m.connected).map(m=>m.id):[])??[]);
- patch(top,hudMarkup(g,{viewer:me,lan:mode==='lan',room:network.room?.code,online:networkReady(),offline}));
+ patch(top,hudMarkup(g,{viewer:me,lan:mode==='lan',room:network.room?.code,online:networkReady(),offline,hotseat:hotseat()}));
  moneyLedger.refresh(top);
  const active=g.players[g.current].id;if(active!==lastActive){lastActive=active;top.querySelector('.chip-player.active')?.scrollIntoView?.({block:'nearest',inline:'center',behavior:reduced()?'auto':'smooth'});}
- const model=dockModel(g,{viewer:me,moving,online:networkReady(),panelOpen,cardOpen:cardOpen,allowed:action=>!check(action)});
+ const model=dockModel(g,{viewer:me,moving,online:networkReady(),panelOpen,cardOpen:cardOpen,hotseat:hotseat(),allowed:action=>!check(action)});
  patch(bottom,dockMarkup(g,model,{canTrade:canTrade(),incoming:g.phase==='trade'&&g.trade?.to===me,compact:panelOpen||(cardOpen&&card?.player===me)}));
  if(pendingCommand)bottom.querySelector('.dock-primary')?.classList.add('is-busy');
  patch(decisionHost,panelOpen&&decision&&me?decisionMarkup(decision,me):'');
@@ -290,6 +306,13 @@ function renderSheet(){
  const key=sheet.kind==='deed'?`deed:${sheet.index}`:sheet.kind==='player'?`player:${sheet.id}`:sheet.kind;if(key!==lastSheet){lastSheet=key;sheetScroll.scrollTop=0;}
  if(patch(sheetScroll,body)&&sheet.kind==='trade')sheetScroll.querySelector<HTMLInputElement>('[data-focus-key]')?.blur();
 }
+function renderHandoff(){
+ const el=$('#handoff'),player=handoff&&game?game.players.find(p=>p.id===handoff):null;
+ if(!player||route!=='game'||!game){el.hidden=true;patch(el,'');return;}
+ const reason=game.phase==='trade'?`${esc(player.name)} has a trade offer to answer.`:game.phase==='debt'?`${esc(player.name)} needs to raise funds.`:`It is ${esc(player.name)}’s turn.`;
+ el.hidden=false;el.className='handoff';
+ patch(el,`<div class="handoff-card" role="dialog" aria-modal="true" aria-labelledby="handoff-title">${avatar(game,player,'lg')}<h2 id="handoff-title">Pass the device to ${esc(player.name)}</h2><p>${reason}</p><button class="btn block" data-do="take-seat" data-haptic="light">I’m ${esc(player.name)} · continue</button></div>`);
+}
 function renderDialog(){
  if(!dialog){dialogLayer.hidden=true;patch(dialogLayer,'');return;}
  dialogLayer.hidden=false;
@@ -302,12 +325,13 @@ function nav(next:Route){
  if(route==='game'&&game&&mode==='solo')soloSave();
  if(botTimer)clearTimeout(botTimer);botTimer=null;
  if(mode==='lan'&&(next==='menu'||route==='game')){network.stop();mode='solo';}
- if(route==='game'||next==='menu'){game=null;lastActive='';resetMatchUi();board?.update(demo,false);board?.reset();}
+ if(route==='game'||next==='menu'){game=null;lastActive='';resetMatchUi();board?.update(demo,false);}
  connectError='';route=next;sheets=sheets.filter(s=>s.kind==='settings'||s.kind==='rules');dialog=null;
  if(next==='menu')refreshSaveInfo();
  render();
+ if(next==='menu')board?.reset();
 }
-function startSolo(next:Game){network.stop();mode='solo';game=next;route='game';resetMatchUi();updateBoard(false);board?.reset();render();soloSave();scheduleBot();}
+function startSolo(next:Game){network.stop();mode='solo';game=next;route='game';resetMatchUi();updateBoard(false);render();board?.reset();soloSave();scheduleBot();}
 async function continueSolo(backup=false){
  try{const saved=await loadGame(backup);if(!saved){toast(backup?'There is no earlier save to restore.':'No saved game yet. Start a new one.');return;}sheets=[];startSolo(saved);if(backup)toast('Previous save restored.');}
  catch(error){toast(error instanceof Error?error.message:'Could not load the save');}
@@ -325,18 +349,26 @@ function updateSetupSummary(){
  const lengthName=length===80?'Quick':length===160?'Extended':'Classic';
  const note=pageEl.querySelector('[data-length-note]');if(note)note.textContent=length?`${lengthName}: ends after ${length} turns; the highest net worth wins.`:'Classic: play until one player remains.';
  const summary=pageEl.querySelector('[data-setup-summary]');if(!summary)return;
- summary.textContent=kind==='join'?'You will join the host’s room with this name and token.':kind==='host'?`You host with ${bots} ${difficulty} bot${bots===1?'':'s'} · ${money(cash)} · ${lengthName}`:`You and ${bots} ${difficulty} bot${bots===1?'':'s'} · ${money(cash)} · ${lengthName}`;
+ const locals=data.getAll('localName').length,people=locals?`${locals+1} players on this device`:'You';
+ summary.textContent=kind==='join'?'You will join the host’s room with this name and token.':kind==='host'?`You host with ${bots} ${difficulty} bot${bots===1?'':'s'} · ${money(cash)} · ${lengthName}`:`${people}${bots?` and ${bots} ${difficulty} bot${bots===1?'':'s'}`:''} · ${money(cash)} · ${lengthName}`;
 }
 function submitSetup(form:HTMLFormElement){
  const data=new FormData(form),kind=form.dataset.kind as 'solo'|'host'|'join',name=String(data.get('name')??'').trim(),token=Number(data.get('token')??0);
  const fail=(message:string,field?:string)=>{toast(message);if(field)form.querySelector<HTMLElement>(`[name="${field}"]`)?.focus();};
  if(!name)return fail('Enter your name','name');
  rememberPlayer(name,token);
- const botCount=Math.max(kind==='solo'?1:0,Math.min(7,Number(data.get('bots')||0))),difficulty=String(data.get('difficulty')??'medium') as Difficulty;
+ const botCount=Math.max(0,Math.min(7,Number(data.get('bots')||0))),difficulty=String(data.get('difficulty')??'medium') as Difficulty;
  const config={startingCash:Number(data.get('cash')||1500),turnLimit:Number(data.get('length')||0),jackpot:data.has('jackpot')};
  if(kind==='solo'){
-  const free=[0,1,2,3,4,5,6,7].filter(i=>i!==token);
-  startSolo(createGame({players:[{id:'human',name,bot:false,token},...Array.from({length:botCount},(_,i)=>({id:`bot-${i}`,name:['Milo','Cleo','Jasper','Nova','Otis','Ivy','Theo'][i],bot:true,difficulty,token:free[i]}))],...config},crypto.getRandomValues(new Uint32Array(1))[0]));
+  const names=data.getAll('localName').map(v=>String(v).trim()),tokens=data.getAll('localToken').map(Number);
+  if(names.some(n=>!n))return fail('Give every player on this device a name');
+  const humans=[{id:'human',name,bot:false,token},...names.map((n,i)=>({id:`human-${i+2}`,name:n,bot:false,token:tokens[i]}))];
+  if(new Set(humans.map(h=>h.token)).size!==humans.length)return fail('Each player needs a different token');
+  if(new Set(humans.map(h=>h.name.toLowerCase())).size!==humans.length)return fail('Each player needs a different name');
+  if(humans.length+botCount<2)return fail('Add a bot or another player on this device','bots');
+  if(humans.length+botCount>8)return fail('A game has at most eight players','bots');
+  const free=[0,1,2,3,4,5,6,7].filter(i=>!humans.some(h=>h.token===i)),botNames=['Milo','Cleo','Jasper','Nova','Otis','Ivy','Theo'].filter(n=>!humans.some(h=>h.name.toLowerCase()===n.toLowerCase()));
+  startSolo(createGame({players:[...humans,...Array.from({length:botCount},(_,i)=>({id:`bot-${i}`,name:botNames[i],bot:true,difficulty,token:free[i]}))],...config},crypto.getRandomValues(new Uint32Array(1))[0]));
   return;
  }
  let url:string;const server=String(data.get('server')??'').trim();
@@ -348,7 +380,7 @@ function submitSetup(form:HTMLFormElement){
 
 // ---------- Settings ----------
 function applySettings(next:Settings){
- settings=next;writeSettings(settings);sounds.setEnabled(settings.sound);setHaptics(settings.haptics);
+ settings=next;writeSettings(settings);sounds.setEnabled(settings.sound);music.setEnabled(settings.music);setHaptics(settings.haptics);
  feedback.configure(reduced());moments.configure();moneyLedger.configure();board?.configure(settings);board?.setViewer(viewer(),settings.highlightMine);
  if(!board?.isAnimating){sounds.settle();feedback.settle();moments.settle();moneyLedger.settle();}
  render();scheduleBot();
@@ -430,6 +462,9 @@ document.addEventListener('click',event=>{
   case'ready':network.send({type:'READY',ready:!network.room?.members.find(m=>m.id===network.session?.playerId)?.ready});break;
   case'share-room':{const room=network.room;if(!room)break;const host=hostLabel(network.session?.url??'');const link=!isNative&&!['localhost','127.0.0.1'].includes(location.hostname)?`\n${location.origin}/?room=${room.code}`:'';void shareText('Property Empire',`Join my Property Empire game.\nRoom code: ${room.code}\nHost: ${host}${link}`).then(result=>toast(result==='copied'?'Invite copied.':result==='failed'?`Room code ${room.code} · host ${host}`:'Invite shared.'));break;}
   case'cancel-connect':cancelConnect();break;
+  case'take-seat':handoff=null;render();break;
+  case'add-local-player':{const list=pageEl.querySelector<HTMLElement>('[data-local-players]'),form=pageEl.querySelector<HTMLFormElement>('#setup-form');if(!list||!form)break;const data=new FormData(form),used=[Number(data.get('token')),...data.getAll('localToken').map(Number)],rows=list.children.length,bots=Number(data.get('bots')||0);if(rows+2+bots>8){toast('A game has at most eight players. Remove a bot first.');break;}if(rows>=7)break;list.insertAdjacentHTML('beforeend',localPlayerRow(rows,[0,1,2,3,4,5,6,7].find(t=>!used.includes(t))??0));updateSetupSummary();break;}
+  case'remove-local-player':button.closest('.local-player')?.remove();updateSetupSummary();break;
  }
 });
 document.addEventListener('change',event=>{
@@ -452,13 +487,13 @@ document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&back())event.preventDefault();
  if(event.key==='Enter'&&(event.target as HTMLElement).id==='bid-amount'){event.preventDefault();decisionHost.querySelector<HTMLButtonElement>('[data-do="place-bid"]')?.click();}
 });
-document.addEventListener('pointerdown',()=>sounds.unlock(),{passive:true});
+document.addEventListener('pointerdown',()=>{sounds.unlock();music.unlock();},{passive:true});
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>applySettings(settings));
 
 void initPlatform({
  back,
- pause:()=>{paused=true;if(botTimer){clearTimeout(botTimer);botTimer=null;}soloSave();board?.setPaused(true);},
- resume:()=>{if(!paused)return;paused=false;board?.setPaused(false);render();scheduleBot();}
+ pause:()=>{paused=true;music.pause();if(botTimer){clearTimeout(botTimer);botTimer=null;}soloSave();board?.setPaused(true);},
+ resume:()=>{if(!paused)return;paused=false;music.resume();board?.setPaused(false);render();scheduleBot();}
 });
 addEventListener('beforeunload',()=>soloSave());
 

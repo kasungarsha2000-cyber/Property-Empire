@@ -231,7 +231,7 @@ export class BoardView {
   const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), this.controls.minDistance, this.controls.maxDistance));
   this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.dirty = true;
  }
- reset(animate=false) { this.customizedView=false;const target=new THREE.Vector3(0,.8,0);this.moveCamera(target.clone().addScaledVector(this.viewDirection,this.fitDistance),target,animate); }
+ reset(animate=false) { this.measure();this.customizedView=false;const target=new THREE.Vector3(0,.8,0);this.moveCamera(target.clone().addScaledVector(this.viewDirection,this.fitDistance),target,animate); }
  /** Stop drawing while the board is hidden behind a full-screen page. */
  setActive(active:boolean){if(this.active===active)return;this.active=active;this.dirty=true;if(active){this.lastSize='';this.resize();}}
  /** App in background: release the animation loop entirely; resume restores it. */
@@ -252,7 +252,13 @@ export class BoardView {
   if(snapPlayback)queueMicrotask(()=>this.onSettled());
  }
  private resize() {
-  const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return;
+  const priorFit=this.fitDistance;if(!this.measure())return;
+  if(this.customizedView){const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*this.fitDistance/priorFit,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();this.dirty=true;}
+  else this.reset();
+ }
+ /** Read the stage size and refresh renderer size, aspect, view direction and fit distance. Returns false when unchanged. */
+ private measure() {
+  const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return false;
   this.lastSize = key;this.overlayDirty=true; this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
   // Tall phone stages look at the board edge-on from the Start side so its edge, not its diagonal, spans the width.
   const portrait=this.camera.aspect<.85;
@@ -263,9 +269,8 @@ export class BoardView {
   for (const x of [-6.7, 6.7]) for (const z of [-6.7, 6.7]) for (const y of [-.35, 1.1]) { const corner = new THREE.Vector3(x, y - .8, z), depth = corner.dot(this.viewDirection); required = Math.max(required, depth + Math.abs(corner.dot(horizontal)) / (tangent * this.camera.aspect), depth + Math.abs(corner.dot(vertical)) / tangent); }
   // Aircraft and clouds must remain visible above the skyline without shrinking the board unnecessarily.
   if(!portrait)for(const x of [-4.15,4.15])for(const z of [-4.4,1.55]){const corner=new THREE.Vector3(x,5.95-.8,z),depth=corner.dot(this.viewDirection);required=Math.max(required,depth+Math.abs(corner.dot(horizontal))/(tangent*this.camera.aspect),depth+Math.abs(corner.dot(vertical))/tangent);}
-  const priorFit=this.fitDistance;this.fitDistance = required * (portrait?1.03:1.06);
-  if(this.customizedView){const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*this.fitDistance/priorFit,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();this.dirty=true;}
-  else this.reset();
+  this.fitDistance = required * (portrait?1.03:1.06);
+  return true;
  }
  private frame() {
   if (document.hidden||!this.active) return;
