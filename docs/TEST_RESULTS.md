@@ -1,5 +1,22 @@
 # Executed tests
 
+## Android APK build — 2026-10-10
+
+- GitHub Actions run 38037870235 (`.github/workflows/android.yml`, ubuntu-24.04, Node 22, Temurin JDK 21) on commit
+  `000896c`: `npm ci`, `npm run check`, `npx cap sync android` and `./gradlew assembleDebug assembleRelease` all passed
+  (Gradle `BUILD SUCCESSFUL`, 421 tasks). Outputs: debug APK 4,883,887 bytes, unsigned release APK 3,882,594 bytes,
+  published to the `android-build` prerelease with SHA-256 sums.
+- Both APKs were downloaded and matched the SHA-256 sums printed by the build. Release APK: 461 entries, every stored
+  entry 4-byte aligned, `resources.arsc` stored, no native libraries, manifest not debuggable, web app present.
+- Release signing: the Android SDK's `apksigner` cannot be downloaded in this environment, so the release APK was signed
+  with a JDK-only implementation of APK Signature Scheme v2 (RSA 4096, SHA-512). The same verifier first confirmed the
+  build's own debug-key signature on the debug APK (identical content digest) and rejected a copy with one changed byte.
+  The signed release APK verifies (signature, content digest, certificate matching the release key), all ZIP CRCs
+  pass and its entries are byte-identical to the unsigned build. SHA-256
+  `9387ed1ae95d5374cd040ac45cb507d966cef49bb3dbf18d445f84dc054d1030`.
+
+Not executed: installing either APK on an emulator or device; `apksigner verify` from the Android SDK.
+
 ## Android UI redesign — 2026-10-10
 
 Environment: Linux, Node 22.22, Chromium 141 (Playwright 1.56.1, headless, SwiftShader WebGL). No Android SDK, emulator or physical device was available.

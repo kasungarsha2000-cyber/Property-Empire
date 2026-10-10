@@ -36,8 +36,33 @@ npm run android:build    # build, sync and ./gradlew assembleDebug
 # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release builds: `node scripts/android-build.mjs release` produces an unsigned APK. Sign it with your own
-keystore (Android Studio → Build → Generate Signed App Bundle / APK) before distributing.
+### Release APK and signing
+
+`npm run android:release` builds `android/app/build/outputs/apk/release/app-release.apk`, signed with the release key
+when one is configured, and `app-release-unsigned.apk` otherwise. Configure the key in `android/keystore.properties`
+(ignored by git, like `*.jks` and `*.keystore`):
+
+```properties
+storeFile=property-empire-release.jks
+storePassword=…
+keyAlias=property-empire
+keyPassword=…
+```
+
+`storeFile` is relative to `android/`. The same values can come from the environment variables `ANDROID_KEYSTORE_FILE`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. Keep the keystore and its passwords backed
+up: every update must be signed with the same key, or phones refuse to install it over the old version. Raise
+`versionCode` (and `versionName`) in `android/app/build.gradle` for each release.
+
+### GitHub Actions
+
+`.github/workflows/android.yml` runs on pushes to `main`, `master` and `claude/**` and on manual dispatch. On GitHub's
+Ubuntu runner (Android SDK preinstalled) it runs the unit tests and web build, syncs Capacitor and assembles both APKs,
+then uploads them as a workflow artifact and replaces the
+[android-build](https://github.com/kasungarsha2000-cyber/Property-Empire/releases/tag/android-build) prerelease with them.
+To have it sign the release APK, add these repository secrets (Settings → Secrets and variables → Actions):
+`ANDROID_KEYSTORE_BASE64` (output of `base64 -w0 property-empire-release.jks`), `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. Without them the release APK is published unsigned.
 
 ## Install on a test device
 
@@ -80,7 +105,8 @@ keystore (Android Studio → Build → Generate Signed App Bundle / APK) before 
 |---|---|
 | Android project generated and configured, web assets synced | Done |
 | Web build, unit tests and browser tests (phone-sized Chromium, touch emulation) | Pass — see `docs/TEST_RESULTS.md` |
-| Gradle assemble / APK build | **Not run here**: the build environment could not download the Android SDK (`dl.google.com` is blocked by its network policy). Run `npm run android:build` on a machine with the SDK. |
+| Gradle assemble / APK build | Pass on GitHub Actions (ubuntu-24.04): debug and release APKs. The local build environment cannot download the Android SDK (`dl.google.com` is blocked by its network policy). |
+| Release APK 1.0 (versionCode 1) | Built by GitHub Actions from commit `000896c`, signed outside the build with the project release key (APK Signature Scheme v2, RSA 4096); signature and ZIP integrity verified. Not yet installed on a device. |
 | Physical devices, emulator, LAN between phones | **Not tested** — no devices or emulator available. Checklist below. |
 
 ### Device checklist
@@ -102,4 +128,4 @@ keystore (Android Studio → Build → Generate Signed App Bundle / APK) before 
   would need an embedded WebSocket server in a native plugin. The room protocol is ready for it, but it was out
   of scope without devices to test on.
 - The app does not read Android's system font scale; use **Settings → Text size**.
-- Building and testing the APK requires the Android SDK, which this environment could not download.
+- Local APK builds require the Android SDK; GitHub Actions builds them without one.

@@ -14,6 +14,6 @@
 
 Vite still warns that the Three.js chunk exceeds 500 KB; it is loaded once and cached.
 
-Android: `android/` is a Capacitor 8.5.2 project (compileSdk/targetSdk 36, minSdk 24). `npx cap sync android` succeeds and all Android XML resources parse. **The Gradle build has not been run** because the Android SDK could not be downloaded in this environment (`dl.google.com` denied by network policy). Use `npm run android:build` on a machine with the SDK; see [ANDROID.md](ANDROID.md).
+Android: `android/` is a Capacitor 8.5.2 project (compileSdk/targetSdk 36, minSdk 24). `npx cap sync android` succeeds and all Android XML resources parse. The Gradle build runs on GitHub Actions (`.github/workflows/android.yml`, ubuntu-24.04) because this environment cannot download the Android SDK (`dl.google.com` denied by network policy). Build of `000896c`: debug APK 4.9 MB, release APK 3.9 MB, no native libraries, `resources.arsc` stored and aligned. See [ANDROID.md](ANDROID.md).
 
 `npm audit` reports a moderate `uuid` advisory inside the iOS `xcode` helper used by the dev-only `@capacitor/cli`; it is not part of the shipped app and the only automatic fix is a CLI downgrade.

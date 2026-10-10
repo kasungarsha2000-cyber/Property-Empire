@@ -10,9 +10,9 @@ with a mobile-first game interface built on central design tokens, adds pass-and
 browser scripts with a cross-platform Playwright suite. The rules engine, 3D board, bots, saves and LAN protocol are
 kept; the engine gained one classic-rules change (raising funds during a purchase decision).
 
-**Not done here:** the APK was not built and nothing was run on Android hardware. The environment's network policy
-blocks `dl.google.com`, so the Android SDK could not be installed; no emulator or device was available. Phone-only
-LAN hosting (without a computer) was not implemented.
+**Not done here:** nothing was run on Android hardware; no emulator or device was available. The APK is built on
+GitHub Actions because this environment's network policy blocks `dl.google.com` (the Android SDK). Phone-only LAN
+hosting (without a computer) was not implemented.
 
 ## Results
 
@@ -23,7 +23,8 @@ LAN hosting (without a computer) was not implemented.
 | Browser suite (`npm run test:browser`, Chromium 141, phone viewport with touch) | 29 passed, 0 failed |
 | Full match driven through the UI (scratch play-through) | 190 turns to elimination, no stalls, no console errors |
 | `npx cap sync android`, Android XML well-formedness | Pass |
-| Gradle build / APK | Not run — Android SDK unavailable (blocked host) |
+| Gradle build / APK | Pass on GitHub Actions (ubuntu-24.04): debug and release APKs |
+| Release APK 1.0 | Signed with the project release key (APK Signature Scheme v2); signature and ZIP integrity verified |
 | Emulator / physical devices / real Wi-Fi between phones | Not tested — none available |
 
 ## Files
@@ -109,7 +110,7 @@ LAN hosting (without a computer) was not implemented.
 
 ## Known issues and remaining work
 
-1. Build the APK with the Android SDK and complete the device checklist in `ANDROID.md`.
+1. Install the release APK on devices and complete the device checklist in `ANDROID.md`.
 2. Phone-only LAN hosting is not implemented; a computer runs the host.
 3. The Android system font scale is not read; the in-app Text size setting is provided instead.
 4. Predictive back, edge-to-edge insets, haptics and keyboard resizing need confirmation on Android 14–16 devices.
@@ -122,7 +123,9 @@ LAN hosting (without a computer) was not implemented.
 - **Web (production/LAN host):** `npm run build`, then `npm run start:lan`; open http://localhost:3001. On Windows,
   `setup.bat` once and then `run.bat`.
 - **Android:** `npm run android:sync`, then `npm run android:open` and Run in Android Studio.
-- **APK:** `npm run android:build` → `android/app/build/outputs/apk/debug/app-debug.apk` (needs JDK 21 and the SDK).
+- **APK:** `npm run android:build` → `android/app/build/outputs/apk/debug/app-debug.apk`; `npm run android:release`
+  → `app-release.apk`, signed when `android/keystore.properties` exists (JDK 21 and the SDK). GitHub Actions builds both
+  on every push and attaches them to the `android-build` prerelease.
 - **Install on a device:** enable USB debugging, then `adb install -r android/app/build/outputs/apk/debug/app-debug.apk`.
 - **Host a LAN game:** start the host on a computer (`run.bat` or `npm run start:lan`), note the printed Wi-Fi address,
   then in the app or a browser choose **Host LAN game**, enter the address if asked and create the room.

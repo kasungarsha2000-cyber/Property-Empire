@@ -88,7 +88,8 @@ render`. No UI component changes cash, ownership or phase directly.
       trade, properties management, debt and bankruptcy, results, Back handling, LAN host + join with two
       clients against the real server, no horizontal overflow.
 - [x] `npm run check` (tests + typecheck + build) green.
-- [ ] Android Gradle build — **blocked**: the Android SDK download host (`dl.google.com`) is denied by this environment's network policy. Run `npm run android:build` with the SDK installed.
+- [x] Android Gradle build — on GitHub Actions (`.github/workflows/android.yml`), because this environment's network
+      policy denies the Android SDK host (`dl.google.com`). Release signing through `keystore.properties` or secrets.
 - [x] Final report with commands, results and remaining device-only checks.
 
 ## Added during implementation

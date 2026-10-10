@@ -19,7 +19,7 @@ The batch launcher rebuilds changed source and reuses a host from the same folde
 
 ## Play on Android
 
-The `android/` folder is a Capacitor project around the same web build. Build and install it with Android Studio or `npm run android:build`; requirements, LAN setup on phones, the device test checklist and current limits are in [docs/ANDROID.md](docs/ANDROID.md). The APK has not been built in this repository's CI environment because the Android SDK could not be downloaded there.
+The `android/` folder is a Capacitor project around the same web build. Build and install it with Android Studio or `npm run android:build`; requirements, LAN setup on phones, the device test checklist and current limits are in [docs/ANDROID.md](docs/ANDROID.md). GitHub Actions builds the debug and release APKs on every push (`.github/workflows/android.yml`) and attaches them to the [android-build](https://github.com/kasungarsha2000-cyber/Property-Empire/releases/tag/android-build) prerelease; release signing is described in the same guide.
 
 ## Send the game to a friend
 
@@ -95,6 +95,7 @@ npm run start:lan     # production frontend + WS host on :3001
 npm run test:browser  # Playwright end-to-end suite against the production build (build first)
 npm run android:sync  # build and copy the web app into android/
 npm run android:build # debug APK (needs the Android SDK)
+npm run android:release # release APK, signed when android/keystore.properties exists
 ```
 
 Development uses Vite's `/ws` proxy; production serves the web app and `/ws` from one Node origin. Output: `apps/web/dist/` and `apps/server/dist/index.js`. `PORT`, `HOST`, `SAVE_DIR` and `ALLOWED_ORIGINS` (comma-separated WebSocket origins for an HTTPS reverse proxy; include `http://localhost` for the Android app) configure the host.
@@ -120,4 +121,4 @@ Code map: `packages/core` is the rules engine, validation and bots shared by bro
 
 Original board names, card wording, artwork, icons, sounds and music (synthesised in the browser). Three.js, ws, Zod, Capacitor and the build tools keep their upstream licenses. Inter, Nunito and Fredoka are bundled through Fontsource under the SIL Open Font License; retain their licenses when distributing.
 
-Verified in this repository: Vitest unit tests, strict TypeScript, production builds and the Playwright suite in headless Chromium (software WebGL) at phone, tablet and desktop sizes, including two LAN clients against the real host. Not verified: physical Android devices, an Android emulator, the Gradle/APK build (Android SDK unavailable in the build environment), Safari, Firefox, router-to-phone or hotspot play, and frame rates on real low-end GPUs. See [docs/android-ui-report.md](docs/android-ui-report.md).
+Verified in this repository: Vitest unit tests, strict TypeScript, production builds and the Playwright suite in headless Chromium (software WebGL) at phone, tablet and desktop sizes, including two LAN clients against the real host. The Gradle build runs on GitHub Actions. Not verified: physical Android devices, an Android emulator, Safari, Firefox, router-to-phone or hotspot play, and frame rates on real low-end GPUs. See [docs/android-ui-report.md](docs/android-ui-report.md).
