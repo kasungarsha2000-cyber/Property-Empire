@@ -1,0 +1,151 @@
+/* Board moments, cash feedback, chip deltas and results. Decorative only: state is already applied. */
+.board-moments{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.board-moment{position:absolute;left:50%;top:30%;width:210px;text-align:center;transform:translate(-50%,-50%);filter:drop-shadow(0 6px 14px rgba(21,43,59,.14))}
+.moment-copy{display:grid;gap:2px;padding:10px 14px;border-radius:var(--r-md);background:rgba(255,255,255,.97);color:var(--text);animation:readable-moment 2.2s ease both}
+.moment-copy>span{font-size:var(--fs-xs);font-weight:650;color:var(--text-2)}
+.moment-copy strong{font-size:var(--fs-xl);font-weight:750;font-variant-numeric:tabular-nums;color:var(--emerald-deep)}
+.moment-copy p{font-size:var(--fs-xs);color:var(--text-2);line-height:1.4}
+.moment-rent .moment-copy strong{color:#6B4FA0}
+.moment-purchase .moment-copy{margin-top:10px}
+.ownership-seal{display:grid;place-items:center;width:52px;height:52px;margin:auto;border-radius:50%;border:3px solid var(--gold);background:var(--emerald);color:#fff;font-size:26px;font-weight:800;box-shadow:0 0 0 6px rgba(213,170,96,.2);animation:deed-seal .85s var(--ease-spring) both}
+.moment-card{width:200px;top:38%}
+.resolved-card-art{height:96px;width:120px;margin:auto}
+.resolved-card-art svg{height:100%;width:100%}
+.resolved-card-art .card-hero{transform-origin:60px 53px;animation:var(--card-motion) 1.3s cubic-bezier(.2,.75,.2,1) both}
+.moment-trade{width:min(360px,calc(100% - 24px));top:38%}
+.trade-confirmation{padding:var(--s3);text-align:left;border-radius:var(--r-lg);background:var(--surface);max-height:min(340px,52vh);overflow:auto;pointer-events:auto;animation:trade-confirm-in 280ms var(--ease-out) both}
+.trade-complete-head{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.trade-complete-head>div{min-width:0;display:grid}
+.trade-complete-head>div>span{font-size:var(--fs-2xs);font-weight:650;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em}
+.trade-complete-head>div>strong{font-size:var(--fs-lg);overflow-wrap:anywhere}
+.trade-settled{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--success-soft);color:var(--success);flex:none}
+.trade-settled svg{width:20px;height:20px}
+.trade-exchange{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:4px;margin-top:10px}
+.trade-transfer{min-width:0;animation:trade-give-in 300ms var(--ease-out) both}
+.trade-transfer.transfer-receive{animation-name:trade-receive-in}
+.trade-transfer>header{margin-bottom:6px;line-height:1.25}
+.trade-transfer>header strong{display:block;font-size:var(--fs-xs)}
+.trade-transfer>header span{font-size:var(--fs-2xs);color:var(--text-2)}
+.trade-transfer-arrow{align-self:center;text-align:center;color:var(--gold-strong);font-size:18px}
+.trade-assets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.trade-assets>*:only-child{grid-column:1/-1}
+.trade-mini-deed{min-width:0;overflow:hidden;border-radius:8px;border:1px solid var(--line);border-top:4px solid var(--deed-color);background:var(--surface-2)}
+.trade-mini-art{height:44px;overflow:hidden;background:var(--surface-sunk)}
+.trade-mini-art .property-art{width:100%;height:100%;display:block}
+.trade-mini-deed>strong{display:block;font-size:var(--fs-2xs);padding:5px 6px 1px;line-height:1.2;overflow-wrap:anywhere}
+.trade-mini-deed>small{display:block;font-size:10px;color:var(--text-2);padding:0 6px 6px}
+.trade-mini-cash,.trade-mini-card{display:grid;justify-items:center;gap:2px;padding:8px 4px;border-radius:8px;background:var(--success-soft);color:#1E6A51;text-align:center}
+.trade-mini-card{background:var(--gold-soft);color:#7A5A22}
+.trade-mini-cash svg,.trade-mini-card svg{width:28px;height:20px}
+.trade-mini-cash strong{font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.trade-mini-card strong{font-size:var(--fs-2xs)}
+.trade-mini-cash small,.trade-mini-card small{font-size:10px}
+.trade-empty-transfer{grid-column:1/-1;padding:14px 6px;border:1px dashed var(--line-strong);border-radius:8px;font-size:var(--fs-2xs);color:var(--text-2);text-align:center}
+.trade-settlement-note{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:var(--fs-2xs);color:var(--text-2);text-align:center}
+.moment-reduced *,.moment-reduced{animation:none!important}
+
+.event-feedback{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.feedback-burst{position:absolute;left:50%;top:100px;--feedback:var(--success);--particle:var(--gold)}
+.feedback-negative{--feedback:var(--danger);--particle:#DE8B6E}
+.feedback-label{position:absolute;left:0;top:0;transform:translateX(-50%);display:grid;gap:2px;padding:9px 16px;border-radius:var(--r-md);background:rgba(255,255,255,.97);box-shadow:var(--e2);text-align:center;white-space:nowrap;color:var(--feedback);animation:readable-rent 2.2s ease both}
+.feedback-label span{font-size:var(--fs-xs);font-weight:650}
+.feedback-label strong{font-size:var(--fs-xl);font-weight:750;font-variant-numeric:tabular-nums}
+.feedback-label small{max-width:220px;white-space:normal;font-size:var(--fs-2xs);color:var(--text-2);line-height:1.35}
+.feedback-particle{position:absolute;left:0;top:20px;width:7px;height:7px;border-radius:50%;background:var(--particle);animation:event-particle 1s var(--delay) ease-out both}
+.feedback-negative .feedback-particle{width:4px;height:10px;border-radius:2px}
+
+.ledger-delta{position:absolute;z-index:5;right:4px;top:-10px;pointer-events:none;display:flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 7px;border-radius:var(--r-pill);background:var(--success-soft);color:#1E6A51;font-size:var(--fs-2xs);font-weight:750;box-shadow:var(--e2);animation:ledger-arrive 320ms var(--ease-out) both}
+.ledger-loss{background:var(--danger-soft);color:#97403B}
+.ledger-delta-copy{position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.ledger-coins{position:absolute;left:calc(-1 * var(--ledger-distance,60px));top:6px;width:12px;height:12px}
+.ledger-coins i{position:absolute;inset:1px;border-radius:50%;border:1px solid var(--gold-strong);background:#EAD08E;animation:ledger-coin-in var(--t-celebrate) var(--ease) both}
+.ledger-coins i:nth-child(2){animation-delay:65ms}.ledger-coins i:nth-child(3){animation-delay:130ms}
+.ledger-loss .ledger-coins i{animation-name:ledger-coin-out}
+.ledger-reduced,.ledger-reduced *{animation:none!important}
+.ledger-reduced .ledger-coins{display:none}
+
+.match-finale{position:absolute;inset:0;z-index:1;display:grid;place-items:center;padding:calc(var(--safe-t) + var(--s3)) var(--s3) calc(var(--safe-b) + var(--s3));background:rgba(18,34,42,.42);overflow:hidden;pointer-events:auto;animation:fade-in var(--t-panel) both}
+.match-finale[hidden]{display:none}
+.finale-card{position:relative;width:min(440px,100%);max-height:100%;overflow:auto;padding:var(--s5) var(--s4) var(--s4);border-radius:var(--r-xl);background:var(--surface);box-shadow:var(--e3);text-align:center;animation:finale-reveal .7s var(--ease-out) both}
+.finale-close{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;border-radius:var(--r-md);background:transparent;font-size:24px;color:var(--text-2)}
+.finale-trophy{width:96px;height:80px;margin:0 auto var(--s2);animation:trophy-crown 1.1s var(--ease-spring) both}
+.finale-trophy svg{width:100%;height:100%}
+.finale-eyebrow{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-strong)}
+.finale-card h2{font-size:1.75rem;letter-spacing:-.02em;color:var(--emerald-deep);margin:6px 0 8px}
+.finale-card>p{font-size:var(--fs-sm);color:var(--text-2);margin:0 auto var(--s3);max-width:340px}
+.finale-result{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:var(--r-md);background:var(--emerald-soft);color:var(--emerald-deep);font-size:var(--fs-sm);margin-bottom:var(--s3)}
+.finale-result strong{font-size:var(--fs-xs);letter-spacing:.06em}
+.finale-standings{text-align:left;margin-bottom:var(--s4)}
+.finale-standings li{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border-bottom:1px solid var(--line)}
+.finale-standings li:last-child{border-bottom:0}
+.finale-standings li.finale-champion{background:var(--gold-soft);border-radius:var(--r-md);border-bottom-color:transparent}
+.finale-standings b{width:16px;font-size:var(--fs-sm);color:var(--text-2);font-variant-numeric:tabular-nums}
+.finale-standings i{width:10px;height:10px;border-radius:50%;flex:none}
+.finale-standings span{flex:1;min-width:0;display:grid}
+.finale-standings strong{font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finale-standings small{font-size:var(--fs-2xs);color:var(--text-2)}
+.finale-standings em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;font-size:var(--fs-sm)}
+.finale-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+.finale-actions button{min-height:var(--tap);border-radius:var(--r-md);font-weight:600;border:1px solid var(--line-strong);background:var(--surface)}
+.finale-actions button.primary{background:var(--primary);color:#fff;border-color:transparent}
+.finale-atmosphere{position:absolute;inset:0;pointer-events:none}
+.finale-atmosphere i{position:absolute;top:-10px;left:var(--x);width:7px;height:12px;border-radius:2px;background:var(--color);animation:finale-confetti 4.2s var(--delay) ease-out both}
+.finale-lost .finale-trophy{animation-name:finale-reflect;filter:saturate(.6)}
+.finale-lost .finale-atmosphere i{animation-name:finale-leaves;width:10px;height:5px;border-radius:50%}
+.finale-lost .finale-result{background:var(--surface-sunk);color:var(--text-2)}
+.finale-reduced .finale-card,.finale-reduced .finale-trophy{animation:none}
+.finale-reduced .finale-atmosphere{display:none}
+
+/* Card illustration motion (one scene per card). */
+.card-stage:not(.reduced) .card-face .card-hero,.resolved-card-art .card-hero{transform-origin:60px 53px;animation:var(--card-motion) 1.3s cubic-bezier(.2,.75,.2,1) calc(var(--t-panel) + var(--t-flip) * .6) both}
+.card-stage:not(.reduced) .card-face .card-spark{animation:card-spark 1.1s ease-out calc(var(--t-panel) + var(--t-flip)) both}
+.card-spark{opacity:.65}
+
+@keyframes readable-rent{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}6%,94%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px)}}
+@keyframes readable-moment{0%{opacity:0;transform:translateY(8px) scale(.96)}6%,94%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+@keyframes event-particle{0%{opacity:0;transform:translate(0,0) scale(.3)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.8)}}
+@keyframes ledger-arrive{from{opacity:0;translate:0 6px;scale:.92}to{opacity:1;translate:0 0;scale:1}}
+@keyframes ledger-coin-in{0%{opacity:0;transform:translate(var(--ledger-distance,60px),-18px) scale(.65)}45%{opacity:1;transform:translate(calc(var(--ledger-distance,60px) * .48),-21px) scale(1)}80%{opacity:1;transform:translate(0,6px) scale(1)}100%{opacity:0;transform:translate(0,6px) scale(.7)}}
+@keyframes ledger-coin-out{0%{opacity:0;transform:translate(0,6px) scale(.65)}20%{opacity:1;transform:translate(0,6px) scale(1)}65%{opacity:1;transform:translate(calc(var(--ledger-distance,60px) * .5),-21px) scale(1)}100%{opacity:0;transform:translate(var(--ledger-distance,60px),-18px) scale(.7)}}
+@keyframes trade-confirm-in{from{opacity:0;translate:0 9px;scale:.96}to{opacity:1;translate:0 0;scale:1}}
+@keyframes trade-give-in{from{opacity:0;translate:-20px 8px}to{opacity:1;translate:0 0}}
+@keyframes trade-receive-in{from{opacity:0;translate:20px -8px}to{opacity:1;translate:0 0}}
+@keyframes deed-seal{0%{opacity:0;transform:scale(2.1) rotate(-20deg)}65%{opacity:1;transform:scale(.93) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes finale-reveal{from{opacity:0;transform:translateY(30px) scale(.87)}to{opacity:1;transform:none}}
+@keyframes trophy-crown{0%{opacity:0;transform:translateY(-60px) rotate(-15deg) scale(.5)}65%{opacity:1;transform:translateY(5px) rotate(4deg) scale(1.1)}100%{opacity:1;transform:none}}
+@keyframes finale-reflect{0%{opacity:0;transform:translateY(20px) rotate(12deg)}70%{opacity:.7;transform:rotate(-3deg)}100%{opacity:1;transform:none}}
+@keyframes finale-confetti{0%{opacity:0;transform:translateY(-20px) rotate(0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--drift),600px) rotate(500deg)}}
+@keyframes finale-leaves{0%{opacity:0;transform:translateY(-15px) rotate(-30deg)}30%{opacity:.65}100%{opacity:0;transform:translate(var(--drift),400px) rotate(220deg)}}
+@keyframes card-spark{0%,100%{opacity:0;transform:scale(.5)}45%{opacity:1;transform:scale(1.1)}}
+@keyframes key-turn{0%{transform:rotate(-70deg) scale(.6)}65%{transform:rotate(25deg)}100%{transform:none}}
+@keyframes start-sun{0%{transform:translateY(30px) scale(.5)}70%{transform:translateY(-4px) scale(1.05)}100%{transform:none}}
+@keyframes skyline-rise{0%{transform:scaleY(.15);opacity:.2}75%{transform:scaleY(1.08)}100%{transform:none;opacity:1}}
+@keyframes curtain-open{0%{transform:scaleX(.1)}70%{transform:scaleX(1.1)}100%{transform:none}}
+@keyframes meeting-settle{0%{transform:translate(-15px,-25px) rotate(-8deg)}70%{transform:translateY(4px)}100%{transform:none}}
+@keyframes train-arrive{0%{transform:translateX(-100px)}70%{transform:translateX(7px)}100%{transform:none}}
+@keyframes express-pass{0%{transform:translateX(110px) skewX(-18deg)}65%{transform:translateX(-8px) skewX(3deg)}100%{transform:none}}
+@keyframes energy-charge{0%{transform:scale(.6);opacity:.2}35%{opacity:1;transform:scale(1.15)}60%{opacity:.4}100%{transform:none;opacity:1}}
+@keyframes scenic-rewind{0%{transform:translateX(40px)}30%{transform:translateX(-10px)}60%{transform:translateX(8px)}100%{transform:none}}
+@keyframes bars-close{0%{transform:scaleX(1.5);opacity:.1}45%{transform:scaleX(.9);opacity:1}100%{transform:none}}
+@keyframes tools-cross{0%{transform:rotate(-100deg) scale(.5)}65%{transform:rotate(12deg)}100%{transform:none}}
+@keyframes dividend-drop{0%{transform:translateY(-75px) rotateY(180deg)}60%{transform:translateY(9px) rotateY(0)}85%{transform:translateY(-3px)}100%{transform:none}}
+@keyframes fine-stop{0%{transform:translateX(65px) rotate(15deg)}35%{transform:translateX(-12px) rotate(-9deg)}70%{transform:translateX(4px)}100%{transform:none}}
+@keyframes council-fan{0%{transform:scale(.4) rotate(-15deg)}60%{transform:scale(1.08) rotate(5deg)}100%{transform:none}}
+@keyframes investment-climb{0%{transform:translate(-35px,40px) scale(.5)}70%{transform:translate(4px,-8px) scale(1.05)}100%{transform:none}}
+@keyframes getaway-swing{0%{transform:rotate(28deg) translateY(-20px)}40%{transform:rotate(-18deg)}70%{transform:rotate(8deg)}100%{transform:none}}
+@keyframes advocate-unlock{0%{transform:rotate(60deg) scale(.7)}50%{transform:rotate(-25deg) scale(1.07)}100%{transform:none}}
+@keyframes welcome-bloom{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:none}}
+@keyframes grant-stamp{0%{transform:scale(2) rotate(-12deg);opacity:0}40%{transform:scale(.9) rotate(3deg);opacity:1}100%{transform:none}}
+@keyframes clinic-pulse{0%{transform:scale(.6)}30%{transform:scale(1.12)}60%{transform:scale(.93)}100%{transform:none}}
+@keyframes sale-flip{0%{transform:rotateY(180deg) rotate(-25deg)}65%{transform:rotateY(0) rotate(8deg)}100%{transform:none}}
+@keyframes jail-stamp{0%{transform:translateY(-40px) scale(1.2);opacity:0}45%{transform:translateY(5px) scale(.95);opacity:1}100%{transform:none}}
+@keyframes savings-fill{0%{transform:scaleY(.5) translateY(30px)}55%{transform:scaleY(1.12) translateY(-3px)}100%{transform:none}}
+@keyframes refund-return{0%{transform:translateX(-75px) rotate(-12deg)}60%{transform:translateX(10px) rotate(5deg)}100%{transform:none}}
+@keyframes birthday-spark{0%{transform:scale(.5) rotate(-6deg)}40%{transform:scale(1.15) rotate(6deg)}75%{transform:scale(.97) rotate(-2deg)}100%{transform:none}}
+@keyframes shield-glow{0%{transform:scale(.7);opacity:.3}45%{transform:scale(1.08);opacity:1}75%{opacity:.7}100%{transform:none;opacity:1}}
+@keyframes hospital-drop{0%{transform:translateY(-55px) skewY(-8deg)}65%{transform:translateY(7px) skewY(2deg)}100%{transform:none}}
+@keyframes book-open{0%{transform:scaleX(.05) rotate(-8deg)}70%{transform:scaleX(1.05) rotate(2deg)}100%{transform:none}}
+@keyframes consulting-snap{0%{transform:translate(35px,25px) rotate(20deg) scale(.6)}60%{transform:translate(-3px,-5px) rotate(-4deg)}100%{transform:none}}
+@keyframes repair-build{0%{transform:translateY(30px) rotate(75deg) scale(.6)}70%{transform:translateY(-4px) rotate(-7deg)}100%{transform:none}}
+@keyframes garden-grow{0%{transform:scale(.1) rotate(-45deg)}75%{transform:scale(1.05) rotate(6deg)}100%{transform:none}}
+@keyframes family-gather{0%{transform:scaleX(1.5) scaleY(.7);opacity:.2}55%{transform:scaleX(.9) scaleY(1.07);opacity:1}100%{transform:none}}

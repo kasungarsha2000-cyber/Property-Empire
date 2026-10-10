@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Property Empire</string>
+    <string name="title_activity_main">Property Empire</string>
+    <string name="package_name">com.propertyempire.game</string>
+    <string name="custom_url_scheme">com.propertyempire.game</string>
+</resources>

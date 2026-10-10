@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Property Empire design tokens used by native chrome (splash, window background). -->
+    <color name="colorPrimary">#17644D</color>
+    <color name="colorPrimaryDark">#123F34</color>
+    <color name="colorAccent">#D5AA60</color>
+    <color name="pe_ivory">#F7F5F0</color>
+</resources>

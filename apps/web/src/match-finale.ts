@@ -1,7 +1,7 @@
 import type {Game} from '../../../packages/core/types';
 import {netWorth} from '../../../packages/core/engine';
 import {PLAYER_COLORS} from '../../../packages/core/board';
-import {escapeHTML as e} from './ui-components';
+import {esc as e} from './ui/dom';
 export function matchStandings(game:Game){return [...game.players].sort((a,b)=>a.id===game.winner?-1:b.id===game.winner?1:Number(a.bankrupt)-Number(b.bankrupt)||netWorth(game,b)-netWorth(game,a)).map((p,i)=>({id:p.id,name:p.name,rank:i+1,worth:netWorth(game,p),deeds:game.properties.filter(v=>v.owner===p.id).length,bankrupt:p.bankrupt,color:PLAYER_COLORS[p.token??game.players.indexOf(p)]}));}
 export class MatchFinale{
  private host:HTMLElement;private key='';private dismissed='';private priorFocus:HTMLElement|null=null;

@@ -1,237 +1,469 @@
-import '@fontsource/nunito/latin-400.css';
-import '@fontsource/nunito/latin-600.css';
-import '@fontsource/nunito/latin-700.css';
-import '@fontsource/nunito/latin-800.css';
-import '@fontsource/fredoka/latin-500.css';
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-ext-400.css';
+import '@fontsource/inter/latin-ext-600.css';
+// The 3D board paints tile lettering and dice with these faces; they are not used by the UI chrome.
 import '@fontsource/fredoka/latin-600.css';
-import './styles.css';
-import './deeds.css';
-import './game-ui.css';
-import './events.css';
-import './cards.css';
-import './match-focus.css';
-import './game-feel.css';
-import './compact-match.css';
-import './board-moments.css';
-import './living-board.css';
-import './unified-match.css';
-import './popup-polish.css';
-import './home-menu.css';
+import '@fontsource/nunito/latin-800.css';
+import './ui/tokens.css';
+import './ui/components.css';
+import './ui/layout.css';
+import './ui/panels.css';
+import './ui/effects.css';
+import {BOARD,createGame,applyAction,botDecision,actionPlayer,playerById} from '../../../packages/core/index';
+import type {Action,Difficulty,Game} from '../../../packages/core/types';
+import {MAX_COUNTER_OFFERS,reverseTrade} from '../../../packages/core/trade-terms';
+import {BoardView} from './board-view';
 import {BoardMoments} from './board-moments';
+import {EventFeedback} from './event-feedback';
 import {MoneyLedger} from './money-ledger';
 import {MatchFinale} from './match-finale';
-import {pendingCardPresentation} from './card-presentation';
-import {EventFeedback} from './event-feedback';
 import {GameSounds} from './game-sounds';
-import {BOARD, GROUPS,PLAYER_COLORS,createGame,applyAction,botDecision,actionPlayer,netWorth,rentFor,playerById} from '../../../packages/core/index';
-import type {Game,Action,Difficulty} from '../../../packages/core/types';
-import {BoardView} from './board-view';
-import {TOKEN_NAMES} from './scene-assets';
-import {propertyArtwork,deedFinancials} from './property-art';
-import {tradeFormMarkup,tradeSummaryMarkup,portfolioMarkup} from './ui-components';
-import {tradePreview,tradable,type TradeDraft} from './game-ui';
-import {loadGame,saveGame,readSettings,writeSettings} from './storage';
+import {loadGame,saveGame,saveSummary,readSettings,writeSettings,isReduced,systemReducedMotion,type SaveSummary,type Settings} from './storage';
 import {Network,storedSession,defaultSocketUrl} from './network';
-import {decisionFor} from './game-events';
-import {CARDS} from '../../../packages/core/board';
-import {drawnCardMarkup,cardFaceMarkup} from './card-ui';
-import {reverseTrade,MAX_COUNTER_OFFERS} from '../../../packages/core/trade-terms';
-import {EventPresenter,type DecisionPopup} from './event-presenter';
+import {isNative,hapticsSupported,haptic,setHaptics,initPlatform,armBack,shareText,type HapticKind} from './platform';
+import {socketUrlFromHost,hostLabel,rememberedHost,rememberHost} from './lan-address';
+import {esc,icon,money,patch} from './ui/dom';
+import {viewerDecision,dockModel,tradeOpen,type Decision} from './ui/turn-state';
+import {hudMarkup,dockMarkup} from './ui/hud';
+import {deedPreview,deedSheet,friendlyReason} from './ui/deed';
+import {purchasePanel,auctionPanel,jailPanel,debtPanel,incomingTradePanel,suggestedBid} from './ui/decisions';
+import {cardReveal} from './ui/card-reveal';
+import {portfolioSheet,type PortfolioFilter} from './ui/portfolio';
+import {tradeBuilderSheet,tradeFooter,emptyDraft,togglePick,setAmount,changePartner,tradeIssue,type TradeState,type TradeSide} from './ui/trade-builder';
+import {settingsSheet,gameMenuSheet,rulesSheet,playerSheet,bankSheet} from './ui/sheets';
+import {menuTop,menuPanel,setupPage,lobbyPage,connectingPage} from './ui/screens';
+import {NoticeFeed} from './ui/notices';
 
-const e=(value:unknown)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-const money=(n:number)=>`$${n.toLocaleString('en-US')}`;
-const icon=(name:string)=>{const paths:Record<string,string>={home:'M3 10 12 3l9 7v11H15v-7H9v7H3Z',dice:'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M7 7h.01M17 7h.01M12 12h.01M7 17h.01M17 17h.01',network:'M12 3v7M5 17v-5h14v5M3 17h4v4H3ZM10 3h4v4h-4ZM17 17h4v4h-4Z',arrow:'M5 12h14m-6-6 6 6-6 6',settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2',save:'M5 3h12l4 4v14H3V3ZM7 3v6h9V3M7 21v-8h10v8',help:'M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5M12 17h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z',reset:'M3 10a9 9 0 1 1 1 8M3 3v7h7',close:'m6 6 12 12M6 18 18 6',plus:'M12 5v14M5 12h14',minus:'M5 12h14',list:'M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1'};return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${(paths[name]??paths.home).split('Z ').map(p=>`<path d="${p}"/>`).join('')}</svg>`;};
-function tokenIcon(token:number){
- const paths=[
-  'M3 14h18v4H3ZM6 14l2-6h8l3 6M8 18v2m10-2v2M8 10h8',
-  'M8 16V9c0-4 4-7 4-7s4 3 4 7v7ZM8 12l-4 6h4m8-6 4 6h-4M10 19v3m4-3v3M11 9h2',
-  'M12 3v13M10 4 4 14h6Zm4 2 6 8h-6ZM3 17h18l-4 4H7Z',
-  'M6 5h12v7H6ZM8 12v8h8v-8M3 14v4m18-4v4M9 8h.01m6 0h.01M12 5V2M8 20v2m8-2v2',
-  'm3 7 5 5 4-8 4 8 5-5-2 13H5ZM6 17h12',
-  'M3 10c0-4 4-6 9-6s9 2 9 6-4 6-9 6-9-2-9-6ZM9 16v4h6v-4M3 8 1 5v10l2-3',
-  'M5 8V3l5 4h4l5-4v5c3 8-1 13-7 13S2 16 5 8ZM8 12h.01m8 0h.01m-6 4 2 1 2-1',
-  'm3 9 4-5h10l4 5-9 12ZM3 9h18M7 4l5 17 5-17'
- ];
- return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[token]}"/></svg>`;
-}
+type Route='menu'|'solo'|'host'|'join'|'lobby'|'connecting'|'game';
+type Sheet={kind:'properties';filter:PortfolioFilter;raise:boolean}|{kind:'deed';index:number}|{kind:'trade'}|{kind:'player';id:string}|{kind:'bank';scope:'mine'|'table'}|{kind:'menu'}|{kind:'settings'}|{kind:'rules'};
+type Dialog={title:string;body:string;confirm:string;tone:'danger'|'primary';command:string};
+
+// ---------- Shell ----------
 const app=document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML=`<header class="topbar"><button class="brand" data-nav="menu" aria-label="Main menu"><span class="brand-mark">${icon('home')}</span><span>Property Empire<small>A city of possibilities</small></span><span class="tag3d">3D</span></button><div class="header-actions"><span id="connection" class="status">Local play</span><button data-do="help" class="icon-button" title="How to Play" aria-label="How to Play">${icon('help')}</button><button data-do="settings" class="icon-button" title="Settings" aria-label="Settings">${icon('settings')}</button><button data-do="fullscreen" class="icon-button fullscreen" title="Fullscreen" aria-label="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/></svg></button></div></header><main id="layout" class="layout menu"><aside id="left"></aside><section id="stage" aria-label="Game board"><div id="board"></div><div id="board-caption" class="board-caption">A whole city. All yours to discover.</div><div class="camera-tools"><button data-do="zoom-in" aria-label="Zoom in" title="Zoom in">${icon('plus')}</button><button data-do="zoom-out" aria-label="Zoom out" title="Zoom out">${icon('minus')}</button><button data-do="reset" aria-label="Reset camera" title="Reset camera">${icon('reset')}</button></div><div id="turn-panel"></div></section></main><footer class="footer"><span>Made for game night.</span><span id="revision" class="sr-only"></span><span id="footer-note">2–8 players <span class="dot">•</span> Solo or local multiplayer</span></footer><div id="toast" role="status" aria-live="polite"></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
-app.querySelector('.brand')!.setAttribute('aria-label','Property Empire home');
-const left=document.querySelector<HTMLElement>('#left')!,turnPanel=document.querySelector<HTMLElement>('#turn-panel')!,layout=document.querySelector<HTMLElement>('#layout')!,dialog=document.querySelector<HTMLDialogElement>('#dialog')!;
-const matchBanner=document.createElement('section');matchBanner.id='match-banner';matchBanner.hidden=true;matchBanner.setAttribute('aria-label','Match overview');layout.prepend(matchBanner);
-const gameToolbar=document.createElement('nav');gameToolbar.id='game-toolbar';gameToolbar.hidden=true;gameToolbar.setAttribute('aria-label','Game tools');
-const eventHost=document.createElement('section');eventHost.id='event-popup';eventHost.hidden=true;document.querySelector('#stage')!.append(eventHost);
-const stage=document.querySelector<HTMLElement>('#stage')!;
-const events=new EventPresenter(eventHost,stage,{deckAnchor:deck=>board?.projectDeck(deck)??null,reduced:()=>settings.speed==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches});
-let tradeDraft:TradeDraft|null=null,galleryFilter='all',highlightMine=true;
-let route:'menu'|'solo'|'create'|'join'|'lobby'|'game'='menu',mode:'solo'|'lan'='solo',game:Game|null=null,selected=-1,botTimer:ReturnType<typeof setTimeout>|null=null,toastTimer:ReturnType<typeof setTimeout>|null=null,settings=readSettings(),savingFailed=false;
+app.innerHTML=`<div class="shell" id="shell" data-route="menu"><header id="top"></header><main id="stage" aria-label="Game board"><div id="board"></div><div class="notice-host" id="notices" aria-live="polite"></div><div class="preview-host" id="preview"></div><div class="decision-host" id="decision"></div><div class="stage-tools" id="stage-tools"><button class="btn icon-only" data-do="camera-reset" aria-label="Reset camera">${icon('reset')}</button></div></main><footer id="bottom"></footer></div>
+<div id="page" hidden></div>
+<div class="layer sheet-layer" id="sheet-layer" hidden><div class="sheet-scrim" data-do="close-sheet"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1"><header class="sheet-head" id="sheet-head"></header><div class="sheet-scroll" id="sheet-scroll"></div></section></div>
+<div class="layer card-layer" id="card-layer" hidden></div>
+<div class="layer finale-layer" id="finale-layer"></div>
+<div class="layer dialog-layer" id="dialog-layer" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>`;
+const $=<T extends HTMLElement=HTMLElement>(selector:string)=>document.querySelector<T>(selector)!;
+const shell=$('#shell'),top=$('#top'),stage=$('#stage'),bottom=$('#bottom'),pageEl=$('#page'),noticeHost=$('#notices'),previewHost=$('#preview'),decisionHost=$('#decision'),stageTools=$('#stage-tools');
+const sheetLayer=$('#sheet-layer'),sheetEl=sheetLayer.querySelector<HTMLElement>('.sheet')!,sheetHead=$('#sheet-head'),sheetScroll=$('#sheet-scroll'),cardLayer=$('#card-layer'),finaleLayer=$('#finale-layer'),dialogLayer=$('#dialog-layer');
+
+// ---------- State ----------
+let settings:Settings=readSettings();
+let route:Route='menu',mode:'solo'|'lan'='solo',game:Game|null=null;
+let sheets:Sheet[]=[],dialog:Dialog|null=null,preview:number|null=null;
+let minimised:string|null=null,lastDecision='',cardHidden:number|null=null;
+let trade:TradeState|null=null,bidDraft:{key:string;value:number}|null=null;
+let saveInfo:SaveSummary|null|undefined=undefined,formRoute:'host'|'join'='join',connectError='';
+let botTimer:ReturnType<typeof setTimeout>|null=null,toastTimer:ReturnType<typeof setTimeout>|null=null;
+let pendingCommand:{revision:number;timer:ReturnType<typeof setTimeout>}|null=null;
+let pendingHaptic:HapticKind|null=null,paused=false,savingFailed=false,lastActive='',lastSheet='';
+
+const reduced=()=>isReduced(settings);
 const sounds=new GameSounds(settings.sound);
-const feedback=new EventFeedback(stage,settings.speed==='reduced',property=>board?.projectSpace(property)??null);
-const moments=new BoardMoments(stage,property=>board?.projectSpace(property)??null,()=>settings.speed==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches);
-const moneyLedger=new MoneyLedger(matchBanner,()=>settings.speed==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches);
-const finale=new MatchFinale(stage,()=>settings.speed==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches);
-function toast(message:string){const el=document.querySelector<HTMLElement>('#toast')!;el.textContent=message;el.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),5000);}
-const network=new Network(()=>{if(mode==='lan'){if(network.game){game=network.game;route='game';updateBoard();}else if(network.room)route='lobby';render();}},toast);
-let board:BoardView|null=null;try{board=new BoardView(document.querySelector<HTMLElement>('#board')!,selectSpace,settings);}catch{document.querySelector('#board')!.innerHTML='<div class="context-error">This browser could not start 3D graphics. You can still play using the property list and turn controls.</div>';}
-if(board){board.onFrame=()=>{feedback.reposition();moments.reposition();};board.onStep=()=>sounds.play('step');board.onSettled=()=>{sounds.settle();feedback.settle();moments.settle();moneyLedger.settle();if(route==='game'){render();scheduleBot();}};}
-const demo=createGame({players:['You','Milo','Cleo','Jasper'].map((name,i)=>({id:`demo-${i}`,name,bot:true,token:i}))},25);demo.players.forEach((p,i)=>p.position=[0,14,25,36][i]);[1,3,6,8,11,13,16,19,23,27,32,39].forEach((i,n)=>{demo.properties[i].owner=demo.players[n%4].id;});[6,11,16,23,32].forEach(i=>demo.properties[i].level=2);board?.update(demo,false);
-function viewer(){return game?(mode==='lan'?game.players.find(p=>p.id===network.session?.playerId):game.players.find(p=>!p.bot))??null:null;}
-function updateBoard(animate=true){if(game){board?.setViewer(viewer()?.id??null,highlightMine);board?.update(game,animate);sounds.observe(game,!!board?.isAnimating,animate);moneyLedger.observe(game,!!board?.isAnimating,animate);const me=viewer();if(me){feedback.observe(game,me.id,!!board?.isAnimating,animate);moments.observe(game,settings.speed==='reduced'?'':me.id,!!board?.isAnimating,animate);}}}
-function soloSave(manual=false){if(!game||mode!=='solo')return;void saveGame(game).then(()=>{savingFailed=false;if(manual)toast('Game saved in this browser.');}).catch(()=>{if(!savingFailed||manual)toast('Could not save. Check browser storage permissions.');savingFailed=true;});}
-function action(a:Action,id?:string){if(!game||board?.isAnimating||(events.hasBlockingCard&&a.type!=='resolveCard'))return;try{if(mode==='lan'){network.action(a);return;}const actor=id??actionPlayer(game)!;if(a.type==='resolveCard')events.dismiss();game=applyAction(game,actor,a);updateBoard();soloSave();render();scheduleBot();}catch(error){toast(error instanceof Error?error.message:'This action is unavailable');}}
-function scheduleBot(){if(botTimer)clearTimeout(botTimer);botTimer=null;if(mode!=='solo'||route!=='game'||!game||board?.isAnimating||events.hasBlockingCard)return;const decision=botDecision(game);if(decision)botTimer=setTimeout(()=>{botTimer=null;action(decision.action,decision.playerId);},game.phase==='card'?9000:settings.speed==='fast'?180:settings.speed==='reduced'?350:900);}
-function continueObserverCard(){
- if(board?.isAnimating)return;
- const pending=game?.pendingCard,matching=game?.phase==='card'&&pending&&events.observerCardEvent===pending.event;
- if(matching&&game!.players.find(player=>player.id===pending.player)?.bot){
-  if(mode==='lan'){if(!networkReady())return;events.dismissObserverCard();network.send({type:'CONTINUE_BOT_CARD',event:pending.event});render();return;}
-  if(botTimer)clearTimeout(botTimer);botTimer=null;events.dismissObserverCard();action({type:'resolveCard'},pending.player);return;
- }
- events.dismissObserverCard();render();scheduleBot();
+setHaptics(settings.haptics);
+const feedback=new EventFeedback(stage,reduced(),property=>board?.projectSpace(property)??null);
+const moments=new BoardMoments(stage,property=>board?.projectSpace(property)??null,reduced);
+const moneyLedger=new MoneyLedger(top,reduced);
+const finale=new MatchFinale(finaleLayer,reduced);
+const notices=new NoticeFeed(noticeHost);
+
+function toast(message:string){const el=$('#toast');el.textContent=message;el.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3600);}
+
+let board:BoardView|null=null;
+try{board=new BoardView($('#board'),selectSpace,settings);}catch{$('#board').innerHTML='<div class="context-error">This device could not start 3D graphics. You can still play with the property list and the controls below.</div>';}
+if(board){
+ board.onFrame=()=>{feedback.reposition();moments.reposition();};
+ board.onStep=()=>sounds.play('step');
+ board.onSettled=()=>{sounds.settle();feedback.settle();moments.settle();moneyLedger.settle();notices.setMoving(false);flushHaptic();if(route==='game'){render();scheduleBot();}};
 }
-function allowed(a:Action,id=game? actionPlayer(game)!:''){if(!game||!id||playerById(game,id).bot||board?.isAnimating||(events.hasBlockingCard&&a.type!=='resolveCard'))return false;if(mode==='lan'&&(!network.connected||network.session?.playerId!==id))return false;try{applyAction(game,id,a);return true;}catch{return false;}}
-function actionButton(label:string,a:Action,primary=false){return`<button class="${primary?'primary':''}" data-action="${e(JSON.stringify(a))}" ${allowed(a)?'':'disabled'}>${e(label)}</button>`;}
-function tokenOptions(value=0){return PLAYER_COLORS.map((_,i)=>`<option value="${i}" ${i===value?'selected':''}>${TOKEN_NAMES[i]} · ${['Blue','Coral','Mint','Lavender','Gold','Teal','Rose','Olive'][i]}</option>`).join('');}
-function botOptions(value=2){return Array.from({length:8},(_,i)=>`<option value="${i}" ${i===value?'selected':''}>${i===0?'No bots':`${i} bot${i===1?'':'s'}`}</option>`).join('');}
-function settingsFields(){return`<div class="form-grid"><label>Starting cash<select name="cash"><option value="1500">$1,500</option><option value="2000">$2,000</option><option value="1000">$1,000</option></select></label><label>Game length<select name="length"><option value="0">Classic · last player standing</option><option value="80">Quick · 80 turns</option><option value="160">Extended · 160 turns</option></select></label></div><label class="check"><input type="checkbox" name="jackpot"> Free Parking tax jackpot <small>Optional house rule</small></label>`;}
-function render(){
- document.body.classList.toggle('match-fullscreen',route==='game'&&!!document.fullscreenElement);
- if(route!=='game'){events.reset();eventHost.innerHTML='';sounds.reset();feedback.reset();moments.reset();moneyLedger.reset();finale.reset();}
- matchBanner.hidden=route!=='game';gameToolbar.hidden=route!=='game';if(route!=='game'){matchBanner.innerHTML='';gameToolbar.innerHTML='';}
- layout.className=`layout ${route==='game'?'playing':route==='menu'?'menu':'setup'}`;turnPanel.innerHTML='';document.querySelector('#board-caption')!.textContent=route==='game'?'Point & scroll to zoom · Right-drag to pan':'A whole city. All yours to discover.';
- const connection=document.querySelector<HTMLElement>('#connection')!;connection.textContent=mode==='lan'?(network.connected?'LAN connected':'Reconnecting…'):'Local play';connection.className=`status ${mode==='lan'&&!network.connected?'offline':''}`;
- if(route==='menu'){
-  left.innerHTML=`<div class="hero"><div class="edition"><span class="tiny-cube"></span> Your next game night</div><h1>Small city.<br>Big ambition.</h1><p>Buy your first street. Build a neighborhood.<br>Make your next move an empire.</p><div class="menu-actions"><button data-nav="solo" class="primary menu-primary">${icon('dice')}<span>Play Solo<small>You, a city, and a few worthy rivals</small></span>${icon('arrow')}</button><div class="lan-buttons"><button data-nav="create">${icon('network')}Create LAN Game</button><button data-nav="join">Join LAN Game ${icon('arrow')}</button></div><div class="menu-resume-actions"><button data-do="continue" class="menu-resume-button" aria-label="Continue Saved Game"><span class="resume-icon">${icon('save')}</span><span><strong>Continue Saved Game</strong><small>Pick up where you left off</small></span></button>${storedSession()?`<button data-do="rejoin" class="menu-resume-button menu-rejoin-button" aria-label="Rejoin LAN Game"><span class="resume-icon">${icon('network')}</span><span><strong>Rejoin LAN Game</strong><small>Return to your multiplayer table</small></span></button>`:''}</div></div><div class="menu-note"><span class="note-pawns"><i></i><i></i><i></i></span><span>Bring your friends. We’ll bring the board.<small>No accounts. Just a good game.</small></span></div><p class="developer-credit">Developed by <strong>Kasun Samarasinghe</strong></p></div>`;
-  left.querySelector('[data-nav="solo"]')!.setAttribute('aria-label','Play Solo');
- }else if(['solo','create','join'].includes(route)){
-  const join=route==='join';left.innerHTML=`<button class="back-link" data-nav="menu">‹ Back to menu</button><h1 class="setup-title">${route==='solo'?'Meet your rivals.':join?'Join the table.':'Bring everyone together.'}</h1><p class="subtext">${route==='solo'?'Choose your opponents and make the city yours.':join?'Enter the room code from your host.':'Friends on the same Wi-Fi can join your room.'}</p><form id="setup-form"><label>Your name<input name="name" value="Player" maxlength="24" required autocomplete="nickname"></label><label>Your token<select name="token">${tokenOptions()}</select></label>${join?`<label>Room code<input name="code" required minlength="6" maxlength="6" value="${e(new URLSearchParams(location.search).get('room')||'')}" placeholder="e.g. A12B34" autocapitalize="characters" autocomplete="off"></label>`:`<div class="form-grid"><label>Bot opponents<select name="bots">${botOptions(route==='solo'?2:1)}</select></label><label>Difficulty<select name="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label></div>${route==='solo'?'<p class="field-note">Choose at least one bot for solo play.</p>':''}${settingsFields()}`}${route!=='solo'?`<details><summary>Server address</summary><label>WebSocket address<input name="server" value="${e(defaultSocketUrl())}" placeholder="ws://192.168.1.10:3001/ws"></label><p class="field-note">Usually automatic. Your host must run the LAN server.</p></details>`:''}<button class="primary wide" type="submit">${route==='solo'?'Start game':join?'Join room':'Create room'} ${icon('arrow')}</button></form>`;
-  if(route==='join'&&storedSession())left.insertAdjacentHTML('beforeend','<button data-do="rejoin" class="text-button">Rejoin LAN Game</button>');
- }else if(route==='lobby'&&network.room){
-  const r=network.room,host=r.host===network.session?.playerId,me=r.members.find(m=>m.id===network.session?.playerId);left.innerHTML=`<button class="back-link" data-do="leave">‹ Leave room</button><h1 class="setup-title">Your table is ready.</h1><p class="subtext">Share this code with friends on the same network.</p><div class="room-code-label">Room code</div><div id="room-code">${e(r.code)}</div><button class="wide" data-do="invite">Copy invite link ${icon('network')}</button><div class="lobby-members">${r.members.map(m=>`<div class="lobby-member"><span class="pawn-dot" style="--pawn:${PLAYER_COLORS[m.token]}"></span><span><strong>${e(m.name)}</strong><small>${m.bot?`${m.difficulty} bot`:m.id===r.host?'Host':'Friend'}</small></span><span class="ready-badge ${m.ready&&m.connected?'ready':''}">${!m.connected?'Away':m.ready?'Ready':'Waiting'}</span></div>`).join('')}</div>${host?`<form id="room-config"><div class="form-grid"><label>Bot opponents<select name="bots">${botOptions(r.members.filter(m=>m.bot).length)}</select></label><label>Difficulty<select name="difficulty"><option>easy</option><option selected>medium</option><option>hard</option></select></label></div><button type="submit" class="wide">Update opponents</button></form><button data-do="start-lan" class="primary wide" ${r.members.length>=2&&r.members.every(m=>m.ready&&m.connected)?'':'disabled'}>Start match ${icon('dice')}</button>`:`<button data-do="ready" class="primary wide">${me?.ready?'Not ready':'Ready to play'}</button>`}<p class="field-note">Open this page’s LAN address on each phone. The host waits for everyone to be ready.</p>`;
- }else if(route==='game'&&game){renderGame();}
-}
-function ledgerMarkup(g:Game){return g.players.map((p,i)=>`<button type="button" aria-label="View ${e(p.name)} player details" class="player-row ${i===g.current?'active':''} ${p.bankrupt?'eliminated':''}" data-player="${e(p.id)}" style="--pawn:${PLAYER_COLORS[p.token??i]}"><div class="player-token">${tokenIcon(p.token??i)}</div><div class="player-name"><strong>${e(p.name)}</strong><small>${p.bankrupt?'Bankrupt':p.jailed?'In jail':p.bot?`${p.difficulty} bot`:'Player'}</small></div><div class="player-cash">${money(p.cash)}<small>${g.properties.filter(v=>v.owner===p.id).length} deeds</small></div></button>`).join('');}
-function renderGame(){
- const g=game!,current=g.players[g.current],actor=playerById(g,actionPlayer(g)??g.winner??current.id),me=mode==='lan'?g.players.find(p=>p.id===network.session?.playerId):g.players.find(p=>!p.bot),isActor=!actor.bot&&(mode==='solo'||actor.id===network.session?.playerId);const myAssets=g.properties.map((p,i)=>({p,i})).filter(v=>v.p.owner===me?.id);
- matchBanner.innerHTML=`<div id="game-info" class="game-info"><span class="round-label">Turn ${g.turn}${g.config.turnLimit?` / ${g.config.turnLimit}`:''}</span><h2>${e(g.phase==='ended'?playerById(g,g.winner!).name:current.name)}${g.phase==='ended'?' wins!':"’s turn"}</h2><span class="mode-label">${mode==='lan'?`Room ${network.room?.code??''}`:'Solo with bots'}</span></div><div id="player-ledger">${ledgerMarkup(g)}</div>`;
- moneyLedger.refresh();
- const canTrade=isActor&&me?.id===actor.id&&networkReady()&&['roll','manage','debt'].includes(g.phase)&&!g.tradeOffered;
- left.innerHTML=portfolioMarkup(g,me??null,canTrade);
- gameToolbar.innerHTML=`<div class="game-tools"><button data-do="properties">${icon('list')}Properties</button><button data-do="cards">Cards</button><button data-do="trade" ${canTrade?'':'disabled'}>${icon('network')}Trade</button><button data-do="sound" aria-pressed="${settings.sound}">${settings.sound?'Sound on':'Sound off'}</button><button data-do="save">${icon('save')}Save game</button><button data-nav="menu">Main menu</button>${document.fullscreenElement?'<button data-do="fullscreen">Exit fullscreen</button><button data-do="settings">Settings</button><button data-do="help">How to Play</button>':''}</div>`;
- const ownershipToggle=left.querySelector('[data-do="highlight-owned"]');ownershipToggle?.setAttribute('aria-pressed',String(highlightMine));
- let title='',description='',buttons='';
- if(g.phase==='ended'){title=`${playerById(g,g.winner!).name} built an empire.`;description=`Winning net worth: ${money(netWorth(g,playerById(g,g.winner!)))}. A city well played.`;buttons='<button class="primary" data-do="show-results">View results</button><button data-nav="solo">Play again</button><button data-nav="menu">Main menu</button>';}
- else if(g.phase==='card'){title=`${actor.name} draws ${g.pendingCard!.deck==='chance'?'Chance':'Community Chest'}.`;description='Read the card. Its effect begins when you continue.';buttons=actionButton('Continue',{type:'resolveCard'},true);}
- else if(g.phase==='roll'){title=actor.jailed?'A brief stay at City Hall.':isActor?'Your next move awaits.':`${actor.name} is up.`;description=actor.jailed?'Pay $50, use a jail card, or try to roll doubles.':isActor?'Roll the dice and see where the city takes you.':actor.bot?'Your rival is considering their next move.':'Waiting for this player to roll.';buttons=actionButton('Roll dice',{type:'roll'},true);if(actor.jailed)buttons+=actionButton('Pay $50',{type:'bail'})+actionButton('Use jail card',{type:'jailCard'});}
- else if(g.phase==='purchase'){const s=BOARD[g.pendingProperty!];title=`${s.name} is available.`;description=`${money(s.price)} to own it. Base rent ${money(s.rents[0]??(s.type==='transport'?25:0))}${s.type==='utility'?' · Rent depends on dice':''}.`;buttons=actionButton(`Buy for ${money(s.price)}`,{type:'buy'},true)+actionButton('Send to auction',{type:'decline'});if(selected!==s.index){selected=s.index;board?.select(selected);}}
- else if(g.phase==='auction'){const a=g.auction!;title=`Auction: ${BOARD[a.property].name}`;description=a.leader?`${playerById(g,a.leader).name} leads at ${money(a.bid)}. ${actor.name} bids next.`:`Bidding starts at $1. ${actor.name} goes first.`;buttons=`<form id="bid-form"><label class="sr-only" for="bid-amount">Your bid</label><input id="bid-amount" name="bid" type="number" min="${a.bid+1}" max="${actor.cash}" value="${Math.min(actor.cash,a.bid+Math.max(1,Math.min(25,Math.floor(BOARD[a.property].price/10))))}" ${isActor&&networkReady()?'':'disabled'} required><button class="primary" type="submit" ${isActor&&networkReady()&&actor.cash>a.bid?'':'disabled'}>Place bid</button></form>${actionButton('Pass',{type:'pass'})}`;}
- else if(g.phase==='debt'){title=`${actor.name} needs ${money(Math.max(0,g.debt!.amount-actor.cash))}.`;description=`Owes ${money(g.debt!.amount)} to ${g.debt!.creditor?playerById(g,g.debt!.creditor).name:'the bank'}. Select assets to sell or mortgage, or negotiate a trade.`;buttons='<button data-do="properties">Manage properties</button>'+actionButton('Declare bankruptcy',{type:'bankrupt'});}
- else if(g.phase==='trade'){const t=g.trade!,from=playerById(g,t.from);title=(t.round??0)>0?`Counteroffer from ${from.name}.`:`A trade for ${actor.name}.`;description=`${from.name} offers ${tradeItems(t.give,t.giveCash,t.giveCards)} for ${tradeItems(t.receive,t.receiveCash,t.receiveCards)}.`;buttons=actionButton('Accept trade',{type:'acceptTrade'},true)+`<button data-do="counter-trade" ${canCounter()?'':'disabled'}>Counteroffer</button>`+actionButton('Decline trade',{type:'rejectTrade'});}
- else {title=isActor?g.extraRoll?'Doubles! One more roll.':'Make it a good turn.':`${actor.name} is managing their empire.`;description=g.lastCard??(isActor?'Build, mortgage, or make a trade before moving on.':actor.bot?'Your rival is managing properties.':'Waiting for the current player.');buttons=actionButton(g.extraRoll?'Roll again':'End turn',{type:'end'},true);}
- const latestRoll=[...g.log].reverse().find(entry=>entry.kind==='roll'),showPrompt=!(g.phase==='roll'&&isActor&&!actor.jailed);
- matchBanner.insertAdjacentHTML('beforeend',`<div id="turn-status" class="turn-status"><div class="turn-message" role="status" aria-live="polite" aria-atomic="true"><strong title="${e(title)}">${e(title)}</strong>${showPrompt?`<p title="${e(description)}">${e(description)}</p>`:''}</div><div class="roll-message" role="status" aria-live="polite">${icon('dice')}<span title="${e(latestRoll?.text??'Ready to roll')}">${e(latestRoll?.text??'Ready to roll')}</span></div></div>`);
- turnPanel.hidden=!(isActor||g.phase==='ended');
- turnPanel.innerHTML=turnPanel.hidden?'':`<div class="turn-actions">${buttons}</div>`;
- document.querySelector('#revision')!.textContent=String(g.revision);
- document.querySelector('#footer-note')!.textContent=g.phase==='ended'?'Thanks for playing.':mode==='lan'?'The host saves this match automatically.':'Saved automatically in this browser.';
- matchBanner.querySelector('.roll-message')!.before(gameToolbar);
- const decision=me?decisionFor(g,me.id):null;
- let popup:DecisionPopup|null=null;
- if(decision){
-  const drawn=g.phase==='card'?pendingCardPresentation(g):null;
-  let content=drawn?`${drawnCardMarkup(drawn)}<p class="card-read-note">Nothing happens until you press Continue.</p>`:`<p>${e(description)}</p>`;
-  if(decision.property!==undefined){const space=BOARD[decision.property];content=decision.kind==='purchase'?`<div class="deed-event-tools"><span>Title deed</span><button class="deed-locate" data-do="focus">Focus this property</button></div>${propertyPanel(space.index)}`:`<div class="event-art">${propertyArtwork(space.index)}</div>${content}<div class="event-property-price"><span>${g.phase==='auction'?'Current bid':'Purchase price'}</span><strong>${money(g.phase==='auction'?g.auction!.bid:space.price)}</strong></div>`;}
-  if(g.trade){const t=g.trade;content=tradeSummaryMarkup(g,t.from,{type:'offerTrade',to:t.to,give:t.give,receive:t.receive,giveCash:t.giveCash,receiveCash:t.receiveCash,giveCards:t.giveCards,receiveCards:t.receiveCards});}
-  popup={...decision,card:drawn??undefined,title:drawn?.title??title,html:decision.kind==='purchase'?content:`${content}<div class="event-actions">${buttons}</div>`};
- }
- document.querySelector('#stage')!.setAttribute('aria-busy',String(!!board?.isAnimating));
- if(me){events.update(g,me.id,popup,!!board?.isAnimating);finale.update(g,me.id);events.suspend(dialog.open||finale.visible);}
- if(events.hasDecision||events.hasBlockingCard||board?.isAnimating||finale.visible)turnPanel.innerHTML='';
- if(dialog.open&&dialog.classList.contains('deed-dialog')){const body=dialog.querySelector<HTMLElement>('.deed-dialog-body')!;body.innerHTML=propertyPanel(Number(body.dataset.deedIndex));}
- if(dialog.open&&dialog.classList.contains('profile-dialog')){const id=dialog.querySelector<HTMLElement>('#player-profile')?.dataset.profileId;if(id)dialog.querySelector('#player-profile')!.outerHTML=profileMarkup(id);}
- feedback.refreshBalance();
- if(events.hasBlockingCard){gameToolbar.querySelector<HTMLButtonElement>('[data-do="trade"]')!.disabled=true;gameToolbar.querySelector<HTMLButtonElement>('[data-do="trade"]')!.title='Read the drawn card, then continue your turn.';}
-}
+const demo=createGame({players:['You','Milo','Cleo','Jasper'].map((name,i)=>({id:`demo-${i}`,name,bot:true,token:i}))},25);
+demo.players.forEach((p,i)=>p.position=[0,14,25,36][i]);[1,3,6,8,11,13,16,19,23,27,32,39].forEach((i,n)=>{demo.properties[i].owner=demo.players[n%4].id;});[6,11,16,23,32].forEach(i=>demo.properties[i].level=2);
+board?.update(demo,false);
+
+// ---------- Network ----------
+const network=new Network(()=>{
+ if(mode!=='lan')return;
+ if(pendingCommand&&(!network.game||network.game.revision!==pendingCommand.revision))clearPending();
+ if(network.game){
+  const changed=game!==network.game;game=network.game;
+  if(route!=='game'){route='game';resetMatchUi();updateBoard(false);board?.reset();}
+  else if(changed)updateBoard(true);
+ }else if(network.room&&(route==='connecting'||route==='lobby'))route='lobby';
+ render();
+},message=>{
+ clearPending();
+ if(route==='connecting'&&!network.session){network.stop();connectError=message;route=formRoute;render();}
+ toast(message);
+},url=>{
+ if(route==='connecting'||route==='lobby'){connectError=`Could not reach the host at ${hostLabel(url)}. Check that it is running and that this device is on the same Wi-Fi.`;route=formRoute;mode='lan';render();toast('Host not reachable');}
+});
 function networkReady(){return mode==='solo'||network.connected;}
-function tradeItems(ids:number[],cash:number,cards:number){return [...ids.map(i=>BOARD[i].name),...(cash?[money(cash)]:[]),...(cards?[`${cards} jail card${cards===1?'':'s'}`]:[])].join(', ')||'no items';}
-function propertyPanel(index:number){
- if(!game)return'';
- if(index<0)return`<div class="inspector-empty">${icon('home')}<h3>Find your next property.</h3><p>Select a building or open the title deeds to explore the city.</p><button data-do="properties">Browse properties</button></div>`;
- const s=BOARD[index],v=game.properties[index],owner=v.owner?playerById(game,v.owner):null,yours=!!owner&&owner.id===viewer()?.id;
- if(!s.price)return`<div class="property-head" style="--group:${s.color}"><span>City space</span><h2>${e(s.name)}</h2></div><p class="space-explanation">${({go:'Pass Start to collect $200. Landing on Start pays once.',tax:`Pay ${money(s.amount)} to the city.`,chance:'Draw a Chance card from the Opportunity deck. Its instructions may move you, change cash, or send you to jail.',community:'Draw a Community Chest card from the City Fund deck. Resolve its cash, repairs, movement or jail instructions.',jail:'Just visiting? Carry on. In jail? Pay $50, use a card, or roll doubles.',goJail:'Go directly to jail. Do not collect a Start salary.',parking:game.config.jackpot?`Collect the tax jackpot: ${money(game.pot)}.`:'A quiet moment. Free Parking has no reward in Classic rules.'} as Record<string,string>)[s.type]}</p><button class="text-button" data-do="focus">Focus this space</button>`;
- const financials=deedFinancials(game,index),group=BOARD.filter(space=>space.group===s.group);
- const development=v.level===5?'Hotel':v.level?`${v.level} house${v.level>1?'s':''}`:s.type==='street'?'Unimproved':s.type==='transport'?'Station':'Utility';
- return`<article class="title-deed ${v.mortgaged?'deed-mortgaged':''}" style="--group:${s.color}">
-  <header class="deed-header"><div class="deed-caption"><span>${e(GROUPS[s.group].name)}</span><span>${s.type==='transport'?'Station':s.type==='utility'?'Utility':'Street'}</span></div><h2>${e(s.name)}</h2></header>
-  <figure class="deed-portrait">${propertyArtwork(index,v.level)}${v.mortgaged?'<span class="mortgage-stamp">Mortgaged</span>':''}</figure>
-  <div class="deed-owner"><span class="deed-owner-dot" style="background:${owner?PLAYER_COLORS[owner.token??game.players.indexOf(owner)]:'#A6ACA0'}"></span><span class="${yours?'deed-yours':''}">${yours?'✓ Your property':owner?`Owned by <strong>${e(owner.name)}</strong>`:'Available from the bank'}</span><span class="deed-development">${e(development)}</span></div>
-  <div class="deed-figures"><div><span>Purchase price</span><strong>${money(s.price)}</strong></div><div><span>${financials.rentLabel}</span><strong>${financials.rent}</strong>${s.type==='utility'&&!v.mortgaged?'<small>the total rolled</small>':''}</div></div>
-  <div class="deed-set"><div class="deed-set-icons">${group.map(space=>{const held=game!.properties[space.index].owner,player=game!.players.find(p=>p.id===held);return`<span title="${e(space.name)} · ${player?e(player.name):'Bank'}" style="--held:${player?PLAYER_COLORS[player.token??game!.players.indexOf(player)]:'#D6D7CA'}">${icon(s.type==='transport'?'network':s.type==='utility'?'settings':'home')}</span>`;}).join('')}</div><span>${owner?`${financials.count} of ${financials.groupSize} ${s.type==='street'?'in color group':s.type==='transport'?'stations':'utilities'}`:`${financials.groupSize} ${s.type==='street'?'properties in color group':s.type==='transport'?'stations in the city':'utilities in the city'}`}</span></div>
-  <dl class="deed-rents">${financials.rows.map(row=>`<div class="${row.active?'current-rent':''}"><dt>${row.active?'<span class="rent-indicator" aria-label="Current rent tier"></span>':''}${e(row.label)}</dt><dd>${row.value}</dd></div>`).join('')}</dl>
-  <div class="deed-costs"><div><span>Mortgage value</span><strong>${money(s.mortgage)}</strong></div>${s.buildCost?`<div><span>Each house / hotel</span><strong>${money(s.buildCost)}</strong></div>`:''}</div>
-  ${yours?`<div class="asset-actions">${s.type==='street'?actionButton('Build',{type:'build',property:index})+actionButton('Sell building',{type:'sell',property:index})+actionButton('Sell group buildings',{type:'sellGroup',property:index}):''}${v.mortgaged?actionButton(`Lift mortgage (${money(Math.ceil(s.mortgage*1.1))})`,{type:'unmortgage',property:index}):actionButton('Mortgage',{type:'mortgage',property:index})}</div>`:owner?`<div class="asset-actions"><button data-trade-for="${index}" ${canStartTrade()&&tradable(game,index)?'':'disabled'} title="${!tradable(game,index)?'The owner must sell group buildings first':'Start a trade for this deed'}">Trade for this property</button></div>`:game.phase==='purchase'&&game.pendingProperty===index?`<div class="asset-actions">${actionButton(`Buy for ${money(s.price)}`,{type:'buy'},true)}${actionButton('Send to auction',{type:'decline'})}</div>`:''}
- </article>`;
+function clearPending(){if(pendingCommand){clearTimeout(pendingCommand.timer);pendingCommand=null;}}
+
+// ---------- Rules access ----------
+function viewer():string|null{if(!game)return null;return mode==='lan'?network.session?.playerId??null:game.players.find(p=>!p.bot)?.id??null;}
+/** Null when the viewer may perform the action now; otherwise a reason (usually the engine's own message). */
+function check(action:Action):string|null{
+ const id=viewer();if(!game||!id)return'Unavailable';
+ if(board?.isAnimating)return'Wait for the pawn to arrive';
+ if(!networkReady())return'Reconnecting to the host';
+ if(pendingCommand)return'Sending…';
+ try{applyAction(game,id,action);return null;}catch(error){return error instanceof Error?error.message:'Unavailable';}
 }
-function selectSpace(index:number){showDeed(index);}
-function showDeed(index:number){if(!game||!BOARD[index])return;selected=index;board?.select(index);if(game.phase==='purchase'&&game.pendingProperty===index&&events.hasDecision&&!dialog.open)return;modal(BOARD[index].price?'Title deed':'City space',`<div class="deed-dialog-body" data-deed-index="${index}">${propertyPanel(index)}</div>`,true);dialog.classList.add('deed-dialog');dialog.classList.toggle('deed-reduced',settings.speed==='reduced');const locate=document.createElement('button');locate.className='deed-locate';locate.dataset.do='focus';locate.textContent=BOARD[index].price?'Focus this property':'Focus this space';dialog.querySelector('.dialog-head button')!.before(locate);}
-function profileMarkup(id:string){
- if(!game)return'';const p=playerById(game,id),me=viewer(),assets=BOARD.filter(s=>game!.properties[s.index].owner===id),incoming=!!game.trade&&game.trade.to===me?.id&&game.trade.from===id,canNegotiate=incoming?canCounter():canStartTrade()&&me?.id!==id&&!p.bankrupt;
- const reason=p.bankrupt?'This player is bankrupt.':me?.id===id?'These are your properties.':incoming?'Respond to their current offer.':game.trade?'Finish the current negotiation first.':game.tradeOffered?'You have used your trade offer this turn.':!canStartTrade()?'Trade during your turn after resolving the current action.':'Choose properties, cash or jail cards to offer.';
- return `<section id="player-profile" data-profile-id="${e(id)}" style="--player:${PLAYER_COLORS[p.token??game.players.indexOf(p)]}"><div class="profile-intro"><span class="profile-token">${tokenIcon(p.token??game.players.indexOf(p))}</span><div><strong>${e(p.name)}</strong><p>${e(TOKEN_NAMES[p.token??game.players.indexOf(p)])} · ${p.bankrupt?'Bankrupt':p.bot?`${p.difficulty} bot`:'Player'}${p.jailed?' · In jail':''}</p></div></div><dl class="profile-stats"><div><dt>Cash</dt><dd>${money(p.cash)}</dd></div><div><dt>Net worth</dt><dd>${money(netWorth(game,p))}</dd></div><div><dt>Rent earned</dt><dd>${money(p.rentEarned)}</dd></div><div><dt>Rent paid</dt><dd>${money(p.rentPaid)}</dd></div></dl><p class="profile-location">At <strong>${e(BOARD[p.position].name)}</strong> · ${p.cards.length} jail card${p.cards.length===1?'':'s'}</p><div class="profile-trade"><button class="primary" data-do="${incoming?'counter-trade':'profile-trade'}" data-trade-partner="${e(id)}" ${canNegotiate?'':'disabled'}>${incoming?'Build counteroffer':`Trade with ${e(p.name)}`}</button><p>${e(reason)}</p></div><h3>Properties <span>${assets.length}</span></h3><div class="profile-deeds">${assets.length?assets.map(s=>{const v=game!.properties[s.index];return`<button data-read-deed="${s.index}" style="--group:${s.color}" aria-label="View ${e(s.name)} deed"><span>${propertyArtwork(s.index,v.level)}</span><div><strong>${e(s.name)}</strong><small>${v.mortgaged?'Mortgaged':v.level===5?'Hotel':v.level?`${v.level} houses`:'Unimproved'} · ${money(s.price)}</small></div></button>`;}).join(''):'<p>No properties owned yet.</p>'}</div></section>`;
+function perform(action:Action){
+ const id=viewer(),reason=check(action);if(!game||!id)return;
+ if(reason){toast(friendlyReason(reason));return;}
+ if(action.type==='bid'||action.type==='pass')bidDraft=null;
+ if(mode==='lan'){pendingCommand={revision:game.revision,timer:setTimeout(()=>{pendingCommand=null;render();},6000)};network.action(action);render();return;}
+ game=applyAction(game,id,action);afterLocalChange();
 }
-function showPlayer(id:string){if(!game?.players.some(p=>p.id===id))return;modal('Player details',profileMarkup(id),true);dialog.classList.add('profile-dialog');}
-function modal(title:string,html:string,wide=false){events.suspend(true);dialog.className=wide?'wide-dialog':'';dialog.innerHTML=`<div class="dialog-head"><h2 id="dialog-title">${title}</h2><button data-do="close-dialog" class="icon-button" aria-label="Close dialog">${icon('close')}</button></div>${html}`;if(!dialog.open)dialog.showModal();}
-function showCards(){modal('Chance & Community Chest',`<p class="card-catalog-intro">Each deck has 16 cards. The drawn card is shown after your pawn arrives. Card payments can pause play for debt; movement cards resolve their new destination.</p><div class="card-catalog">${(['chance','community'] as const).map(deck=>`<section><h3>${deck==='chance'?'Chance · Opportunity':'Community Chest · City Fund'}</h3>${CARDS[deck].map((_,id)=>cardFaceMarkup(deck,id)).join('')}</section>`).join('')}</div>`,true);}
-function showProperties(filter='all'){
- if(!game)return;
- galleryFilter=filter;const me=viewer();
- const cards=BOARD.filter(s=>s.price&&(filter==='mine'?game!.properties[s.index].owner===me?.id:filter==='bank'?!game!.properties[s.index].owner:true)).map(s=>{const v=game!.properties[s.index],owner=game!.players.find(p=>p.id===v.owner),yours=owner?.id===me?.id;return`<button class="deed-preview ${yours?'deed-preview-yours':''} ${v.mortgaged?'deed-preview-mortgaged':''}" data-space="${s.index}" style="--group:${s.color}"><span class="deed-preview-art">${propertyArtwork(s.index,v.level)}</span><span class="deed-preview-name">${e(s.name)}<small>${e(GROUPS[s.group].name)}</small><span class="deed-preview-owner">${yours?'✓ Yours':owner?e(owner.name):'Available'}${v.mortgaged?' · Mortgaged':v.level===5?' · Hotel':v.level?` · ${v.level} houses`:''}</span></span><strong>${money(s.price)}</strong></button>`;}).join('');
- const city=BOARD.filter(s=>!s.price).map(s=>`<button data-space="${s.index}">${e(s.name)}</button>`).join('');
- modal('Title deeds',`<p class="subtext">Select a deed to inspect rent, buildings and ownership. Bank: ${game.houses} houses · ${game.hotels} hotels.</p><div class="gallery-filters" role="group" aria-label="Filter deeds">${[['all','All properties'],['mine','Your properties'],['bank','Available from bank']].map(([key,label])=>`<button type="button" data-gallery-filter="${key}" aria-pressed="${key===filter}">${label}</button>`).join('')}</div><div class="deed-gallery">${cards||'<p class="gallery-empty">No properties in this view yet.</p>'}</div><details class="city-space-browser"><summary>Other city spaces</summary><div>${city}</div></details>`,true);
+function afterLocalChange(){updateBoard(true);soloSave();render();scheduleBot();}
+function canTrade(){const me=viewer();return !!game&&!!me&&tradeOpen(game,me)&&networkReady()&&!board?.isAnimating&&!pendingCommand;}
+function canCounter(){const me=viewer();return !!game?.trade&&game.phase==='trade'&&game.trade.to===me&&(game.trade.round??0)<MAX_COUNTER_OFFERS&&networkReady()&&!board?.isAnimating;}
+
+function scheduleBot(){
+ if(botTimer)clearTimeout(botTimer);botTimer=null;
+ if(mode!=='solo'||route!=='game'||!game||board?.isAnimating||paused)return;
+ const decision=botDecision(game);if(!decision)return;
+ const delay=game.phase==='card'?(settings.speed==='fast'?4000:9000):settings.speed==='fast'?240:reduced()?350:900;
+ botTimer=setTimeout(()=>{botTimer=null;if(!game||mode!=='solo')return;try{game=applyAction(game,decision.playerId,decision.action);}catch(error){toast(error instanceof Error?error.message:'A computer player could not continue');return;}afterLocalChange();},delay);
 }
-function canStartTrade(){const me=viewer();return !!game&&!!me&&!board?.isAnimating&&!events.hasBlockingCard&&actionPlayer(game)===me.id&&networkReady()&&['roll','manage','debt'].includes(game.phase)&&!game.tradeOffered;}
-function canCounter(){const me=viewer();return !!game?.trade&&!!me&&game.phase==='trade'&&game.trade.to===me.id&&(game.trade.round??0)<MAX_COUNTER_OFFERS&&networkReady()&&!board?.isAnimating&&!events.hasBlockingCard;}
-function askForCounter(){if(!game?.trade||!allowed({type:'rejectTrade'}))return;modal('Make a counteroffer?',`<p class="counteroffer-note"><strong>Keep the negotiation going.</strong>${canCounter()?'Adjust cash, properties or jail cards and send revised terms. Your current offer stays pending until you send a counteroffer or decline.':'This negotiation has used its three counteroffers. You can accept the current offer or decline.'}</p><div class="counteroffer-options"><button class="primary" data-do="counter-trade" ${canCounter()?'':'disabled'}>Build counteroffer</button><button data-do="decline-final">Decline without counteroffer</button></div>`);}
-function readTradeForm():TradeDraft{const form=dialog.querySelector<HTMLFormElement>('#trade-form')!,data=new FormData(form),num=(key:string)=>Number(data.get(key)||0);return{type:tradeDraft?.type??'offerTrade',to:String(data.get('partner')),give:data.getAll('give').map(Number),receive:data.getAll('receive').map(Number),giveCash:num('giveCash'),receiveCash:num('receiveCash'),giveCards:num('giveCards'),receiveCards:num('receiveCards')};}
-function showTrade(partner?:string,draft?:TradeDraft){
- if(!game||!(draft?.type==='counterTrade'?canCounter():canStartTrade())){toast('This trade is not available right now.');return;}
- const me=viewer()!;if(draft?.type==='counterTrade')partner=game.trade!.from;const other=game.players.find(p=>p.id===partner&&p.id!==me.id&&!p.bankrupt)??game.players.find(p=>p.id!==me.id&&!p.bankrupt);if(!other)return;
- tradeDraft=draft?{...draft,to:other.id}:{type:'offerTrade',to:other.id,give:[],receive:[],giveCash:0,receiveCash:0,giveCards:0,receiveCards:0};
- modal(tradeDraft.type==='counterTrade'?'Build a counteroffer':'Build a trade',tradeFormMarkup(game,me.id,tradeDraft),true);dialog.classList.add('trade-dialog');refreshTradeSummary();
+function continueObserverCard(){
+ const pending=game?.pendingCard;if(!game||!pending||board?.isAnimating)return;
+ const drawer=game.players.find(p=>p.id===pending.player);if(!drawer?.bot)return;
+ if(mode==='lan'){if(network.connected)network.send({type:'CONTINUE_BOT_CARD',event:pending.event});return;}
+ if(botTimer)clearTimeout(botTimer);botTimer=null;game=applyAction(game,pending.player,{type:'resolveCard'});afterLocalChange();
 }
-function refreshTradeSummary(){
- if(!game||!dialog.querySelector('#trade-form'))return;
- const draft=readTradeForm(),me=viewer()!,preview=tradePreview(game,me.id,draft);
- dialog.querySelector('#trade-live-summary')!.innerHTML=tradeSummaryMarkup(game,me.id,draft,true);
- const submit=dialog.querySelector<HTMLButtonElement>('#trade-form button[type="submit"]')!;submit.disabled=!!preview.error||!(draft.type==='counterTrade'?canCounter():canStartTrade());
- for(const side of ['give','receive'] as const)dialog.querySelector(`[data-count="${side}"]`)!.textContent=String(draft[side].length);
- if(preview.error==='Offer at least one item')dialog.querySelector('.trade-validation')!.textContent='Select a property or add cash to begin your offer.';
+
+function soloSave(manual=false){
+ if(!game||mode!=='solo')return;
+ void saveGame(game).then(()=>{savingFailed=false;if(manual)toast('Game saved on this device.');}).catch(()=>{if(!savingFailed||manual)toast('Could not save. Check storage space and permissions.');savingFailed=true;});
 }
-function reviewTrade(draft:TradeDraft){
- if(!game||!viewer())return;const preview=tradePreview(game,viewer()!.id,draft);if(preview.error){toast(preview.error);return;}
- tradeDraft=draft;modal(draft.type==='counterTrade'?'Review your counteroffer':'Review your trade',`<p class="trade-review-intro">Your offer goes to <strong>${e(playerById(game,draft.to).name)}</strong>. They can accept, decline, or make a counteroffer.</p>${tradeSummaryMarkup(game,viewer()!.id,draft)}<div class="trade-review-actions"><button type="button" data-do="edit-trade">Edit offer</button><button type="button" class="primary" data-do="send-trade">${draft.type==='counterTrade'?'Send counteroffer':'Offer trade'}</button></div>`,true);dialog.classList.add('trade-dialog');
+function refreshSaveInfo(){saveInfo=undefined;void saveSummary().then(info=>{saveInfo=info;if(route==='menu')render();});}
+
+// ---------- Board and feedback ----------
+function viewerHaptic(before:Game,after:Game,id:string):HapticKind|null{
+ const was=before.players.find(p=>p.id===id),now=after.players.find(p=>p.id===id);if(!was||!now)return null;
+ if(now.bankrupt&&!was.bankrupt)return'error';
+ if(after.winner===id&&before.winner!==id)return'success';
+ if(now.jailed&&!was.jailed)return'warning';
+ if(after.properties.filter(p=>p.owner===id).length>before.properties.filter(p=>p.owner===id).length)return'success';
+ const fresh=after.log.filter(entry=>entry.id>before.eventSeq);
+ if(fresh.some(entry=>entry.payment?.from===id&&entry.payment.property!==undefined))return'warning';
+ if(fresh.some(entry=>entry.kind==='roll')&&before.players[before.current].id===id)return'medium';
+ return null;
 }
-function showSettings(){modal('Make yourself at home',`<form id="settings-form"><label>Animation speed<select name="speed"><option value="normal" ${settings.speed==='normal'?'selected':''}>Normal</option><option value="fast" ${settings.speed==='fast'?'selected':''}>Fast</option><option value="reduced" ${settings.speed==='reduced'?'selected':''}>Reduced motion</option></select></label><label>Graphics quality<select name="quality"><option value="low" ${settings.quality==='low'?'selected':''}>Low · no shadows</option><option value="medium" ${settings.quality==='medium'?'selected':''}>Medium</option><option value="high" ${settings.quality==='high'?'selected':''}>High</option></select></label><label class="check"><input type="checkbox" name="sound" ${settings.sound?'checked':''}> Play game sound effects</label><button type="submit" class="primary wide">Save settings</button></form><button data-do="backup" class="text-button">Restore previous solo save</button>`);}
-function nav(next:typeof route){if(next==='menu'){if(game&&mode==='solo')soloSave();if(botTimer)clearTimeout(botTimer);if(mode==='lan'){network.stop();mode='solo';}game=null;selected=-1;board?.select(-1);board?.update(demo,false);board?.reset();}route=next;render();}
-async function continueSolo(backup=false){try{const saved=await loadGame(backup);if(!saved){toast('No saved solo game yet. Start a new game.');return;}network.stop();mode='solo';game=saved;route='game';selected=-1;board?.select(-1);updateBoard(false);render();scheduleBot();}catch(err){toast(err instanceof Error?err.message:'Could not load your save');}}
-app.addEventListener('click',event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!button||button.disabled)return;if(button.dataset.nav){nav(button.dataset.nav as typeof route);return;}if(button.dataset.action){const command=JSON.parse(button.dataset.action) as Action;if(command.type==='rejectTrade'){askForCounter();return;}action(command);return;}if(button.dataset.player){showPlayer(button.dataset.player);return;}if(button.dataset.readDeed){showDeed(Number(button.dataset.readDeed));return;}if(button.dataset.space){const index=Number(button.dataset.space);if(button.dataset.focusOwned){board?.focus(index);showDeed(index);}else selectSpace(index);return;}if(button.dataset.galleryFilter){showProperties(button.dataset.galleryFilter);return;}if(button.dataset.tradeFor){const property=Number(button.dataset.tradeFor),partner=game?.properties[property].owner;if(partner)showTrade(partner,{type:"offerTrade",to:partner,give:[],receive:[property],giveCash:0,receiveCash:0,giveCards:0,receiveCards:0});return;}switch(button.dataset.do){case'dismiss-finale':finale.dismiss();render();break;case'show-results':finale.reopen();render();break;case'continue-observer-card':continueObserverCard();break;case'dismiss-event':events.dismiss();render();scheduleBot();break;case'continue':void continueSolo();break;case'backup':dialog.close();void continueSolo(true);break;case'rejoin':{const session=storedSession();if(session){mode='lan';route='join';network.connect(session.url,{type:'RESUME',code:session.code,token:session.token});render();}break;}case'help':modal('How to build an empire',`<div class="how-to"><p>Be the last player with money and property. In a Quick game, the largest net worth at the turn limit wins.</p><h3>Take a turn</h3><p>Roll two dice, move, and resolve your destination. Pass Start to collect $200. Doubles earn another roll; three in a row send you to jail.</p><h3>Own the neighborhood</h3><p>Buy an available property or send it to auction. Everyone can bid, including the player who declined. Street groups double base rent. Stations pay $25–$200; utilities pay 4× or 10× the dice total.</p><h3>Build carefully</h3><p>Own the full street group and clear its mortgages. Build and sell evenly. Four houses on every street unlock hotels. The bank has 32 houses and 12 hotels. If there are no houses to replace a sold hotel, sell all group buildings together. Select a tile or open Properties to manage it.</p><h3>Make deals & stay solvent</h3><p>Trade cash, undeveloped properties, and jail cards by mutual agreement. Mortgages pay half the purchase price; lifting one costs its value plus 10%. Debt pauses play so you can sell, mortgage, or trade. Bankruptcy transfers assets to the creditor or auctions them for the bank.</p><h3>A short stay in jail</h3><p>Pay $50, use a held jail card, or try doubles on three turns. After the third failed roll, pay $50 and move. A successful jail roll does not give another roll.</p><h3>Invite your friends</h3><p>Run the LAN server, create a room, and share the page’s network URL and room code. Everyone must be on a reachable local network. The host saves the match. Rejoin restores your original seat.</p><h3>Controls</h3><p>Drag to rotate; right-drag to pan. Point and scroll to zoom toward a board location, or pinch/use +/−. Reset restores the view. Decision popups offer purchases, auctions and trades; close them to use the floating controls. Rent and card notices appear separately. Keyboard players can use Properties and all turn controls. Settings includes reduced motion.</p></div>`);break;case'read-deed':if(selected>=0)showDeed(selected);break;case'profile-trade':showTrade(button.dataset.tradePartner);break;case'sound':settings={...settings,sound:!settings.sound};writeSettings(settings);sounds.setEnabled(settings.sound);if(settings.sound)sounds.play('purchase');render();break;case'settings':showSettings();break;case'fullscreen':if(document.fullscreenElement)void document.exitFullscreen();else void document.documentElement.requestFullscreen().catch(()=>toast('Fullscreen is unavailable in this browser.'));break;case'zoom-in':board?.zoom(1);break;case'zoom-out':board?.zoom(-1);break;case'reset':board?.reset();break;case'focus':{const deed=dialog.open?dialog.querySelector<HTMLElement>('.deed-dialog-body'):null;const index=deed?Number(deed.dataset.deedIndex):selected;if(index>=0){selected=index;board?.select(index);board?.focus(index);}if(dialog.open)dialog.close();else{events.dismiss();render();}break;}case'close-dialog':dialog.close();break;case'properties':showProperties();break;case'cards':showCards();break;case'counter-trade':if(game?.trade&&canCounter())showTrade(game.trade.from,reverseTrade(game.trade));break;case'decline-final':dialog.close();action({type:'rejectTrade'});break;case'bank-deeds':showProperties("bank");break;case'highlight-owned':highlightMine=!highlightMine;board?.setViewer(viewer()?.id??null,highlightMine);button.setAttribute("aria-pressed",String(highlightMine));break;case'edit-trade':if(tradeDraft)showTrade(tradeDraft.to,tradeDraft);break;case'send-trade':if(tradeDraft){if(!allowed(tradeDraft)){toast("This offer is no longer available. Edit it to review the updated state.");break;}dialog.close();action(tradeDraft);tradeDraft=null;}break;case'trade':showTrade();break;case'save':if(mode==='solo')soloSave(true);else{network.send({type:'SAVE'});}break;case'leave':network.send({type:'LEAVE'});network.stop();mode='solo';nav('menu');break;case'start-lan':network.send({type:'START'});break;case'ready':network.send({type:'READY',ready:!network.room?.members.find(m=>m.id===network.session?.playerId)?.ready});break;case'invite':{const url=new URL(location.href);url.search=`room=${network.room!.code}`;if(['localhost','127.0.0.1'].includes(url.hostname)){toast('Use the host’s LAN address instead of localhost before sharing with phones.');}void navigator.clipboard?.writeText(url.toString()).then(()=>toast('Invite link copied.')).catch(()=>modal('Invite your friends',`<label>Invite link<input value="${e(url.toString())}" readonly></label>`));if(!navigator.clipboard)modal('Invite your friends',`<label>Invite link<input value="${e(url.toString())}" readonly></label>`);break;}}});
-app.addEventListener('submit',event=>{event.preventDefault();const form=event.target as HTMLFormElement,data=new FormData(form),num=(key:string)=>Number(data.get(key));try{
- if(form.id==='setup-form'){const name=String(data.get('name')).trim();if(!name)throw new Error('Enter your name');const token=num('token'),botCount=num('bots'),difficulty=String(data.get('difficulty')??'medium') as Difficulty,config={startingCash:num('cash')||1500,turnLimit:num('length'),jackpot:data.has('jackpot')};if(route==='solo'){if(botCount<1)throw new Error('Choose at least one bot for solo play');const free=[0,1,2,3,4,5,6,7].filter(i=>i!==token);game=createGame({players:[{id:'human',name,bot:false,token},...Array.from({length:botCount},(_,i)=>({id:`bot-${i}`,name:['Milo','Cleo','Jasper','Nova','Otis','Ivy','Theo'][i],bot:true,difficulty,token:free[i]}))],...config},crypto.getRandomValues(new Uint32Array(1))[0]);network.stop();mode='solo';route='game';selected=-1;updateBoard(false);render();soloSave();scheduleBot();}else{mode='lan';network.connect(String(data.get('server')||defaultSocketUrl()).trim(),route==='create'?{type:'CREATE',name,token,botCount,difficulty,config}:{type:'JOIN',name,token,code:String(data.get('code')).trim().toUpperCase()});toast('Connecting to the table…');}}
- else if(form.id==='bid-form')action({type:'bid',amount:num('bid')});
- else if(form.id==='settings-form'){settings={speed:String(data.get('speed')) as typeof settings.speed,quality:String(data.get('quality')) as typeof settings.quality,sound:data.has('sound')};writeSettings(settings);sounds.setEnabled(settings.sound);feedback.configure(settings.speed==='reduced');moments.configure();moneyLedger.configure();board?.configure(settings);if(!board?.isAnimating){sounds.settle();feedback.settle();moments.settle();moneyLedger.settle();}dialog.close();render();toast('Settings saved.');scheduleBot();}
- else if(form.id==='room-config')network.send({type:'CONFIG',botCount:num('bots'),difficulty:String(data.get('difficulty')),config:network.room?.config});
- else if(form.id==='trade-form'){reviewTrade(readTradeForm());}
- }catch(error){toast(error instanceof Error?error.message:'Check your settings');}});
+let observed:Game|null=null;
+function updateBoard(animate=true){
+ if(!game)return;const me=viewer(),before=observed;observed=game;
+ board?.setViewer(me,settings.highlightMine);board?.update(game,animate);
+ const moving=!!board?.isAnimating;
+ sounds.observe(game,moving,animate);moneyLedger.observe(game,moving,animate);
+ if(me){feedback.observe(game,me,moving,animate);moments.observe(game,reduced()?'':me,moving,animate);notices.update(game,me,moving,animate);if(animate&&before){const cue=viewerHaptic(before,game,me);if(cue){pendingHaptic=cue;if(!moving)flushHaptic();}}}
+}
+function flushHaptic(){if(pendingHaptic){haptic(pendingHaptic);pendingHaptic=null;}}
+
+function selectSpace(index:number){
+ if(route!=='game'||!game)return;
+ if(index<0||!BOARD[index]){preview=null;board?.select(-1);render();return;}
+ board?.select(index);
+ const decision=viewerDecision(game,viewer());
+ if(decision&&minimised!==decision.key&&!board?.isAnimating){openSheet({kind:'deed',index});return;}
+ preview=index;render();
+}
+
+// ---------- Overlays ----------
+function openSheet(sheet:Sheet,replace=false){if(replace)sheets=[];preview=null;sheets.push(sheet);render();sheetEl.focus({preventScroll:true});}
+function closeSheets(){sheets=[];trade=null;render();}
+function closeTopSheet(){sheets.pop();if(!sheets.some(s=>s.kind==='trade'))trade=null;render();}
+function confirm(next:Dialog){dialog=next;render();dialogLayer.querySelector<HTMLButtonElement>('[data-dialog-cancel]')?.focus();}
+function resetMatchUi(){sheets=[];dialog=null;preview=null;minimised=null;lastDecision='';cardHidden=null;trade=null;bidDraft=null;observed=null;pendingHaptic=null;clearPending();notices.reset();feedback.reset();moments.reset();moneyLedger.reset();finale.reset();sounds.reset();board?.select(-1);}
+
+/** System Back: dialog → sheet → finale → preview → card → decision panel → game menu. */
+function back():boolean{
+ if(dialog){dialog=null;render();return true;}
+ if(sheets.length){closeTopSheet();return true;}
+ if(route==='game'&&game){
+  if(finale.visible){finale.dismiss();render();return true;}
+  if(preview!==null){preview=null;board?.select(-1);render();return true;}
+  const card=game.pendingCard;if(card&&cardHidden!==card.event&&!board?.isAnimating){cardHidden=card.event;render();return true;}
+  const decision=viewerDecision(game,viewer());if(decision&&minimised!==decision.key&&!board?.isAnimating){minimised=decision.key;render();return true;}
+  openSheet({kind:'menu'});return true;
+ }
+ if(route==='lobby'){confirm({title:'Leave this room?',body:'<p>You will give up your seat in the lobby. You can join again with the room code.</p>',confirm:'Leave room',tone:'danger',command:'leave-room'});return true;}
+ if(route==='connecting'){cancelConnect();return true;}
+ if(route!=='menu'){nav('menu');return true;}
+ return false;
+}
+
+// ---------- Rendering ----------
+function render(){
+ const root=document.documentElement;root.classList.toggle('reduced-motion',reduced());root.dataset.textSize=settings.textSize;
+ shell.dataset.route=route==='game'?'game':route==='menu'?'menu':'page';
+ if(route==='menu')renderMenu();else if(route==='game'&&game)renderGame();else renderPage();
+ renderSheet();renderDialog();
+ armBack(route!=='menu'||sheets.length>0||!!dialog);
+}
+function clearStage(){patch(previewHost,'');patch(decisionHost,'');cardLayer.hidden=true;patch(cardLayer,'');stageTools.hidden=true;notices.reset();}
+function renderMenu(){
+ pageEl.hidden=true;patch(pageEl,'');board?.setActive(true);board?.setIdle(true);clearStage();
+ const session=storedSession();
+ patch(top,menuTop());patch(bottom,menuPanel({save:saveInfo,session:session?{code:session.code,host:hostLabel(session.url)}:null,native:isNative}));
+}
+function renderPage(){
+ board?.setActive(false);board?.setIdle(false);clearStage();pageEl.hidden=false;
+ if(route==='lobby'&&network.room)patch(pageEl,lobbyPage({room:network.room,me:network.session?.playerId,hostLabel:hostLabel(network.session?.url??''),native:isNative}));
+ else if(route==='connecting')patch(pageEl,connectingPage('Connecting to the host…','Make sure the host is running and that this device is on the same network.'));
+ else if(route==='solo'||route==='host'||route==='join'){
+  const player=storedPlayer();
+  const html=setupPage({kind:route,name:player.name,token:player.token,host:rememberedHost(),native:isNative,room:new URLSearchParams(location.search).get('room')??''});
+  if(patch(pageEl,html))updateSetupSummary();
+  const error=pageEl.querySelector<HTMLElement>('[data-connect-error]');
+  if(connectError&&!error)pageEl.querySelector('.page-body')?.insertAdjacentHTML('afterbegin',`<p class="banner warn" data-connect-error>${icon('warning')}<span>${esc(connectError)}</span></p>`);
+ }
+}
+function decisionMarkup(decision:Decision,me:string){
+ const g=game!;
+ switch(decision.kind){
+  case'purchase':return purchasePanel(g,me,check);
+  case'auction':return auctionPanel(g,me,check,bidDraft?.key===decision.key?bidDraft.value:null);
+  case'jail':return jailPanel(g,me,check);
+  case'debt':return debtPanel(g,me,check,canTrade());
+  case'trade':return incomingTradePanel(g,me,check,canCounter());
+ }
+}
+function renderGame(){
+ pageEl.hidden=true;patch(pageEl,'');board?.setActive(true);board?.setIdle(false);
+ const g=game!,me=viewer(),moving=!!board?.isAnimating,decision=viewerDecision(g,me);
+ if(decision&&decision.key!==lastDecision){
+  lastDecision=decision.key;minimised=null;
+  if(decision.mine){preview=null;sheets=sheets.filter(s=>s.kind==='deed'&&decision.kind==='purchase'&&s.index===g.pendingProperty);if(!sheets.length)trade=null;}
+  if(decision.kind==='purchase')board?.select(g.pendingProperty!);
+ }else if(!decision)lastDecision='';
+ const panelOpen=!!decision&&minimised!==decision.key&&!moving&&!!me;
+ const card=g.pendingCard??null,cardOpen=!!card&&cardHidden!==card.event&&!moving;
+ const offline=new Set((mode==='lan'?network.room?.members.filter(m=>!m.bot&&!m.connected).map(m=>m.id):[])??[]);
+ patch(top,hudMarkup(g,{viewer:me,lan:mode==='lan',room:network.room?.code,online:networkReady(),offline}));
+ moneyLedger.refresh(top);
+ const active=g.players[g.current].id;if(active!==lastActive){lastActive=active;top.querySelector('.chip-player.active')?.scrollIntoView?.({block:'nearest',inline:'center',behavior:reduced()?'auto':'smooth'});}
+ const model=dockModel(g,{viewer:me,moving,online:networkReady(),panelOpen,cardOpen:cardOpen,allowed:action=>!check(action)});
+ patch(bottom,dockMarkup(g,model,{canTrade:canTrade(),incoming:g.phase==='trade'&&g.trade?.to===me,compact:panelOpen||(cardOpen&&card?.player===me)}));
+ if(pendingCommand)bottom.querySelector('.dock-primary')?.classList.add('is-busy');
+ patch(decisionHost,panelOpen&&decision&&me?decisionMarkup(decision,me):'');
+ if(pendingCommand)decisionHost.querySelectorAll('[data-action]').forEach(button=>(button as HTMLButtonElement).disabled=true);
+ patch(previewHost,preview!==null&&!panelOpen?deedPreview(g,preview,me):'');
+ stageTools.hidden=panelOpen||preview!==null;
+ if(cardOpen&&card){
+  const mine=card.player===me,drawer=g.players.find(p=>p.id===card.player);
+  cardLayer.hidden=false;cardLayer.className=`layer card-layer ${mine?'modal':'observer'}`;
+  patch(cardLayer,cardReveal(g,{viewer:me,canResolve:!check({type:'resolveCard'}),canContinueBot:!!drawer?.bot&&networkReady(),reduced:reduced()}));
+ }else{cardLayer.hidden=true;patch(cardLayer,'');}
+ if(me){finale.update(g,me);}
+ stage.setAttribute('aria-busy',String(moving));
+}
+const SHEET_TITLES:Record<Sheet['kind'],string>={properties:'Properties',deed:'Title deed',trade:'New trade',player:'Player',bank:'Bank and history',menu:'Game menu',settings:'Settings',rules:'How to play'};
+function renderSheet(){
+ const sheet=sheets.at(-1);
+ if(!sheet){sheetLayer.hidden=true;lastSheet='';patch(sheetHead,'');patch(sheetScroll,'');return;}
+ const g=game,me=viewer();let body='';let title=SHEET_TITLES[sheet.kind];
+ switch(sheet.kind){
+  case'properties':body=g?portfolioSheet(g,{viewer:me,filter:sheet.filter,raise:sheet.raise,check}):'';break;
+  case'deed':body=g?`<div class="sheet-body">${deedSheet(g,sheet.index,{viewer:me,check,canTrade:canTrade()})}</div>`:'';break;
+  case'trade':if(g&&me&&trade){body=tradeBuilderSheet(g,me,trade);title=trade.step==='review'?'Review offer':trade.draft.type==='counterTrade'?'Counteroffer':'New trade';}break;
+  case'player':body=g?playerSheet(g,sheet.id,me,{canTrade:canTrade(),connected:mode==='lan'?network.room?.members.find(m=>m.id===sheet.id)?.connected:undefined}):'';break;
+  case'bank':body=g?bankSheet(g,me,sheet.scope):'';break;
+  case'menu':body=g?gameMenuSheet(g,{lan:mode==='lan',room:network.room?.code,turnLimit:g.config.turnLimit}):'';break;
+  case'settings':body=settingsSheet(settings,{hapticsSupported,systemReducedMotion:systemReducedMotion(),inMatch:route==='game',native:isNative});break;
+  case'rules':body=rulesSheet(g);break;
+ }
+ if(!body&&sheet.kind!=='settings'&&sheet.kind!=='rules'){sheets.pop();renderSheet();return;}
+ sheetLayer.hidden=false;
+ sheetEl.classList.toggle('tall',['properties','trade','rules','bank','player'].includes(sheet.kind));
+ patch(sheetHead,`${sheets.length>1?`<button class="btn icon-only quiet" data-do="close-sheet" aria-label="Back">${icon('back')}</button>`:''}<h2 id="sheet-title">${esc(title)}</h2><button class="btn icon-only quiet" data-do="close-all-sheets" aria-label="Close">${icon('close')}</button>`);
+ const key=sheet.kind==='deed'?`deed:${sheet.index}`:sheet.kind==='player'?`player:${sheet.id}`:sheet.kind;if(key!==lastSheet){lastSheet=key;sheetScroll.scrollTop=0;}
+ if(patch(sheetScroll,body)&&sheet.kind==='trade')sheetScroll.querySelector<HTMLInputElement>('[data-focus-key]')?.blur();
+}
+function renderDialog(){
+ if(!dialog){dialogLayer.hidden=true;patch(dialogLayer,'');return;}
+ dialogLayer.hidden=false;
+ patch(dialogLayer,`<div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">${esc(dialog.title)}</h2>${dialog.body}<div class="dialog-actions"><button class="btn secondary" data-dialog-cancel data-do="close-dialog">Cancel</button><button class="btn ${dialog.tone}" data-do="${dialog.command}" data-haptic="${dialog.tone==='danger'?'warning':'light'}">${esc(dialog.confirm)}</button></div></div>`);
+}
+
+// ---------- Navigation ----------
+function nav(next:Route){
+ if(next===route&&next!=='menu')return;
+ if(route==='game'&&game&&mode==='solo')soloSave();
+ if(botTimer)clearTimeout(botTimer);botTimer=null;
+ if(mode==='lan'&&(next==='menu'||route==='game')){network.stop();mode='solo';}
+ if(route==='game'||next==='menu'){game=null;lastActive='';resetMatchUi();board?.update(demo,false);board?.reset();}
+ connectError='';route=next;sheets=sheets.filter(s=>s.kind==='settings'||s.kind==='rules');dialog=null;
+ if(next==='menu')refreshSaveInfo();
+ render();
+}
+function startSolo(next:Game){network.stop();mode='solo';game=next;route='game';resetMatchUi();updateBoard(false);board?.reset();render();soloSave();scheduleBot();}
+async function continueSolo(backup=false){
+ try{const saved=await loadGame(backup);if(!saved){toast(backup?'There is no earlier save to restore.':'No saved game yet. Start a new one.');return;}sheets=[];startSolo(saved);if(backup)toast('Previous save restored.');}
+ catch(error){toast(error instanceof Error?error.message:'Could not load the save');}
+}
+function connect(url:string,message:unknown,from:'host'|'join'){formRoute=from;connectError='';mode='lan';route='connecting';render();network.connect(url,message);}
+function cancelConnect(){network.stop();mode='solo';route=formRoute;render();}
+function leaveMatch(){dialog=null;if(mode==='lan'){network.stop();mode='solo';}nav('menu');}
+
+// ---------- Setup forms ----------
+function storedPlayer(){try{const v=JSON.parse(localStorage.getItem('empire-player')||'null');return{name:typeof v?.name==='string'&&v.name.trim()?v.name:'Player',token:Number.isInteger(v?.token)&&v.token>=0&&v.token<8?v.token:0};}catch{return{name:'Player',token:0};}}
+function rememberPlayer(name:string,token:number){try{localStorage.setItem('empire-player',JSON.stringify({name,token}));}catch{/* optional */}}
+function updateSetupSummary(){
+ const form=pageEl.querySelector<HTMLFormElement>('#setup-form');if(!form)return;
+ const data=new FormData(form),kind=form.dataset.kind,bots=Number(data.get('bots')||0),difficulty=String(data.get('difficulty')??'medium'),cash=Number(data.get('cash')||1500),length=Number(data.get('length')||0);
+ const lengthName=length===80?'Quick':length===160?'Extended':'Classic';
+ const note=pageEl.querySelector('[data-length-note]');if(note)note.textContent=length?`${lengthName}: ends after ${length} turns; the highest net worth wins.`:'Classic: play until one player remains.';
+ const summary=pageEl.querySelector('[data-setup-summary]');if(!summary)return;
+ summary.textContent=kind==='join'?'You will join the host’s room with this name and token.':kind==='host'?`You host with ${bots} ${difficulty} bot${bots===1?'':'s'} · ${money(cash)} · ${lengthName}`:`You and ${bots} ${difficulty} bot${bots===1?'':'s'} · ${money(cash)} · ${lengthName}`;
+}
+function submitSetup(form:HTMLFormElement){
+ const data=new FormData(form),kind=form.dataset.kind as 'solo'|'host'|'join',name=String(data.get('name')??'').trim(),token=Number(data.get('token')??0);
+ const fail=(message:string,field?:string)=>{toast(message);if(field)form.querySelector<HTMLElement>(`[name="${field}"]`)?.focus();};
+ if(!name)return fail('Enter your name','name');
+ rememberPlayer(name,token);
+ const botCount=Math.max(kind==='solo'?1:0,Math.min(7,Number(data.get('bots')||0))),difficulty=String(data.get('difficulty')??'medium') as Difficulty;
+ const config={startingCash:Number(data.get('cash')||1500),turnLimit:Number(data.get('length')||0),jackpot:data.has('jackpot')};
+ if(kind==='solo'){
+  const free=[0,1,2,3,4,5,6,7].filter(i=>i!==token);
+  startSolo(createGame({players:[{id:'human',name,bot:false,token},...Array.from({length:botCount},(_,i)=>({id:`bot-${i}`,name:['Milo','Cleo','Jasper','Nova','Otis','Ivy','Theo'][i],bot:true,difficulty,token:free[i]}))],...config},crypto.getRandomValues(new Uint32Array(1))[0]));
+  return;
+ }
+ let url:string;const server=String(data.get('server')??'').trim();
+ try{url=server?socketUrlFromHost(server):isNative?socketUrlFromHost(''):defaultSocketUrl();}catch(error){return fail(error instanceof Error?error.message:'Check the host address','server');}
+ if(server)rememberHost(server);
+ if(kind==='host')connect(url,{type:'CREATE',name,token,botCount,difficulty,config},'host');
+ else{const code=String(data.get('code')??'').trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code))return fail('Enter the 6-character room code','code');connect(url,{type:'JOIN',name,token,code},'join');}
+}
+
+// ---------- Settings ----------
+function applySettings(next:Settings){
+ settings=next;writeSettings(settings);sounds.setEnabled(settings.sound);setHaptics(settings.haptics);
+ feedback.configure(reduced());moments.configure();moneyLedger.configure();board?.configure(settings);board?.setViewer(viewer(),settings.highlightMine);
+ if(!board?.isAnimating){sounds.settle();feedback.settle();moments.settle();moneyLedger.settle();}
+ render();scheduleBot();
+}
+
+// ---------- Trade builder ----------
+function openTrade(partner?:string,draft?:TradeState['draft']){
+ if(!game)return;const me=viewer();
+ if(!me||!(draft?.type==='counterTrade'?canCounter():canTrade())){toast(game.tradeOffered?'You have already made a trade offer this turn.':'You can propose a trade during your turn.');return;}
+ const others=game.players.filter(p=>p.id!==me&&!p.bankrupt);const to=draft?.to??partner??others[0]?.id;if(!to)return;
+ trade={draft:draft??emptyDraft(to),side:draft&&!draft.give.length&&draft.receive.length?'receive':'give',step:'build'};
+ sheets=sheets.filter(s=>s.kind!=='trade');openSheet({kind:'trade'});
+}
+function refreshTradeFooter(){if(!game||!trade)return;const me=viewer();const footer=sheetScroll.querySelector<HTMLElement>('.trade-footer');if(me&&footer)footer.innerHTML=tradeFooter(game,me,trade.draft);}
+
+// ---------- Events ----------
+document.addEventListener('click',event=>{
+ const target=event.target as HTMLElement,button=target.closest<HTMLElement>('button,[data-do]');
+ if(!button||(button as HTMLButtonElement).disabled)return;
+ if(button.dataset.haptic)haptic(button.dataset.haptic as HapticKind);
+ const d=button.dataset;
+ if(d.nav){nav(d.nav as Route);return;}
+ if(d.action){perform(JSON.parse(d.action) as Action);return;}
+ if(d.player&&game){openSheet({kind:'player',id:d.player},sheets.length>0&&sheets.at(-1)?.kind==='player');return;}
+ if(d.filter){const sheet=sheets.at(-1);if(sheet?.kind==='properties'){sheet.filter=d.filter as PortfolioFilter;render();}return;}
+ if(d.history){const sheet=sheets.at(-1);if(sheet?.kind==='bank'){sheet.scope=d.history as 'mine'|'table';render();}return;}
+ if(d.tradeFor&&game){const index=Number(d.tradeFor),owner=game.properties[index].owner;if(owner){const draft=emptyDraft(owner);draft.receive=[index];openTrade(owner,draft);}return;}
+ if(d.setting){const key=d.setting as keyof Settings;if(d.value!==undefined)applySettings({...settings,[key]:d.value} as Settings);return;}
+ if(trade&&game&&viewer()){
+  const me=viewer()!;
+  if(d.partner&&!d.do){trade={...trade,draft:changePartner(trade.draft,d.partner)};render();return;}
+  if(d.tradeSide){trade={...trade,side:d.tradeSide as TradeSide};render();return;}
+  if(d.pick){trade={...trade,draft:togglePick(trade.draft,trade.side,Number(d.pick))};render();return;}
+  if(d.stepField){const field=d.stepField as 'giveCash'|'receiveCash'|'giveCards'|'receiveCards';const value=d.set!==undefined?Number(d.set):trade.draft[field]+Number(d.step);trade={...trade,draft:setAmount(game,me,trade.draft,field,value)};render();return;}
+ }
+ if(d.bidStep||d.bidAdd){
+  const g=game,me=viewer(),decision=g&&me?viewerDecision(g,me):null;if(!g||!me||decision?.kind!=='auction')return;
+  const current=bidDraft?.key===decision.key?bidDraft.value:suggestedBid(g),cash=playerById(g,me).cash;
+  const value=d.bidAdd?g.auction!.bid+Number(d.bidAdd):current+Number(d.bidStep)*Math.max(1,Math.min(10,Math.floor(BOARD[g.auction!.property].price/40)));
+  bidDraft={key:decision.key,value:Math.max(g.auction!.bid+1,Math.min(cash,value))};render();return;
+ }
+ if(d.formStep){const input=button.closest('form')?.querySelector<HTMLInputElement>(`input[name="${d.formStep}"]`);if(input){input.value=String(Math.max(Number(input.min),Math.min(Number(input.max),Number(input.value)+Number(d.step))));input.dispatchEvent(new Event('input',{bubbles:true}));}return;}
+ switch(d.do){
+  case'continue':void continueSolo();break;
+  case'restore-backup':closeSheets();void continueSolo(true);break;
+  case'rejoin':{const session=storedSession();if(session){formRoute='join';connect(session.url,{type:'RESUME',code:session.code,token:session.token},'join');}break;}
+  case'rules':openSheet({kind:'rules'});break;
+  case'settings':openSheet({kind:'settings'});break;
+  case'game-menu':openSheet({kind:'menu'},true);break;
+  case'properties':{const me=viewer(),owns=!!game&&game.properties.some(p=>p.owner===me);openSheet({kind:'properties',filter:owns||d.mode==='raise'?'mine':'all',raise:d.mode==='raise'},d.mode!=='raise'&&sheets.at(-1)?.kind!=='deed');break;}
+  case'bank':openSheet({kind:'bank',scope:'mine'},true);break;
+  case'trade':openTrade(d.partner);break;
+  case'counter-trade':if(game?.trade&&canCounter())openTrade(game.trade.from,reverseTrade(game.trade));break;
+  case'review-trade':if(trade&&game&&viewer()&&!tradeIssue(game,viewer()!,trade.draft)){trade={...trade,step:'review'};render();}break;
+  case'edit-trade':if(trade){trade={...trade,step:'build'};render();}break;
+  case'send-trade':if(trade){const draft=trade.draft;if(check(draft)){toast(friendlyReason(check(draft)!));trade={...trade,step:'build'};render();break;}sheets=[];trade=null;perform(draft);toast(draft.type==='counterTrade'?'Counteroffer sent.':'Offer sent.');}break;
+  case'open-deed':openSheet({kind:'deed',index:Number(d.index)});break;
+  case'focus-tile':{const index=d.index!==undefined?Number(d.index):preview??-1;if(index>=0){sheets=[];preview=null;board?.select(index);board?.focus(index);render();}break;}
+  case'close-preview':preview=null;board?.select(-1);render();break;
+  case'close-sheet':closeTopSheet();break;
+  case'close-all-sheets':closeSheets();break;
+  case'close-dialog':dialog=null;render();break;
+  case'camera-reset':board?.reset(true);break;
+  case'minimise-decision':{const decision=game?viewerDecision(game,viewer()):null;if(decision){minimised=decision.key;render();}break;}
+  case'open-decision':minimised=null;sheets=[];render();break;
+  case'open-card':cardHidden=null;render();break;
+  case'hide-card':if(game?.pendingCard){cardHidden=game.pendingCard.event;render();}break;
+  case'continue-observer-card':continueObserverCard();break;
+  case'place-bid':{const input=decisionHost.querySelector<HTMLInputElement>('#bid-amount');const amount=Math.floor(Number(input?.value));if(Number.isFinite(amount))perform({type:'bid',amount});break;}
+  case'confirm-bankrupt':{const g=game,creditor=g?.debt?.creditor?playerById(g,g.debt.creditor).name:null;confirm({title:'Declare bankruptcy?',body:`<ul><li>${creditor?`${esc(creditor)} receives your cash, jail cards and properties. Buildings are sold to the bank at half price first.`:'Your properties return to the bank and are auctioned to the other players.'}</li><li>You leave the game. This cannot be undone.</li></ul>`,confirm:'Declare bankruptcy',tone:'danger',command:'bankrupt'});break;}
+  case'bankrupt':dialog=null;perform({type:'bankrupt'});break;
+  case'confirm-leave':confirm({title:'Leave this match?',body:mode==='lan'?'<p>Your seat stays reserved. Choose <b>Rejoin LAN game</b> on the main menu to return.</p>':'<p>Your game is saved on this device. Continue it any time from the main menu.</p>',confirm:'Leave match',tone:'primary',command:'leave-match'});break;
+  case'leave-match':leaveMatch();break;
+  case'save':if(mode==='solo')soloSave(true);else network.send({type:'SAVE'});break;
+  case'show-results':finale.reopen();render();break;
+  case'dismiss-finale':finale.dismiss();render();break;
+  case'leave-room':dialog=null;network.send({type:'LEAVE'});network.stop();try{localStorage.removeItem('empire-session');}catch{/* nothing stored */}mode='solo';nav('menu');break;
+  case'start-lan':network.send({type:'START'});break;
+  case'ready':network.send({type:'READY',ready:!network.room?.members.find(m=>m.id===network.session?.playerId)?.ready});break;
+  case'share-room':{const room=network.room;if(!room)break;const host=hostLabel(network.session?.url??'');const link=!isNative&&!['localhost','127.0.0.1'].includes(location.hostname)?`\n${location.origin}/?room=${room.code}`:'';void shareText('Property Empire',`Join my Property Empire game.\nRoom code: ${room.code}\nHost: ${host}${link}`).then(result=>toast(result==='copied'?'Invite copied.':result==='failed'?`Room code ${room.code} · host ${host}`:'Invite shared.'));break;}
+  case'cancel-connect':cancelConnect();break;
+ }
+});
+document.addEventListener('change',event=>{
+ const input=event.target as HTMLInputElement;
+ if(input.dataset.setting&&input.type==='checkbox'){applySettings({...settings,[input.dataset.setting]:input.checked} as Settings);return;}
+ if(input.dataset.amountField&&trade&&game&&viewer()){trade={...trade,draft:setAmount(game,viewer()!,trade.draft,input.dataset.amountField as 'giveCash',Number(input.value))};render();}
+});
+document.addEventListener('input',event=>{
+ const input=event.target as HTMLInputElement;
+ if(input.closest('#setup-form'))updateSetupSummary();
+ if(input.dataset.amountField&&trade&&game&&viewer()){trade={...trade,draft:setAmount(game,viewer()!,trade.draft,input.dataset.amountField as 'giveCash',Number(input.value))};refreshTradeFooter();}
+ if(input.id==='bid-amount'&&game){const decision=viewerDecision(game,viewer());const value=Math.floor(Number(input.value));if(decision&&Number.isFinite(value)){bidDraft={key:decision.key,value};const bid=decisionHost.querySelector<HTMLButtonElement>('[data-do="place-bid"]');if(bid){bid.disabled=!!check({type:'bid',amount:value});bid.querySelector('span')!.textContent=`Bid ${money(Math.max(0,value))}`;}}}
+});
+document.addEventListener('submit',event=>{
+ event.preventDefault();const form=event.target as HTMLFormElement;
+ if(form.id==='setup-form')submitSetup(form);
+ else if(form.id==='room-config'){const data=new FormData(form);network.send({type:'CONFIG',botCount:Number(data.get('bots')||0),difficulty:String(data.get('difficulty')??'medium'),config:network.room?.config??{}});}
+});
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&back())event.preventDefault();
+ if(event.key==='Enter'&&(event.target as HTMLElement).id==='bid-amount'){event.preventDefault();decisionHost.querySelector<HTMLButtonElement>('[data-do="place-bid"]')?.click();}
+});
 document.addEventListener('pointerdown',()=>sounds.unlock(),{passive:true});
-document.addEventListener('keydown',()=>sounds.unlock());
-document.addEventListener('fullscreenchange',()=>render());
-matchMedia('(prefers-reduced-motion:reduce)').addEventListener('change',()=>{moneyLedger.configure();moments.configure();events.setMoving(!!board?.isAnimating);});
-dialog.addEventListener('close',()=>events.suspend(false));
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.open&&!eventHost.hidden){events.dismiss();render();scheduleBot();event.preventDefault();}});
-dialog.addEventListener('input',()=>refreshTradeSummary());
-dialog.addEventListener('change',event=>{if((event.target as HTMLElement).id==='trade-partner'){const draft=readTradeForm();showTrade((event.target as HTMLSelectElement).value,{...draft,receive:[],receiveCash:0,receiveCards:0});}else refreshTradeSummary();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)soloSave();});
-window.addEventListener('beforeunload',()=>soloSave());
-if(new URLSearchParams(location.search).has('room'))route='join';
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>applySettings(settings));
+
+void initPlatform({
+ back,
+ pause:()=>{paused=true;if(botTimer){clearTimeout(botTimer);botTimer=null;}soloSave();board?.setPaused(true);},
+ resume:()=>{if(!paused)return;paused=false;board?.setPaused(false);render();scheduleBot();}
+});
+addEventListener('beforeunload',()=>soloSave());
+
+const invited=new URLSearchParams(location.search).get('room');
+if(invited){formRoute='join';route='join';}
+refreshSaveInfo();
 render();
-if('serviceWorker'in navigator&&import.meta.env.PROD)void navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&import.meta.env.PROD&&!isNative)void navigator.serviceWorker.register('/sw.js').catch(()=>{});

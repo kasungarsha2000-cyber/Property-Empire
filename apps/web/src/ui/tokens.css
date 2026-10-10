@@ -1,0 +1,88 @@
+/* Property Empire design tokens. Every colour, size and duration used by the UI comes from here. */
+:root{
+ /* Palette */
+ --ivory:#F7F5F0;
+ --emerald:#17644D;
+ --emerald-deep:#123F34;
+ --navy:#152B3B;
+ --gold:#D5AA60;
+ --mist:#E9ECE8;
+ --white:#FFFFFF;
+ --text-2:#687771;
+ --danger:#C9514C;
+ --success:#268567;
+ --chance:#DD8338;
+ --community:#4A89C4;
+
+ /* Derived tints */
+ --emerald-press:#105341;
+ --emerald-soft:#E2EEE8;
+ --gold-soft:#F7EDDA;
+ --gold-strong:#B88A3E;
+ --danger-soft:#F8E6E4;
+ --success-soft:#E1F0E9;
+ --chance-soft:#FBEBDD;
+ --community-soft:#E2EDF7;
+
+ /* Semantic roles */
+ --bg:var(--ivory);
+ --surface:var(--white);
+ --surface-2:#FBFAF7;
+ --surface-sunk:var(--mist);
+ --text:var(--navy);
+ --text-3:#8A958F;
+ --line:#E3E6E2;
+ --line-strong:#CED5D0;
+ --primary:var(--emerald);
+ --primary-press:var(--emerald-press);
+ --on-primary:var(--white);
+ --accent:var(--gold);
+ --focus:#2F7FB5;
+ --scrim:rgba(18,34,42,.36);
+
+ /* Spacing (dp) */
+ --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;
+
+ /* Radius */
+ --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:22px;--r-pill:999px;
+
+ /* Elevation: soft, realistic, never glowing */
+ --e1:0 1px 2px rgba(21,43,59,.06),0 1px 1px rgba(21,43,59,.04);
+ --e2:0 4px 14px rgba(21,43,59,.08),0 1px 3px rgba(21,43,59,.05);
+ --e3:0 14px 36px rgba(21,43,59,.16),0 3px 8px rgba(21,43,59,.06);
+
+ /* Type scale (rem follows the in-app text size setting) */
+ --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+ --fs-2xs:.6875rem; /* 11 */
+ --fs-xs:.75rem;    /* 12 */
+ --fs-sm:.8125rem;  /* 13 */
+ --fs-md:.9375rem;  /* 15 */
+ --fs-lg:1rem;      /* 16 */
+ --fs-xl:1.25rem;   /* 20 */
+ --fs-2xl:1.5rem;   /* 24 */
+ --fs-amount:1.5rem;
+ --fs-hero:2rem;
+
+ /* Motion */
+ --t-press:110ms;
+ --t-preview:190ms;
+ --t-panel:270ms;
+ --t-flip:480ms;
+ --t-celebrate:700ms;
+ --t-cash:520ms;
+ --ease:cubic-bezier(.2,.8,.2,1);
+ --ease-out:cubic-bezier(.16,1,.3,1);
+ --ease-spring:cubic-bezier(.25,1.3,.45,1);
+
+ /* Touch and device */
+ --tap:48px;
+ --safe-t:env(safe-area-inset-top,0px);
+ --safe-b:env(safe-area-inset-bottom,0px);
+ --safe-l:env(safe-area-inset-left,0px);
+ --safe-r:env(safe-area-inset-right,0px);
+ --gutter:max(var(--s3),var(--safe-l));
+ --gutter-r:max(var(--s3),var(--safe-r));
+}
+html[data-text-size=large]{font-size:112.5%}
+html[data-text-size=larger]{font-size:125%}
+html.reduced-motion{--t-press:0ms;--t-preview:0ms;--t-panel:0ms;--t-flip:0ms;--t-celebrate:0ms;--t-cash:0ms}

@@ -1,7 +1,7 @@
 import type {Game} from '../../../packages/core/types';
 import {BOARD} from '../../../packages/core/board';
 import {cardDesign,cardIllustration} from './card-designs';
-import {escapeHTML as e} from './ui-components';
+import {esc as e} from './ui/dom';
 import {propertyArtwork} from './property-art';
 import {SMALL_NOTICE_MS,TRADE_CONFIRMATION_MS} from './presentation-timing';
 export type TradeAsset={kind:'deed';property:number;mortgaged:boolean}|{kind:'cash';amount:number}|{kind:'card';deck:'chance'|'community';count:number};

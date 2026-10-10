@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LAN play talks to a host computer on the local network over plain ws:// (for example ws://192.168.1.5:3001/ws).
+  Android blocks cleartext by default, and private network addresses cannot be listed by range here, so cleartext
+  is permitted for the app. The app makes no other network requests; all game assets are bundled.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

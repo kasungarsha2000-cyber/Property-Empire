@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { PLAYER_COLORS } from '../../../packages/core/board';
 import type { Game } from '../../../packages/core/types';
-import type { Settings } from './storage';
+import { isReduced, type Settings } from './storage';
 import { SceneAssets, spacePosition, TOKEN_HEIGHT, diceTexture } from './scene-assets';
 import {pawnPose} from './pawn-motion';
 import {CityLife} from './city-life';
@@ -14,6 +14,7 @@ import {batchStaticScene} from './static-batch';
 import {propertyMotions,propertyMotionPose,propertyMotionStart,type PropertyMotion} from './property-motion';
 
 type Movement = {points: THREE.Vector3[]; start: number; duration: number;lastStep:number};
+type CameraTween = {fromPosition:THREE.Vector3;fromTarget:THREE.Vector3;toPosition:THREE.Vector3;toTarget:THREE.Vector3;start:number;duration:number};
 
 export class BoardView {
  private scene = new THREE.Scene();
@@ -56,7 +57,11 @@ export class BoardView {
  private motionPreference=matchMedia('(prefers-reduced-motion:reduce)');
  private lastSunShadow=0;
  private keyLight:THREE.DirectionalLight;
- private get reduced(){return this.settings.speed==='reduced'||this.motionPreference.matches;}
+ private get reduced(){return isReduced(this.settings);}
+ private active=true;
+ private paused=false;
+ private idle=false;
+ private tween:CameraTween|null=null;
 
  constructor(private element: HTMLElement, private onSelect: (index: number) => void, settings: Settings) {
   this.settings = settings;
@@ -92,7 +97,7 @@ export class BoardView {
   this.controls.minDistance = 4; this.controls.maxDistance = 55;
   this.controls.minPolarAngle = .15; this.controls.maxPolarAngle = Math.PI * .43;
   this.controls.addEventListener('change', () => { this.dirty = true;this.overlayDirty=true; });
-  this.controls.addEventListener('start',()=>{this.customizedView=true;});
+  this.controls.addEventListener('start',()=>{this.customizedView=true;this.tween=null;});
   this.assets.buildBoard(this.scene); this.assets.buildCity(this.scene);
   batchStaticScene(this.scene);
   this.cityLife=new CityLife(this.scene,this.assets,{key,fill,hemisphere});
@@ -115,16 +120,19 @@ export class BoardView {
    die.position.set(this.diceRest[i].x, DICE_FIELD.floor+.375, this.diceRest[i].z); die.castShadow = true; die.receiveShadow = true;
    this.dice.push(die); this.scene.add(die);
   }
-  let down = {x: 0, y: 0};
-  this.renderer.domElement.addEventListener('pointerdown', event => { down = {x: event.clientX, y: event.clientY}; });
+  let down = {x: 0, y: 0, time: 0};const pointers=new Set<number>();let multiTouch=false;
+  this.renderer.domElement.addEventListener('pointerdown', event => { pointers.add(event.pointerId);if(pointers.size>1)multiTouch=true;else{multiTouch=false;down = {x: event.clientX, y: event.clientY, time: performance.now()};} });
+  this.renderer.domElement.addEventListener('pointercancel', event => { pointers.delete(event.pointerId); });
   this.renderer.domElement.addEventListener('pointerup', event => {
-   if(event.button!==0)return;
-   if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8) return;
+   pointers.delete(event.pointerId);
+   if(event.button!==0||multiTouch)return;
+   // A tap is short and nearly stationary; drags and pinches only move the camera.
+   if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 10||performance.now()-down.time>600) return;
    const rect = this.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
    ray.setFromCamera(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1), this.camera);
    const targets=[...this.assets.tiles,...Array.from(this.assets.landmarks.values()).filter(landmark=>landmark.visible),...Array.from(this.buildings.values(),entry=>entry.group)];
    const hit = ray.intersectObjects(targets,true)[0];
-   if(hit){let object:THREE.Object3D|null=hit.object;while(object&&object.userData.index===undefined)object=object.parent;if(object)this.onSelect(object.userData.index);}
+   let object:THREE.Object3D|null=hit?.object??null;while(object&&object.userData.index===undefined)object=object.parent;this.onSelect(object?object.userData.index:-1);
   });
   this.configure(settings);
   new ResizeObserver(() => this.resize()).observe(element); this.resize();
@@ -135,7 +143,7 @@ export class BoardView {
  update(game: Game, animate = true) {
   const old = this.state, now = performance.now(); this.state = game;
   if (!animate || old&&game.eventSeq<old.eventSeq) { this.paths.clear(); this.flourishes.clear();this.diceUntil = 0;this.clearPropertyEffects(); }
-  const propertyChanges=animate&&this.settings.speed!=='reduced'&&!this.motionPreference.matches?propertyMotions(old,game):[];
+  const propertyChanges=animate&&!this.reduced?propertyMotions(old,game):[];
   const roll=old&&animate?game.log.filter(event=>event.id>old.eventSeq&&event.kind==='roll').at(-1):undefined;
   if(roll){
    this.dicePlan=planDiceRoll(this.dice.map(die=>({x:die.position.x,z:die.position.z,yaw:die.rotation.y})));this.diceRest=this.dicePlan.rest;
@@ -208,20 +216,37 @@ export class BoardView {
    this.assets.ownershipHighlights.get(index)!.visible=this.highlightMine&&!!this.viewerId&&owner?.id===this.viewerId;
   });this.dirty=true;
  }
- focus(index: number) { this.customizedView=true;const direction = this.camera.position.clone().sub(this.controls.target).normalize(); this.controls.target.copy(spacePosition(index)); this.camera.position.copy(this.controls.target).addScaledVector(direction, 12); this.controls.update(); this.dirty = true; }
+ focus(index: number, animate=true) {
+  this.customizedView=true;const direction = this.camera.position.clone().sub(this.controls.target).normalize(),target=spacePosition(index);target.y=.6;
+  const distance=THREE.MathUtils.clamp(Math.min(12,this.fitDistance*.55),this.controls.minDistance,this.controls.maxDistance);
+  this.moveCamera(target.clone().addScaledVector(direction,distance),target,animate);
+ }
+ /** Eased camera move; skipped for reduced motion. User input cancels it. */
+ private moveCamera(position:THREE.Vector3,target:THREE.Vector3,animate:boolean){
+  if(!animate||this.reduced||this.paused){this.tween=null;this.controls.target.copy(target);this.camera.position.copy(position);this.controls.update();this.dirty=true;return;}
+  this.tween={fromPosition:this.camera.position.clone(),fromTarget:this.controls.target.clone(),toPosition:position,toTarget:target,start:performance.now(),duration:this.settings.speed==='fast'?360:560};this.dirty=true;
+ }
  zoom(delta: number) {
   this.customizedView=true;
   const offset = this.camera.position.clone().sub(this.controls.target); offset.setLength(THREE.MathUtils.clamp(offset.length() * (delta > 0 ? .88 : 1.12), this.controls.minDistance, this.controls.maxDistance));
   this.camera.position.copy(this.controls.target).add(offset); this.controls.update(); this.dirty = true;
  }
- reset() { this.customizedView=false;this.controls.target.set(0, .8, 0); this.camera.position.copy(this.controls.target).addScaledVector(this.viewDirection, this.fitDistance); this.controls.update(); this.dirty = true; }
+ reset(animate=false) { this.customizedView=false;const target=new THREE.Vector3(0,.8,0);this.moveCamera(target.clone().addScaledVector(this.viewDirection,this.fitDistance),target,animate); }
+ /** Stop drawing while the board is hidden behind a full-screen page. */
+ setActive(active:boolean){if(this.active===active)return;this.active=active;this.dirty=true;if(active){this.lastSize='';this.resize();}}
+ /** App in background: release the animation loop entirely; resume restores it. */
+ setPaused(paused:boolean){if(this.paused===paused)return;this.paused=paused;this.renderer.setAnimationLoop(paused?null:()=>this.frame());if(!paused){this.cityLife.resetClock();this.dirty=true;}}
+ /** Gentle orbit behind the main menu. */
+ setIdle(idle:boolean){this.idle=idle;this.controls.autoRotate=idle&&!this.reduced;this.controls.autoRotateSpeed=.45;this.dirty=true;}
  configure(settings: Settings) {
-  this.settings = settings; this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
+  this.settings = settings;
+  const sensitivity={gentle:.65,normal:1,quick:1.45}[settings.camera]??1;this.controls.rotateSpeed=.85*sensitivity;this.controls.zoomSpeed=sensitivity;this.controls.panSpeed=.9*sensitivity;this.controls.autoRotate=this.idle&&!this.reduced;
+  this.renderer.setPixelRatio(Math.min(devicePixelRatio, settings.quality === 'low' ? 1 : settings.quality === 'medium' ? 1.5 : 2));
   const snapPlayback=this.reduced&&this.playbackActive;
   const shadowSize=settings.quality==='high'?2048:1024;
   if(this.keyLight.shadow.mapSize.x!==shadowSize){this.keyLight.shadow.mapSize.set(shadowSize,shadowSize);this.keyLight.shadow.map?.dispose();this.keyLight.shadow.map=null;}
-  this.cityLife.configure(settings.speed==='reduced'||this.motionPreference.matches,settings.quality);
-  if(settings.speed==='reduced'||this.motionPreference.matches)this.clearPropertyEffects();
+  this.cityLife.configure(this.reduced,settings.quality);
+  if(this.reduced)this.clearPropertyEffects();
   this.renderer.shadowMap.enabled = settings.quality !== 'low'; this.renderer.shadowMap.needsUpdate = true; this.dirty = true;
   if (this.reduced) { this.paths.clear();this.flourishes.clear(); this.diceUntil = 0; if (this.state) this.update(this.state, false); }
   if(snapPlayback)queueMicrotask(()=>this.onSettled());
@@ -229,19 +254,24 @@ export class BoardView {
  private resize() {
   const width = this.element.clientWidth, height = this.element.clientHeight, key = `${width}-${height}`; if (!width || !height || key === this.lastSize) return;
   this.lastSize = key;this.overlayDirty=true; this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+  // Tall phone stages look at the board edge-on from the Start side so its edge, not its diagonal, spans the width.
+  const portrait=this.camera.aspect<.85;
+  this.viewDirection=portrait?new THREE.Vector3(.06,.78,.6).normalize():new THREE.Vector3(12,15,16).normalize();
   // Fit the physical board to the available stage, including its corner-to-corner width.
   const horizontal = new THREE.Vector3(this.viewDirection.z, 0, -this.viewDirection.x).normalize(), vertical = new THREE.Vector3().crossVectors(this.viewDirection, horizontal).normalize();
   let required = 0; const tangent = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
   for (const x of [-6.7, 6.7]) for (const z of [-6.7, 6.7]) for (const y of [-.35, 1.1]) { const corner = new THREE.Vector3(x, y - .8, z), depth = corner.dot(this.viewDirection); required = Math.max(required, depth + Math.abs(corner.dot(horizontal)) / (tangent * this.camera.aspect), depth + Math.abs(corner.dot(vertical)) / tangent); }
   // Aircraft and clouds must remain visible above the skyline without shrinking the board unnecessarily.
-  for(const x of [-4.15,4.15])for(const z of [-4.4,1.55]){const corner=new THREE.Vector3(x,5.95-.8,z),depth=corner.dot(this.viewDirection);required=Math.max(required,depth+Math.abs(corner.dot(horizontal))/(tangent*this.camera.aspect),depth+Math.abs(corner.dot(vertical))/tangent);}
-  const priorFit=this.fitDistance;this.fitDistance = required * 1.06;
+  if(!portrait)for(const x of [-4.15,4.15])for(const z of [-4.4,1.55]){const corner=new THREE.Vector3(x,5.95-.8,z),depth=corner.dot(this.viewDirection);required=Math.max(required,depth+Math.abs(corner.dot(horizontal))/(tangent*this.camera.aspect),depth+Math.abs(corner.dot(vertical))/tangent);}
+  const priorFit=this.fitDistance;this.fitDistance = required * (portrait?1.03:1.06);
   if(this.customizedView){const offset=this.camera.position.clone().sub(this.controls.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*this.fitDistance/priorFit,this.controls.minDistance,this.controls.maxDistance));this.camera.position.copy(this.controls.target).add(offset);this.controls.update();this.dirty=true;}
   else this.reset();
  }
  private frame() {
-  if (document.hidden) return;
-  const now = performance.now(); this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0||this.flourishes.size>0;
+  if (document.hidden||!this.active) return;
+  const now = performance.now();
+  if(this.tween){const t=Math.min(1,(now-this.tween.start)/this.tween.duration),k=t<.5?4*t*t*t:1-(-2*t+2)**3/2;this.camera.position.lerpVectors(this.tween.fromPosition,this.tween.toPosition,k);this.controls.target.lerpVectors(this.tween.fromTarget,this.tween.toTarget,k);this.dirty=true;if(t>=1)this.tween=null;}
+  this.controls.update(); const rolling = now < this.diceUntil, animating = rolling || this.wasRolling || this.paths.size > 0||this.flourishes.size>0;
   const ambient=this.cityLife.update(now);if(this.cityStatus.textContent!==this.cityLife.status)this.cityStatus.textContent=this.cityLife.status;
   const dicePoses=rolling&&this.dicePlan?sampleDiceRoll(this.dicePlan,Math.min(1,(now-this.diceStarted)/(this.diceUntil-this.diceStarted))):null;
   this.dice.forEach((die,i)=>{
@@ -262,7 +292,7 @@ export class BoardView {
   for(const [id,flourish] of this.flourishes){const token=this.tokens.get(id);if(!token||this.paths.has(id)){this.flourishes.delete(id);continue;}const t=Math.min(1,(now-flourish.start)/flourish.duration),size=token.userData.baseScale??1;token.position.y=TOKEN_HEIGHT+Math.sin(t*Math.PI)*.08;token.rotation.z=Math.sin(t*Math.PI*2)*(1-t)*.025;token.scale.setScalar(size*(1+Math.sin(t*Math.PI)*.04));if(t>=1){token.position.y=TOKEN_HEIGHT;token.rotation.z=0;token.scale.setScalar(size);this.flourishes.delete(id);}}
   const propertyAnimating=this.propertyEffects.size>0;
   for(const [index,effect]of this.propertyEffects){
-   const pose=propertyMotionPose(effect.motion.kind,now-effect.start,this.settings.speed==='reduced'||this.motionPreference.matches);
+   const pose=propertyMotionPose(effect.motion.kind,now-effect.start,this.reduced);
    effect.ring.visible=pose.visible;effect.ring.material.opacity=pose.opacity;effect.ring.scale.setScalar(pose.ringScale);
    for(const house of effect.growing)house.scale.y=pose.growth;
    if(pose.done)this.finishPropertyEffect(index);

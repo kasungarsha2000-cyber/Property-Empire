@@ -1,7 +1,7 @@
 import type {Game} from '../../../packages/core/types';
 import {CARDS} from '../../../packages/core/board';
 import {gameNotices,type GameNotice} from './game-events';
-import {escapeHTML} from './ui-components';
+import {esc as escapeHTML} from './ui/dom';
 import {SMALL_NOTICE_MS} from './presentation-timing';
 export type EventTone='positive'|'negative'|'neutral';
 export function noticeTone(notice:GameNotice):EventTone{

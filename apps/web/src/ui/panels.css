@@ -1,0 +1,229 @@
+/* Decision panels rise from the bottom of the board and never resize it. */
+.panel{position:relative;width:100%;max-width:520px;max-height:min(72vh,100%);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:var(--s3);padding:var(--s4);border-radius:var(--r-xl) var(--r-xl) 0 0;background:var(--surface);box-shadow:0 -12px 34px rgba(21,43,59,.14);animation:panel-up var(--t-panel) var(--ease-out) both}
+.panel::before{content:'';position:absolute;left:0;right:0;top:0;height:5px;background:var(--group,var(--primary));opacity:.9}
+@keyframes panel-up{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+.panel-head{display:flex;align-items:flex-start;gap:var(--s2)}
+.panel-head>div{flex:1;min-width:0}
+.panel-head h2{font-size:var(--fs-2xl);letter-spacing:-.02em;margin-top:2px}
+.panel-min{margin:-8px -8px 0 0;color:var(--text-2)}
+.panel-actions{display:flex;gap:var(--s2);flex-wrap:wrap}
+.panel-actions>.btn{flex:1 1 120px}
+.panel-actions>.btn.primary{flex-grow:1.6}
+.panel-actions.column{display:grid}
+.panel .note{margin-top:-2px}
+.more>summary{cursor:pointer;font-size:var(--fs-sm);font-weight:600;color:var(--primary);min-height:32px;display:flex;align-items:center;list-style:none}
+.more>summary::-webkit-details-marker{display:none}
+.more[open]>summary{margin-bottom:var(--s2)}
+.purchase-body{display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--s3);align-items:center}
+.thumb{border-radius:var(--r-md);overflow:hidden;background:var(--surface-sunk);aspect-ratio:400/224}
+.thumb svg,.deed-art svg{display:block;width:100%;height:100%}
+.amount{font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em}
+.amount.big{font-size:1.625rem;color:var(--emerald-deep)}
+.list-price{font-size:var(--fs-xs);color:var(--text-2);font-weight:600;padding-top:6px;white-space:nowrap}
+
+/* Auction */
+.bid-board{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s2) var(--s4);border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--line)}
+.bid-board .amount.big{display:block;animation:bid-pop var(--t-celebrate) var(--ease-spring)}
+.leader{display:flex;align-items:center;gap:var(--s2);font-weight:600;font-size:var(--fs-sm)}
+@keyframes bid-pop{0%{transform:scale(.92);opacity:.6}50%{transform:scale(1.05);opacity:1}100%{transform:none}}
+.bidders{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.bidder{flex:none;display:grid;justify-items:center;gap:2px;min-width:60px;font-size:var(--fs-xs);font-weight:600}
+.bidder small{font-size:var(--fs-2xs);color:var(--text-2);font-weight:500}
+.bidder.leading small{color:var(--gold-strong);font-weight:700}
+.bidder.turn .avatar{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--primary)}
+.bidder.out{opacity:.4}
+.auction-log{display:grid;gap:2px;font-size:var(--fs-xs);color:var(--text-2)}
+.auction-log li:first-child{color:var(--text)}
+.bid-controls{display:grid;gap:var(--s3)}
+.waiting{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm)}
+
+/* Jail */
+.jail-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--r-md);background:var(--surface-sunk);color:#5D6B72}
+.jail-icon .icon{width:24px;height:24px}
+.attempts{display:flex;gap:var(--s2)}
+.attempts li{flex:1;display:grid;place-items:center;height:8px;border-radius:var(--r-pill);background:var(--mist);font-size:0}
+.attempts li.used{background:var(--text-3)}
+.attempts li.now{background:var(--gold)}
+
+/* Debt */
+.debt-meter{display:grid;gap:6px}
+.meter{height:10px;border-radius:var(--r-pill);background:var(--danger-soft);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:inherit;background:var(--success);transition:width var(--t-cash) var(--ease)}
+.meter-labels{display:flex;justify-content:space-between;font-size:var(--fs-xs);color:var(--text-2);font-variant-numeric:tabular-nums}
+
+/* Trade comparison */
+.compare{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:var(--s2);align-items:start}
+.compare section{display:grid;gap:var(--s2);padding:var(--s3);border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--line);min-height:100%}
+.compare h3{font-size:var(--fs-xs);color:var(--text-2);font-weight:600}
+.compare-arrow{align-self:center;display:grid;place-items:center;color:var(--gold-strong)}
+.assets{display:grid;gap:6px}
+.asset{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);font-weight:600;line-height:1.25;min-width:0}
+.asset span{min-width:0;overflow-wrap:anywhere}
+.asset small{display:block;font-weight:500;color:var(--danger);font-size:var(--fs-2xs)}
+.asset>i{width:10px;height:22px;border-radius:3px;background:var(--group);flex:none}
+.asset .icon{width:18px;height:18px;color:var(--text-2)}
+.nothing{font-size:var(--fs-sm);color:var(--text-3)}
+.sentence{font-size:var(--fs-sm);color:var(--text-2);line-height:1.5}
+
+/* Title deed */
+.deed{display:grid;gap:var(--s4)}
+.deed-band{display:grid;gap:6px;justify-items:start;padding:var(--s4);border-radius:var(--r-lg);background:linear-gradient(180deg,color-mix(in srgb,var(--group) 22%,white) 0%,var(--surface) 100%);border-top:6px solid var(--group)}
+.deed-kicker{font-size:var(--fs-xs);font-weight:600;color:var(--text-2)}
+.deed-band h2{font-size:var(--fs-2xl);letter-spacing:-.02em}
+.deed-art{position:relative;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-sunk);aspect-ratio:400/224;max-height:240px;margin:0 auto;width:100%}
+.deed-art svg{height:100%;object-fit:cover}
+.stamp{position:absolute;right:12px;top:12px;padding:4px 10px;border:2px solid var(--danger);border-radius:8px;color:var(--danger);font-weight:750;font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.85);transform:rotate(-6deg)}
+.is-mortgaged .deed-art svg{filter:grayscale(.6) opacity(.75)}
+.stat-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+.stat-row>div,.summary-row>div{display:grid;gap:2px;padding:var(--s3);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--e1);min-width:0}
+.stat-row span,.summary-row span{font-size:var(--fs-xs);color:var(--text-2)}
+.stat-row strong,.summary-row strong{font-size:var(--fs-lg);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.summary-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+.summary-row.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+.summary-row strong small{font-size:var(--fs-2xs);font-weight:500;color:var(--text-2)}
+.deed-section{display:grid;gap:var(--s2);padding:var(--s4);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--e1)}
+.deed-section h3{font-size:var(--fs-sm);color:var(--text-2);font-weight:600}
+.rent-table{display:grid}
+.rent-table>div{display:flex;justify-content:space-between;align-items:center;min-height:36px;padding:0 var(--s2);border-radius:8px;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.rent-table>div:nth-child(even){background:var(--surface-2)}
+.rent-table dd{font-weight:650}
+.rent-table>div.active{background:var(--gold-soft);box-shadow:inset 3px 0 0 var(--gold)}
+.rent-table>div.active dt{font-weight:650}
+.deed-note,.deed-text{font-size:var(--fs-xs);color:var(--text-2)}
+.deed-text{font-size:var(--fs-md);line-height:1.5}
+.set-chips{display:flex;flex-wrap:wrap;gap:6px}
+.set-chip{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 10px 4px 8px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--line);font-size:var(--fs-xs);font-weight:600}
+.set-chip small{color:var(--text-2);font-weight:500}
+.set-chip i{width:10px;height:10px;border-radius:50%;background:var(--player);box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+.set-chip.current{border-color:var(--group);box-shadow:inset 0 0 0 1px var(--group)}
+.deed-actions{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.deed-actions>.btn{flex:1 1 150px}
+.deed-actions.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.deed-actions.grid>.btn{font-size:var(--fs-sm);padding:0 10px}
+.deed-foot{display:flex;justify-content:center}
+
+/* Properties sheet */
+.banner{display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s3);border-radius:var(--r-md);font-size:var(--fs-sm);line-height:1.45}
+.banner .icon{margin-top:1px}
+.banner.warn{background:var(--danger-soft);color:#7C3631}
+.banner.good{background:var(--success-soft);color:#1C5E48}
+.sets{display:grid;gap:var(--s3)}
+.set{border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--e1);overflow:hidden}
+.set-head{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4) var(--s2)}
+.set-head h3{flex:1;font-size:var(--fs-md)}
+.set-dot{width:12px;height:12px;border-radius:4px;background:var(--group)}
+.set-count{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);font-weight:650;color:var(--text-2);font-variant-numeric:tabular-nums}
+.set-count.complete{color:var(--success)}
+.set-count .icon{width:15px;height:15px}
+.set-missing{padding:0 var(--s4) var(--s3);font-size:var(--fs-xs);color:var(--text-2)}
+.prop-list{display:grid}
+.prop-row{display:flex;align-items:center;gap:var(--s1);border-top:1px solid var(--line);padding-right:var(--s2)}
+.prop-main{flex:1;min-width:0;display:flex;align-items:center;gap:var(--s3);min-height:58px;padding:var(--s2) var(--s2) var(--s2) var(--s4);border:0;background:transparent;text-align:left}
+.prop-main:active{background:rgba(21,43,59,.04)}
+.prop-swatch{width:6px;align-self:stretch;min-height:34px;border-radius:3px;background:var(--group);flex:none}
+.prop-text{flex:1;min-width:0;display:grid;line-height:1.25}
+.prop-text strong{font-size:var(--fs-md);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-text small{font-size:var(--fs-xs);color:var(--text-2)}
+.prop-row.mortgaged .prop-text strong{color:var(--text-2)}
+.prop-quick{display:flex;gap:4px;flex:none}
+.btn.quick{width:44px;min-height:44px;padding:0;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.btn.quick.with-amount{width:auto;padding:0 10px;font-size:var(--fs-xs);gap:4px}
+.btn.quick .icon{width:19px;height:19px}
+.btn.quick:disabled{opacity:.35}
+.empty{display:grid;justify-items:center;gap:var(--s2);text-align:center;padding:var(--s6) var(--s4);color:var(--text-2)}
+.empty .icon{width:36px;height:36px;color:var(--text-3)}
+.empty h3{color:var(--text);font-size:var(--fs-lg)}
+
+/* Trade builder */
+.partners{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * var(--s4));padding:2px var(--s4)}
+.partner{flex:none;display:grid;justify-items:center;gap:2px;min-width:76px;padding:var(--s2) 6px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--surface);font-size:var(--fs-xs);font-weight:600}
+.partner small{font-weight:500;color:var(--text-2);font-variant-numeric:tabular-nums}
+.partner.on{border-color:var(--primary);background:var(--emerald-soft)}
+.trade-side-body{display:grid;gap:var(--s4)}
+.side-title{font-size:var(--fs-sm);color:var(--text-2);font-weight:600}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--s2)}
+.pick{position:relative;display:grid;gap:2px;align-content:start;min-height:72px;padding:14px 12px 10px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--surface);text-align:left;overflow:hidden;transition:border-color .15s,background-color .15s,transform var(--t-press) var(--ease)}
+.pick:active:not(:disabled){transform:scale(.97)}
+.pick-band{position:absolute;left:0;right:0;top:0;height:5px;background:var(--group)}
+.pick strong{font-size:var(--fs-sm);line-height:1.25}
+.pick small{font-size:var(--fs-2xs);color:var(--text-2)}
+.pick.on{border-color:var(--primary);background:var(--emerald-soft)}
+.pick:disabled{opacity:.5;cursor:default}
+.pick-check{position:absolute;right:8px;top:12px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff}
+.pick-check .icon{width:13px;height:13px}
+.amount-row{display:grid;gap:var(--s2)}
+.amount-label{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--fs-sm);font-weight:600}
+.amount-label small{font-weight:500;color:var(--text-2)}
+.trade-footer{position:sticky;bottom:calc(-1 * (var(--s5) + var(--safe-b)));display:grid;gap:var(--s2);margin:0 calc(-1 * var(--s4)) calc(-1 * (var(--s5) + var(--safe-b)));padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-b));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -6px 16px rgba(21,43,59,.05)}
+
+/* Cards: Chance (warm orange) and Community Chest (soft blue) share one component */
+.card-stage{display:grid;justify-items:center;gap:var(--s4);width:min(360px,100%)}
+.card-flip{position:relative;width:100%;perspective:1100px;display:grid}
+.card-flip>*{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card-back{display:grid;place-items:center;align-content:center;gap:var(--s2);border-radius:var(--r-xl);background:var(--deck);color:#fff;box-shadow:var(--e3);transform:rotateY(180deg);min-height:240px}
+.card-back-mark{width:72px;height:72px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.18)}
+.card-back-mark svg{width:46px;height:46px}
+.card-back-name{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:var(--fs-sm)}
+.deck-chance{--deck:var(--chance);--deck-soft:var(--chance-soft)}
+.deck-community{--deck:var(--community);--deck-soft:var(--community-soft)}
+.card-face{position:relative;display:grid;gap:var(--s2);padding:var(--s4);border-radius:var(--r-xl);background:var(--surface);box-shadow:var(--e3);border-top:6px solid var(--deck);text-align:center}
+.card-face-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);font-size:var(--fs-xs);font-weight:700;color:var(--deck);letter-spacing:.06em;text-transform:uppercase}
+.card-face-head small{font-weight:500;color:var(--text-2);letter-spacing:0;text-transform:none;text-align:right}
+.card-art{height:96px;display:grid;place-items:center;border-radius:var(--r-md);background:var(--deck-soft)}
+.card-art svg{height:100%;width:auto}
+.card-title{font-size:var(--fs-xl);letter-spacing:-.01em}
+.card-text{font-size:var(--fs-lg);line-height:1.45;color:var(--text)}
+.card-amount{font-size:var(--fs-2xl);font-weight:750;font-variant-numeric:tabular-nums}
+.card-notes{display:grid;gap:4px;text-align:left;font-size:var(--fs-xs);color:var(--text-2);padding-top:var(--s2);border-top:1px solid var(--line)}
+.card-notes li{padding-left:14px;position:relative;line-height:1.45}
+.card-notes li::before{content:'';position:absolute;left:2px;top:7px;width:5px;height:5px;border-radius:50%;background:var(--deck)}
+.card-cta{display:flex;gap:var(--s2);width:100%;justify-content:center}
+.card-cta .btn.primary{flex:1;max-width:220px}
+.card-cta .btn.quiet{background:rgba(255,255,255,.8)}
+.card-stage .card-flip{animation:card-rise var(--t-panel) var(--ease-out) both}
+.card-stage .card-face{animation:card-face-in var(--t-flip) calc(var(--t-panel) * .6) var(--ease) both}
+.card-stage .card-back{animation:card-back-out var(--t-flip) calc(var(--t-panel) * .6) var(--ease) both}
+@keyframes card-rise{from{transform:translateY(60px) scale(.85);opacity:0}to{transform:none;opacity:1}}
+@keyframes card-face-in{from{transform:rotateY(-180deg)}to{transform:rotateY(0)}}
+@keyframes card-back-out{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
+.card-stage.reduced .card-flip,.card-stage.reduced .card-face,.card-stage.reduced .card-back{animation:none}
+.card-stage .card-cta{animation:fade-in var(--t-panel) calc(var(--t-panel) + var(--t-flip)) both}
+.card-stage.reduced .card-cta{animation:none}
+.card-stage.observer{position:absolute;top:calc(var(--safe-t) + 132px);left:50%;transform:translateX(-50%);width:min(300px,calc(100% - 24px));pointer-events:auto;gap:var(--s2)}
+.card-face.compact{padding:var(--s3);gap:6px}
+.card-face.compact .card-art{height:64px}
+.card-face.compact .card-title{font-size:var(--fs-lg)}
+.card-face.compact .card-text{font-size:var(--fs-sm)}
+.card-face.compact .card-amount{font-size:var(--fs-xl)}
+.card-stage.observer .card-cta .btn.quiet{background:var(--surface);box-shadow:var(--e1)}
+.catalog>summary{cursor:pointer;font-weight:600;color:var(--primary);min-height:44px;display:flex;align-items:center}
+.catalog-deck{display:grid;gap:var(--s3);margin-top:var(--s4)}
+.catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--s3)}
+.catalog-grid .card-face{box-shadow:var(--e1)}
+
+/* Settings, menus, history, player */
+.settings-group{display:grid;padding:var(--s2) var(--s4);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--e1)}
+.settings-group h3{font-size:var(--fs-xs);color:var(--text-2);font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding-top:var(--s2)}
+.settings-group>*+*:not(h3){border-top:1px solid var(--line)}
+.settings-group h3+*{border-top:0!important}
+.game-menu .list,.settings-group .list-button{background:var(--surface);border-radius:var(--r-lg)}
+.game-menu .list{box-shadow:var(--e1);padding:var(--s1)}
+.rules{gap:var(--s3)}
+.rule{display:grid;gap:4px;padding:var(--s3) var(--s4);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--e1)}
+.rule h3{font-size:var(--fs-md)}
+.rule p{font-size:var(--fs-sm);color:var(--text-2);line-height:1.55}
+.history{display:grid;border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--e1);overflow:hidden}
+.history-item{display:flex;align-items:center;gap:var(--s3);min-height:52px;padding:var(--s2) var(--s4);border-top:1px solid var(--line);font-size:var(--fs-sm)}
+.history-item:first-child{border-top:0}
+.history-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--surface-sunk);color:var(--text-2);flex:none}
+.history-icon .icon{width:17px;height:17px}
+.history-text{flex:1;min-width:0;line-height:1.35}
+.history-item b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.player-hero{display:flex;align-items:center;gap:var(--s3)}
+.player-hero h3{font-size:var(--fs-xl)}
+.player-hero p{font-size:var(--fs-sm);color:var(--text-2)}
+.list-title{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-md)}
+.list-title span{font-size:var(--fs-xs);font-weight:650;color:var(--text-2);background:var(--surface-sunk);border-radius:var(--r-pill);padding:2px 8px}
+.player-sheet .prop-list,.portfolio .prop-list{background:var(--surface);border-radius:var(--r-lg)}
+.player-sheet .prop-list{box-shadow:var(--e1);overflow:hidden}
+.player-sheet .prop-row:first-child{border-top:0}

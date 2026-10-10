@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {createGame,applyAction} from '../packages/core/index';
-import {tradeSummaryMarkup} from '../apps/web/src/ui-components';
+import {tradeComparison} from '../apps/web/src/ui/decisions';
 import {portfolioGroups,tradePreview,type TradeDraft} from '../apps/web/src/game-ui';
 const base=()=>{const g=createGame({players:[{id:'a',name:'Ada',bot:false},{id:'b',name:'Ben',bot:false}]},42);g.current=0;g.phase='manage';return g;};
 const draft=(patch:Partial<TradeDraft>={}):TradeDraft=>({type:'offerTrade',to:'b',give:[],receive:[],giveCash:0,receiveCash:0,giveCards:0,receiveCards:0,...patch});
@@ -11,5 +11,5 @@ describe('portfolio and visual trade guidance',()=>{
  it('explains why a developed group cannot be traded',()=>{const g=base();g.properties[1].owner='a';g.properties[3].owner='a';g.properties[3].level=1;expect(tradePreview(g,'a',draft({give:[1]})).error).toBe('Sell group buildings before trading');});
  it('does not claim a complete group after giving away another deed in the same exchange',()=>{const g=base();g.properties[1].owner='a';g.properties[3].owner='b';expect(tradePreview(g,'a',draft({give:[1],receive:[3]})).completedForSender).toEqual([]);});
  it('keeps a cashless debt trade available and accounts for automatic debt payment',()=>{const g=base();g.phase='debt';g.debt={player:'a',amount:50,creditor:null};g.players[0].cash=0;g.properties[1].owner='a';const p=tradePreview(g,'a',draft({give:[1],receiveCash:70}));expect(p.error).toBeNull();expect(p.giveCashAfter).toBe(20);});
- it('explains the debt deduction in an incoming offer without changing state',()=>{const g=base();g.phase='debt';g.debt={player:'a',amount:50,creditor:null};g.players[0].cash=0;g.properties[1].owner='a';const d=draft({give:[1],receiveCash:70}),incoming=applyAction(g,'a',d),before=JSON.stringify(incoming);expect(tradeSummaryMarkup(incoming,'a',d)).toContain('$50 debt payment');expect(tradePreview(incoming,'a',d).giveCashAfter).toBe(20);expect(JSON.stringify(incoming)).toBe(before);});
+ it('explains the debt deduction in an incoming offer without changing state',()=>{const g=base();g.phase='debt';g.debt={player:'a',amount:50,creditor:null};g.players[0].cash=0;g.properties[1].owner='a';const d=draft({give:[1],receiveCash:70}),incoming=applyAction(g,'a',d),before=JSON.stringify(incoming);expect(tradeComparison(incoming,'a',d)).toContain('$50 debt is paid');expect(tradePreview(incoming,'a',d).giveCashAfter).toBe(20);expect(JSON.stringify(incoming)).toBe(before);});
 });
